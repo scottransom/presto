@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 from builtins import zip
 import numpy as np
-from presto.Pgplot import *
+import presto.ppgplot as ppgplot
+import presto.Pgplot as pgp
 import presto.filterbank as fil
 import presto.psrfits as pfits
 import presto.psr_utils as pu
@@ -155,7 +156,7 @@ class dedisp_method(object):
         hiDM = self.DMs[-1] - DMspan * 0.02
         midDM = self.DMs[0] + DMspan * 0.5
         dt_ms = 1000.0 * self.obs.dt * self.downsamp
-        plotxy(np.log10(self.total_smear(self.DMs)), self.DMs, width=4)
+        pgp.plotxy(np.log10(self.total_smear(self.DMs)), self.DMs, width=4)
         ppgplot.pgslw(1)
         ppgplot.pgsch(0.8)
         ppgplot.pgptxt(
@@ -166,12 +167,12 @@ class dedisp_method(object):
             "%d (%.1f%%)" % (self.numDMs, 100.0 * work_fract),
         )
         # Sample time
-        plotxy(
+        pgp.plotxy(
             np.log10(np.zeros(self.numDMs) + dt_ms), self.DMs, width=1, color="green"
         )
         ppgplot.pgptxt(loDM, np.log10(0.85 * dt_ms), 0.0, 0.0, "%g" % dt_ms)
         # DM stepsize smearing
-        plotxy(
+        pgp.plotxy(
             np.log10(np.zeros(self.numDMs) + self.BW_smearing),
             self.DMs,
             width=1,
@@ -181,10 +182,10 @@ class dedisp_method(object):
             hiDM, np.log10(0.85 * self.BW_smearing), 0.0, 1.0, "%g" % self.dDM
         )
         # channel smearing
-        plotxy(np.log10(self.chan_smear(self.DMs)), self.DMs, width=1, color="blue")
+        pgp.plotxy(np.log10(self.chan_smear(self.DMs)), self.DMs, width=1, color="blue")
         # subband smearing
         if self.numsub:
-            plotxy(
+            pgp.plotxy(
                 np.log10(np.zeros(self.numDMs) + self.sub_smearing),
                 self.DMs,
                 width=1,
@@ -350,27 +351,10 @@ def dm_steps(
         And if device is not None, use it as the PGPLOT device for plotting.
     """
     # Allowable DM stepsizes
-    allow_dDMs = [
-        0.01,
-        0.02,
-        0.03,
-        0.05,
-        0.1,
-        0.2,
-        0.3,
-        0.5,
-        1.0,
-        2.0,
-        3.0,
-        5.0,
-        10.0,
-        20.0,
-        30.0,
-        50.0,
-        100.0,
-        200.0,
-        300.0,
-    ]
+    # fmt: off
+    allow_dDMs = [0.01, 0.02, 0.03, 0.05, 0.1, 0.2, 0.3, 0.5, 1.0,
+                2.0, 3.0, 5.0, 10.0, 20.0, 30.0, 50.0, 100.0, 200.0, 300.0]
+    # fmt: on
 
     # Allowable number of downsampling factors
     allow_downsamps = choose_downsamps(blocklen)
@@ -527,7 +511,7 @@ def dm_steps(
 
     if device is not None:
         # Plot them
-        plotxy(
+        pgp.plotxy(
             np.log10(tot_smear),
             DMs,
             color="orange",
@@ -597,7 +581,7 @@ def dm_steps(
             print(method, "  %.4g" % fract)
             method.plot(fract)
         print("\n\n")
-        closeplot()
+        pgp.closeplot()
     return methods
 
 

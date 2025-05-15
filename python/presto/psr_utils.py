@@ -1,7 +1,7 @@
 from builtins import str
 from builtins import range
 import bisect
-import numpy as Num
+import numpy as np
 import numpy.fft as FFT
 from scipy.special import ndtr, ndtri, chdtrc, chdtri, fdtrc, i0, kolmogorov
 from scipy.optimize import leastsq
@@ -9,15 +9,13 @@ import scipy.optimize.zeros as zeros
 from presto import Pgplot, ppgplot, sinc_interp
 import presto.psr_constants as pc
 
-isintorlong = lambda x: type(x) == type(0) or type(x) == type(0)
-
 
 def span(Min, Max, Number):
     """
     span(Min, Max, Number):
         Create a range of 'Num' floats given inclusive 'Min' and 'Max' values.
     """
-    return Num.linspace(Min, Max, Number)
+    return np.linspace(Min, Max, Number)
 
 
 def distance(width):
@@ -26,9 +24,9 @@ def distance(width):
         Return a 'width' x 'width' Num Python array with each
             point set to the geometric distance from the array's center.
     """
-    x = Num.arange(-width / 2.0 + 0.5, width / 2.0 + 0.5, 1.0) ** 2
-    x = Num.resize(x, (width, width))
-    return Num.sqrt(x + Num.transpose(x))
+    x = np.arange(-width / 2.0 + 0.5, width / 2.0 + 0.5, 1.0) ** 2
+    x = np.resize(x, (width, width))
+    return np.sqrt(x + np.transpose(x))
 
 
 def is_power_of_10(n):
@@ -52,122 +50,21 @@ def choose_N(orig_N):
             Currently, this is 8 * 2 = 16.
     """
     # A list of 4-dgit numbers that are highly factorable by small primes
-    goodfactors = [
-        1000,
-        1008,
-        1024,
-        1056,
-        1120,
-        1152,
-        1200,
-        1232,
-        1280,
-        1296,
-        1344,
-        1408,
-        1440,
-        1536,
-        1568,
-        1584,
-        1600,
-        1680,
-        1728,
-        1760,
-        1792,
-        1920,
-        1936,
-        2000,
-        2016,
-        2048,
-        2112,
-        2160,
-        2240,
-        2304,
-        2352,
-        2400,
-        2464,
-        2560,
-        2592,
-        2640,
-        2688,
-        2800,
-        2816,
-        2880,
-        3024,
-        3072,
-        3136,
-        3168,
-        3200,
-        3360,
-        3456,
-        3520,
-        3584,
-        3600,
-        3696,
-        3840,
-        3872,
-        3888,
-        3920,
-        4000,
-        4032,
-        4096,
-        4224,
-        4320,
-        4400,
-        4480,
-        4608,
-        4704,
-        4752,
-        4800,
-        4928,
-        5040,
-        5120,
-        5184,
-        5280,
-        5376,
-        5488,
-        5600,
-        5632,
-        5760,
-        5808,
-        6000,
-        6048,
-        6144,
-        6160,
-        6272,
-        6336,
-        6400,
-        6480,
-        6720,
-        6912,
-        7040,
-        7056,
-        7168,
-        7200,
-        7392,
-        7680,
-        7744,
-        7776,
-        7840,
-        7920,
-        8000,
-        8064,
-        8192,
-        8400,
-        8448,
-        8624,
-        8640,
-        8800,
-        8960,
-        9072,
-        9216,
-        9408,
-        9504,
-        9600,
-        9680,
-        9856,
-        10000,
-    ]
+    # fmt: off
+    goodfactors = [1000, 1008, 1024, 1056, 1120, 1152, 1200, 1232, 1280,
+                   1296, 1344, 1408, 1440, 1536, 1568, 1584, 1600, 1680,
+                   1728, 1760, 1792, 1920, 1936, 2000, 2016, 2048, 2112,
+                   2160, 2240, 2304, 2352, 2400, 2464, 2560, 2592, 2640,
+                   2688, 2800, 2816, 2880, 3024, 3072, 3136, 3168, 3200,
+                   3360, 3456, 3520, 3584, 3600, 3696, 3840, 3872, 3888,
+                   3920, 4000, 4032, 4096, 4224, 4320, 4400, 4480, 4608,
+                   4704, 4752, 4800, 4928, 5040, 5120, 5184, 5280, 5376,
+                   5488, 5600, 5632, 5760, 5808, 6000, 6048, 6144, 6160,
+                   6272, 6336, 6400, 6480, 6720, 6912, 7040, 7056, 7168,
+                   7200, 7392, 7680, 7744, 7776, 7840, 7920, 8000, 8064,
+                   8192, 8400, 8448, 8624, 8640, 8800, 8960, 9072, 9216,
+                   9408, 9504, 9600, 9680, 9856, 10000]
+    # fmt: on
     if orig_N < 10000:
         return 0
     # Get the number represented by the first 4 digits of orig_N
@@ -202,9 +99,9 @@ def running_avg(arr, navg):
         Return an array of the running average of 'navg' bins from the
         input array 'arr'.
     """
-    a = Num.asarray(arr, "d")
+    a = np.asarray(arr, "d")
     a.shape = (len(a) // navg, navg)
-    return Num.add.reduce(Num.transpose(a)) / navg
+    return np.add.reduce(np.transpose(a)) / navg
 
 
 def hist(data, bins, range=None, laby="Number", **kwargs):
@@ -220,7 +117,7 @@ def hist(data, bins, range=None, laby="Number", **kwargs):
                data values are used to define the interval.
     Note:  This command also accepts all the keyword arge of plotbinned().
     """
-    ys, bin_edges = Num.histogram(data, bins, range)
+    ys, bin_edges = np.histogram(data, bins, range)
     dx = bin_edges[1] - bin_edges[0]
     xs = bin_edges[:-1] + 0.5 * dx
     maxy = int(1.1 * max(ys))
@@ -239,15 +136,13 @@ def KS_test(data, cumdist, output=0):
             cumulative-distribution function cumdist.
     """
     nn = len(data)
-    sdata = Num.sort(Num.asarray(data))
-    D1 = Num.maximum.reduce(
-        Num.absolute(cumdist(sdata) - Num.arange(nn, dtype="d") / nn)
-    )
-    D2 = Num.maximum.reduce(
-        Num.absolute(cumdist(sdata) - Num.arange(1, nn + 1, dtype="d") / nn)
+    sdata = np.sort(np.asarray(data))
+    D1 = np.maximum.reduce(np.absolute(cumdist(sdata) - np.arange(nn, dtype="d") / nn))
+    D2 = np.maximum.reduce(
+        np.absolute(cumdist(sdata) - np.arange(1, nn + 1, dtype="d") / nn)
     )
     D = max((D1, D2))
-    P = kolmogorov(Num.sqrt(nn) * D)
+    P = kolmogorov(np.sqrt(nn) * D)
     if output:
         print("Max distance between the cumulative distributions (D) = %.5g" % D)
         print("Prob the data is from the specified distrbution   (P) = %.3g" % P)
@@ -291,10 +186,10 @@ def weighted_mean(arrin, weights_in, inputmean=None, calcerr=False, sdev=False):
 
     """
     # no copy made if they are already arrays
-    arr = Num.array(arrin, ndmin=1, copy=False)
+    arr = np.array(arrin, ndmin=1, copy=False)
     # Weights is forced to be type double. All resulting calculations
     # will also be double
-    weights = Num.array(weights_in, ndmin=1, dtype="f8", copy=False)
+    weights = np.array(weights_in, ndmin=1, dtype="f8", copy=False)
     wtot = weights.sum()
     # user has input a mean value
     if inputmean is None:
@@ -304,13 +199,13 @@ def weighted_mean(arrin, weights_in, inputmean=None, calcerr=False, sdev=False):
     # how should error be calculated?
     if calcerr:
         werr2 = (weights**2 * (arr - wmean) ** 2).sum()
-        werr = Num.sqrt(werr2) / wtot
+        werr = np.sqrt(werr2) / wtot
     else:
-        werr = 1.0 / Num.sqrt(wtot)
+        werr = 1.0 / np.sqrt(wtot)
     # should output include the weighted standard deviation?
     if sdev:
         wvar = (weights * (arr - wmean) ** 2).sum() / wtot
-        wsdev = Num.sqrt(wvar)
+        wsdev = np.sqrt(wvar)
         return wmean, werr, wsdev
     else:
         return wmean, werr
@@ -373,7 +268,7 @@ def rad_to_dms(rad):
         sign = -1
     else:
         sign = 1
-    arc = pc.RADTODEG * Num.fmod(Num.fabs(rad), pc.PI)
+    arc = pc.RADTODEG * np.fmod(np.fabs(rad), pc.PI)
     d = int(arc)
     arc = (arc - d) * 60.0
     m = int(arc)
@@ -398,7 +293,7 @@ def dms_to_rad(deg, min, sec):
     return (
         sign
         * pc.ARCSECTORAD
-        * (60.0 * (60.0 * Num.fabs(deg) + Num.fabs(min)) + Num.fabs(sec))
+        * (60.0 * (60.0 * np.fabs(deg) + np.fabs(min)) + np.fabs(sec))
     )
 
 
@@ -415,7 +310,7 @@ def rad_to_hms(rad):
     rad_to_hms(rad):
        Convert radians to hours, minutes, and seconds of arc.
     """
-    rad = Num.fmod(rad, pc.TWOPI)
+    rad = np.fmod(rad, pc.TWOPI)
     if rad < 0.0:
         rad = rad + pc.TWOPI
     arc = pc.RADTOHRS * rad
@@ -438,7 +333,7 @@ def hms_to_rad(hour, min, sec):
     return (
         sign
         * pc.SECTORAD
-        * (60.0 * (60.0 * Num.fabs(hour) + Num.fabs(min)) + Num.fabs(sec))
+        * (60.0 * (60.0 * np.fabs(hour) + np.fabs(min)) + np.fabs(sec))
     )
 
 
@@ -499,7 +394,7 @@ def delta_m(flux_factor):
         Return the change in magnitudes caused by a change
             in flux of flux_factor.
     """
-    return -2.5 * Num.log10(flux_factor)
+    return -2.5 * np.log10(flux_factor)
 
 
 def flux_factor(delta_m):
@@ -526,7 +421,7 @@ def distance_to_distance_modulus(d, absorption=0.0):
         Return the distance modulus given a distance d and
             an optional absorption.
     """
-    return 5.0 * Num.log10(d * 1000.0) - 5.0 + absorption
+    return 5.0 * np.log10(d * 1000.0) - 5.0 + absorption
 
 
 def true_anomaly(E, ecc):
@@ -535,7 +430,7 @@ def true_anomaly(E, ecc):
         Return the True Anomaly (in radians) given the Eccentric anomaly
             (E in radians) and the eccentricity (ecc)
     """
-    return 2.0 * Num.arctan(Num.sqrt((1.0 + ecc) / (1.0 - ecc)) * Num.tan(E / 2.0))
+    return 2.0 * np.arctan(np.sqrt((1.0 + ecc) / (1.0 - ecc)) * np.tan(E / 2.0))
 
 
 def mass_funct(pb, x):
@@ -558,7 +453,7 @@ def mass_funct2(mp, mc, i):
             'i' is the orbital inclination (rad).
         Note:  An 'average' orbit has cos(i) = 0.5, or i = 60 deg
     """
-    return (mc * Num.sin(i)) ** 3.0 / (mc + mp) ** 2.0
+    return (mc * np.sin(i)) ** 3.0 / (mc + mp) ** 2.0
 
 
 def asini_c(pb, mf):
@@ -603,7 +498,7 @@ def ELL1_check(A1, E, TRES, NTOA, output=False):
             or A1 * E**2 << TRES / sqrt(NTOA)
     """
     lhs = A1 * E**2.0 * 1e6
-    rhs = TRES / Num.sqrt(NTOA)
+    rhs = TRES / np.sqrt(NTOA)
     if output:
         print(
             "Condition is asini/c * ecc**2 << timing precision / sqrt(# TOAs) to use ELL1:"
@@ -654,11 +549,11 @@ def bins_to_accel(z, T, f=[1.0, 1000.0], device="/XWIN"):
         to a certain number of Fourier bins drifted 'z' during
         an observation of length 'T'.
     """
-    fs = span(Num.log10(f[0]), Num.log10(f[1]), 1000)
+    fs = span(np.log10(f[0]), np.log10(f[1]), 1000)
     accels = z_to_accel(z, T, 10.0**fs)
     if device:
         Pgplot.plotxy(
-            Num.log10(accels),
+            np.log10(accels),
             fs,
             logx=1,
             logy=1,
@@ -831,7 +726,7 @@ def galactic_accel_simple(l, b, D, v_o=240.0, R_o=8.34):
     """
     A_sun = v_o * v_o / (pc.C / 1000.0 * R_o * pc.KMPERKPC)
     d = D / R_o
-    cbcl = Num.cos(b * pc.DEGTORAD) * Num.cos(l * pc.DEGTORAD)
+    cbcl = np.cos(b * pc.DEGTORAD) * np.cos(l * pc.DEGTORAD)
     return -A_sun * (cbcl + (d - cbcl) / (1.0 + d * d - 2.0 * d * cbcl))
 
 
@@ -847,9 +742,9 @@ def galactic_accel(l, b, D, v_o=240.0, R_o=8.34):
         The default v_o and R_o values are from Reid et al 2014.
     """
     A_sun = v_o * v_o / (pc.C / 1000.0 * R_o * pc.KMPERKPC)
-    cb = Num.cos(b * pc.DEGTORAD)
-    cl = Num.cos(l * pc.DEGTORAD)
-    sl = Num.sin(l * pc.DEGTORAD)
+    cb = np.cos(b * pc.DEGTORAD)
+    cl = np.cos(l * pc.DEGTORAD)
+    sl = np.sin(l * pc.DEGTORAD)
     beta = D / R_o * cb - cl
     return -A_sun * cb * (cl + beta / (sl**2 + beta**2))
 
@@ -864,9 +759,9 @@ def gal_z_accel(l, b, D):
         the galactic longitude and latitude (in deg) respectively, and D
         is the distance in kpc.  This is eqn 3+4 of Nice & Taylor 1995.
     """
-    sb = Num.sin(b * pc.DEGTORAD)
+    sb = np.sin(b * pc.DEGTORAD)
     z = D * sb
-    az = 1.08e-19 * (1.25 * z / Num.sqrt(z**2 + 0.0324) + 0.58 * z)
+    az = 1.08e-19 * (1.25 * z / np.sqrt(z**2 + 0.0324) + 0.58 * z)
     return az * sb
 
 
@@ -900,7 +795,7 @@ def limiting_flux_dens(Ttot, G, BW, T, P=0.01, W=0.05, polar=2, factor=15.0):
             Parkes Multibeam: Tsys = 21 K, G = 0.735 K/Jy
     """
     w = W * P
-    return Num.sqrt(w / ((P - w) * polar * BW * T)) * factor * Ttot / G
+    return np.sqrt(w / ((P - w) * polar * BW * T)) * factor * Ttot / G
 
 
 def dm_info(dm=None, dmstep=1.0, freq=1390.0, numchan=512, chanwidth=0.5):
@@ -945,7 +840,7 @@ def best_dm_step(
             * freq**3.0
             * 2.0
             / BW
-            * Num.sqrt(tau_tot**2.0 - tau_chan**2.0 - tau_samp**2.0)
+            * np.sqrt(tau_tot**2.0 - tau_chan**2.0 - tau_samp**2.0)
         )
 
 
@@ -986,10 +881,10 @@ def pulse_broadening(DM, f_ctr):
         based on the rough relation in Cordes' 'Pulsar Observations I' paper.
         'f_ctr' should be in MHz.  The approximate error is 0.65 in log(tau).
     """
-    logDM = Num.log10(DM)
+    logDM = np.log10(DM)
     return (
         10.0
-        ** (-3.59 + 0.129 * logDM + 1.02 * logDM**2.0 - 4.4 * Num.log10(f_ctr / 1000.0))
+        ** (-3.59 + 0.129 * logDM + 1.02 * logDM**2.0 - 4.4 * np.log10(f_ctr / 1000.0))
         / 1000.0
     )
 
@@ -1003,11 +898,11 @@ def rrat_period(times, numperiods=20, output=True):
         to try between the first two pulses.  If output is True,
         print some diagnostic information
     """
-    ts = Num.asarray(sorted(times))
-    ps = (ts[1] - ts[0]) / Num.arange(1, numperiods + 1)
-    dts = Num.diff(ts)
-    xs = dts / ps[:, Num.newaxis]
-    metric = Num.sum(Num.fabs((xs - xs.round())), axis=1)
+    ts = np.asarray(sorted(times))
+    ps = (ts[1] - ts[0]) / np.arange(1, numperiods + 1)
+    dts = np.diff(ts)
+    xs = dts / ps[:, np.newaxis]
+    metric = np.sum(np.fabs((xs - xs.round())), axis=1)
     pnum = metric.argmin()
     numrots = xs.round()[pnum].sum()
     p = (ts[-1] - ts[0]) / numrots
@@ -1038,13 +933,13 @@ def rrat_period_multiday(days_times, numperiods=20, output=True):
     """
     all_dt = []
     for times in days_times:
-        daily_dt = Num.diff(sorted(times))
+        daily_dt = np.diff(sorted(times))
         all_dt.extend(daily_dt.tolist())
 
-    dts = Num.asarray(sorted(all_dt))
-    ps = dts[0] / Num.arange(1, numperiods + 1)
-    xs = dts / ps[:, Num.newaxis]
-    metric = Num.sum(Num.fabs((xs - xs.round())), axis=1)
+    dts = np.asarray(sorted(all_dt))
+    ps = dts[0] / np.arange(1, numperiods + 1)
+    xs = dts / ps[:, np.newaxis]
+    metric = np.sum(np.fabs((xs - xs.round())), axis=1)
     pnum = metric.argmin()
 
     numrots = xs.round()[pnum].sum()
@@ -1077,13 +972,13 @@ def delay_from_DM(DM, freq_emitted):
     a Dispersion Measure (DM) in cm-3 pc, and the emitted
     frequency (freq_emitted) of the pulsar in MHz.
     """
-    if type(freq_emitted) == type(0.0):
+    if type(freq_emitted) is type(0.0):
         if freq_emitted > 0.0:
             return DM / (0.000241 * freq_emitted * freq_emitted)
         else:
             return 0.0
     else:
-        return Num.where(
+        return np.where(
             freq_emitted > 0.0, DM / (0.000241 * freq_emitted * freq_emitted), 0.0
         )
 
@@ -1123,25 +1018,25 @@ def smear_plot(
     subBW = numchan / numsub * chanwidth
     maxDMerror = 0.5 * dmstep
     maxsubDMerror = 0.5 * subdmstep
-    ldms = span(Num.log10(dm[0]), Num.log10(dm[1]), numpts)
+    ldms = span(np.log10(dm[0]), np.log10(dm[1]), numpts)
     dms = 10.0**ldms
     # Smearing from sample rate
-    dts = Num.zeros(numpts) + 1000.0 * dt
+    dts = np.zeros(numpts) + 1000.0 * dt
     # Smearing due to the intrinsic channel width
     chan_smear = 1000.0 * dm_smear(dms, chanwidth, freq)
     # Smearing across the full BW due to max DM mismatch
-    BW_smear = Num.zeros(numpts) + 1000.0 * dm_smear(maxDMerror, BW, freq)
+    BW_smear = np.zeros(numpts) + 1000.0 * dm_smear(maxDMerror, BW, freq)
     # Smearing in each subband due to max DM mismatch
-    subband_smear = Num.zeros(numpts) + 1000.0 * dm_smear(maxsubDMerror, subBW, freq)
-    total_smear = Num.sqrt(
+    subband_smear = np.zeros(numpts) + 1000.0 * dm_smear(maxsubDMerror, subBW, freq)
+    total_smear = np.sqrt(
         dts**2.0 + chan_smear**2.0 + subband_smear**2.0 + BW_smear**2.0
     )
-    maxval = Num.log10(2.0 * max(total_smear))
-    minval = Num.log10(
+    maxval = np.log10(2.0 * max(total_smear))
+    minval = np.log10(
         0.5 * min([min(dts), min(chan_smear), min(BW_smear), min(subband_smear)])
     )
     Pgplot.plotxy(
-        Num.log10(total_smear),
+        np.log10(total_smear),
         ldms,
         rangey=[minval, maxval],
         logx=1,
@@ -1159,13 +1054,13 @@ def smear_plot(
     ppgplot.pgmtxt("t", 1.5, 11.0 / 12.0, 0.5, r"\gDDM\dsub\u = %g" % subdmstep)
     ppgplot.pgsch(1.0)
     ppgplot.pgmtxt("b", -7.5, 0.95, 1.0, "Total")
-    Pgplot.plotxy(Num.log10(dts), ldms, color="green", logx=1, logy=1)
+    Pgplot.plotxy(np.log10(dts), ldms, color="green", logx=1, logy=1)
     ppgplot.pgmtxt("b", -6.0, 0.95, 1.0, "Sample Rate")
-    Pgplot.plotxy(Num.log10(chan_smear), ldms, color="purple", logx=1, logy=1)
+    Pgplot.plotxy(np.log10(chan_smear), ldms, color="purple", logx=1, logy=1)
     ppgplot.pgmtxt("b", -4.5, 0.95, 1.0, "Channel")
-    Pgplot.plotxy(Num.log10(BW_smear), ldms, color="red", logx=1, logy=1)
+    Pgplot.plotxy(np.log10(BW_smear), ldms, color="red", logx=1, logy=1)
     ppgplot.pgmtxt("b", -3.0, 0.95, 1.0, "Full BW")
-    Pgplot.plotxy(Num.log10(subband_smear), ldms, color="blue", logx=1, logy=1)
+    Pgplot.plotxy(np.log10(subband_smear), ldms, color="blue", logx=1, logy=1)
     ppgplot.pgmtxt("b", -1.5, 0.95, 1.0, "Subband")
     ppgplot.pgsci(1)
 
@@ -1215,7 +1110,7 @@ def search_sensitivity(
     """
     periods = span(Pmin, Pmax, pts)
     widths = (
-        Num.sqrt(
+        np.sqrt(
             (W * periods) ** 2.0
             + dm_smear(dm, BW / chan, freq) ** 2.0
             + dm_smear(ddm / 2.0, BW, freq) ** 2.0
@@ -1242,7 +1137,7 @@ def smin_noise(Ttot, G, BW, dt):
         Observatories:
             Parkes Multibeam: Tsys = 21 K, G = 0.735 K/Jy
     """
-    return Ttot / (G * Num.sqrt(2 * BW * dt))
+    return Ttot / (G * np.sqrt(2 * BW * dt))
 
 
 def read_profile(filenm, normalize=0):
@@ -1259,7 +1154,7 @@ def read_profile(filenm, normalize=0):
             continue
         else:
             prof.append(float(line.split()[-1]))
-    prof = Num.asarray(prof)
+    prof = np.asarray(prof)
     if normalize:
         prof -= min(prof)
         prof /= max(prof)
@@ -1276,12 +1171,12 @@ def calc_phs(MJD, refMJD, *args):
     """
     t = (MJD - refMJD) * pc.SECPERDAY
     n = len(args)  # polynomial order
-    nargs = Num.concatenate(([0.0], args))
-    taylor_coeffs = Num.concatenate(
-        ([0.0], Num.cumprod(1.0 / (Num.arange(float(n)) + 1.0)))
+    nargs = np.concatenate(([0.0], args))
+    taylor_coeffs = np.concatenate(
+        ([0.0], np.cumprod(1.0 / (np.arange(float(n)) + 1.0)))
     )
-    p = Num.poly1d((taylor_coeffs * nargs)[::-1])
-    return Num.fmod(p(t), 1.0)
+    p = np.poly1d((taylor_coeffs * nargs)[::-1])
+    return np.fmod(p(t), 1.0)
 
 
 def calc_freq(MJD, refMJD, *args):
@@ -1294,10 +1189,10 @@ def calc_freq(MJD, refMJD, *args):
     """
     t = (MJD - refMJD) * pc.SECPERDAY
     n = len(args)  # polynomial order
-    taylor_coeffs = Num.concatenate(
-        ([1.0], Num.cumprod(1.0 / (Num.arange(float(n - 1)) + 1.0)))
+    taylor_coeffs = np.concatenate(
+        ([1.0], np.cumprod(1.0 / (np.arange(float(n - 1)) + 1.0)))
     )
-    p = Num.poly1d((taylor_coeffs * args)[::-1])
+    p = np.poly1d((taylor_coeffs * args)[::-1])
     return p(t)
 
 
@@ -1358,7 +1253,7 @@ def rotate(arr, bins):
     if bins == 0:
         return arr
     else:
-        return Num.concatenate((arr[bins:], arr[:bins]))
+        return np.concatenate((arr[bins:], arr[:bins]))
 
 
 def interp_rotate(arr, bins, zoomfact=10):
@@ -1370,7 +1265,7 @@ def interp_rotate(arr, bins, zoomfact=10):
             have the same length as the oiginal.
     """
     newlen = len(arr) * zoomfact
-    rotbins = int(Num.floor(bins * zoomfact + 0.5)) % newlen
+    rotbins = int(np.floor(bins * zoomfact + 0.5)) % newlen
     newarr = sinc_interp.periodic_interp(arr, zoomfact)
     return rotate(newarr, rotbins)[::zoomfact]
 
@@ -1383,10 +1278,10 @@ def fft_rotate(arr, bins):
             'bins' can be fractional.  The resulting vector will have
             the same length as the original.
     """
-    arr = Num.asarray(arr)
-    freqs = Num.arange(arr.size / 2 + 1, dtype=float)
-    phasor = Num.exp(complex(0.0, pc.TWOPI) * freqs * bins / float(arr.size))
-    return Num.fft.irfft(phasor * Num.fft.rfft(arr), arr.size)
+    arr = np.asarray(arr)
+    freqs = np.arange(arr.size / 2 + 1, dtype=float)
+    phasor = np.exp(complex(0.0, pc.TWOPI) * freqs * bins / float(arr.size))
+    return np.fft.irfft(phasor * np.fft.rfft(arr), arr.size)
 
 
 def corr(profile, template):
@@ -1394,9 +1289,7 @@ def corr(profile, template):
     corr(profile, template):
         Cross-correlate (using FFTs) a 'profile' and a 'template'.
     """
-    return FFT.irfft(
-        FFT.rfft(template) * Num.conjugate(FFT.rfft(profile)), profile.size
-    )
+    return FFT.irfft(FFT.rfft(template) * np.conjugate(FFT.rfft(profile)), profile.size)
 
 
 def autocorr(x):
@@ -1407,7 +1300,7 @@ def autocorr(x):
         points are symmetric (corresponding to negative lags).
     """
     fftx = FFT.rfft(x)
-    acf = FFT.irfft(fftx * Num.conjugate(fftx), x.size)[: len(x) // 2 + 1]
+    acf = FFT.irfft(fftx * np.conjugate(fftx), x.size)[: len(x) // 2 + 1]
     return acf / acf[0]
 
 
@@ -1417,7 +1310,7 @@ def maxphase(profile, template):
         Return the phase offset required to get the 'profile' to best
             match the 'template'.
     """
-    return float(Num.argmax(corr(profile, template))) / len(profile)
+    return float(np.argmax(corr(profile, template))) / len(profile)
 
 
 def linear_interpolate(vector, zoom=10):
@@ -1426,9 +1319,9 @@ def linear_interpolate(vector, zoom=10):
         Linearly interpolate 'vector' by a factor of 'zoom'.
     """
     n = len(vector)
-    ivect = Num.zeros(zoom * n, dtype="d")
-    nvect = Num.concatenate((vector, vector[:1]))
-    ivals = Num.arange(zoom, dtype="d") / zoom
+    ivect = np.zeros(zoom * n, dtype="d")
+    nvect = np.concatenate((vector, vector[:1]))
+    ivals = np.arange(zoom, dtype="d") / zoom
     loy = nvect[0]
     for ii in range(n):
         hiy = nvect[ii + 1]
@@ -1446,8 +1339,8 @@ def downsample(vector, factor):
     if len(vector) % factor:
         print("Length of 'vector' is not divisible by 'factor'=%d!" % factor)
         return 0
-    newvector = Num.reshape(vector, (len(vector) // factor, factor))
-    return Num.add.reduce(newvector, 1)
+    newvector = np.reshape(vector, (len(vector) // factor, factor))
+    return np.add.reduce(newvector, 1)
 
 
 def measure_phase_corr(profile, template, zoom=10):
@@ -1467,44 +1360,10 @@ def measure_phase_corr(profile, template, zoom=10):
                 % (len(template), len(profile))
             )
             print("           are not the same!")
-    # itemp = linear_interpolate(rotate(template, Num.argmax(template)), zoomtemp)
+    # itemp = linear_interpolate(rotate(template, np.argmax(template)), zoomtemp)
     itemp = linear_interpolate(template, zoomtemp)
     iprof = linear_interpolate(profile, zoomprof)
     return maxphase(iprof, itemp)
-
-
-def spike_profile(N, phase, fwhm):
-    """
-    spike_profile(N, phase, fwhm):
-        Return a triangular pulse profile with 'N' bins and
-        an integrated 'flux' of 1 unit.
-            'N' = the number of points in the profile
-            'phase' = the pulse phase (0-1)
-            'fwhm' = the triangular pulses full width at half-max
-    """
-    phsval = Num.arange(N, dtype="d") / float(N)
-    peakst = 0.5 - fwhm
-    peakend = 0.5 + fwhm
-    normalize = 1.0 / fwhm
-
-    # TODO: (gijs) bug, mean is not defined
-    if mean < 0.5:
-        phsval = Num.where(Num.greater(phsval, mean + 0.5), phsval - 1.0, phsval)
-    else:
-        phsval = Num.where(Num.less(phsval, mean - 0.5), phsval + 1.0, phsval)
-    return Num.where(
-        Num.less_equal(phsval, 0.5),
-        Num.where(
-            Num.less_equal(phsval, peakst),
-            0.0,
-            (phsval - peakst) * normalize * normalize,
-        ),
-        Num.where(
-            Num.greater(phsval, peakend),
-            0.0,
-            (1.0 - (phsval - 0.5) * normalize) * normalize,
-        ),
-    )
 
 
 def harm_to_sum(fwhm):
@@ -1513,48 +1372,13 @@ def harm_to_sum(fwhm):
         For an MVMD profile returns the optimal number
             of harmonics to sum incoherently
     """
-    fwhms = [
-        0.0108,
-        0.0110,
-        0.0113,
-        0.0117,
-        0.0119,
-        0.0124,
-        0.0127,
-        0.0132,
-        0.0134,
-        0.0140,
-        0.0145,
-        0.0151,
-        0.0154,
-        0.0160,
-        0.0167,
-        0.0173,
-        0.0180,
-        0.0191,
-        0.0199,
-        0.0207,
-        0.0220,
-        0.0228,
-        0.0242,
-        0.0257,
-        0.0273,
-        0.0295,
-        0.0313,
-        0.0338,
-        0.0366,
-        0.0396,
-        0.0437,
-        0.0482,
-        0.0542,
-        0.0622,
-        0.0714,
-        0.0836,
-        0.1037,
-        0.1313,
-        0.1799,
-        0.2883,
-    ]
+    # fmt: off
+    fwhms = [0.0108, 0.0110, 0.0113, 0.0117, 0.0119, 0.0124, 0.0127, 0.0132,
+             0.0134, 0.0140, 0.0145, 0.0151, 0.0154, 0.0160, 0.0167, 0.0173,
+             0.0180, 0.0191, 0.0199, 0.0207, 0.0220, 0.0228, 0.0242, 0.0257,
+             0.0273, 0.0295, 0.0313, 0.0338, 0.0366, 0.0396, 0.0437, 0.0482,
+             0.0542, 0.0622, 0.0714, 0.0836, 0.1037, 0.1313, 0.1799, 0.2883]
+    # fmt: on
     return len(fwhms) - bisect.bisect(fwhms, fwhm) + 1
 
 
@@ -1571,22 +1395,20 @@ def expcos_profile(N, phase, fwhm):
 
     def fwhm_func(k, fwhm=fwhm):
         if fwhm < 0.02:
-            return Num.arccos(1.0 - Num.log(2.0) / k) / pc.PI - fwhm
+            return np.arccos(1.0 - np.log(2.0) / k) / pc.PI - fwhm
         else:
-            return (
-                Num.arccos(Num.log(0.5 * (Num.exp(k) + Num.exp(-k))) / k) / pc.PI - fwhm
-            )
+            return np.arccos(np.log(0.5 * (np.exp(k) + np.exp(-k))) / k) / pc.PI - fwhm
 
-    phsval = pc.TWOPI * Num.arange(N, dtype="d") / float(N)
+    phsval = pc.TWOPI * np.arange(N, dtype="d") / float(N)
     phi = -phase * pc.TWOPI
     if fwhm >= 0.5:
-        return Num.cos(phsval + phi) + 1.0
+        return np.cos(phsval + phi) + 1.0
     elif fwhm < 0.02:
         # The following is from expanding of iO(x) as x->Infinity.
-        k = Num.log(2.0) / (1.0 - Num.cos(pc.PI * fwhm))
+        k = np.log(2.0) / (1.0 - np.cos(pc.PI * fwhm))
         # print("Expansion:  k = %f  FWHM = %f" % (k, fwhm_func(k, 0.0)))
-        phsval = Num.fmod(phsval + phi, pc.TWOPI)
-        phsval = Num.where(Num.greater(phsval, pc.PI), phsval - pc.TWOPI, phsval)
+        phsval = np.fmod(phsval + phi, pc.TWOPI)
+        phsval = np.where(np.greater(phsval, pc.PI), phsval - pc.TWOPI, phsval)
         denom = (
             1
             + 1 / (8 * k)
@@ -1594,18 +1416,18 @@ def expcos_profile(N, phase, fwhm):
             + 75 / (1024 * k**3)
             + 3675 / (32768 * k**4)
             + 59535 / (262144 * k**5)
-        ) / Num.sqrt(pc.TWOPI * k)
-        return Num.where(
-            Num.greater(Num.fabs(phsval / pc.TWOPI), 3.0 * fwhm),
+        ) / np.sqrt(pc.TWOPI * k)
+        return np.where(
+            np.greater(np.fabs(phsval / pc.TWOPI), 3.0 * fwhm),
             0.0,
-            Num.exp(k * (Num.cos(phsval) - 1.0)) / denom,
+            np.exp(k * (np.cos(phsval) - 1.0)) / denom,
         )
     else:
         k = secant(fwhm_func, 1e-8, 0.5)
-        norm = 1.0 / (i0(k) - Num.exp(-k))
+        norm = 1.0 / (i0(k) - np.exp(-k))
         # print("Full Calc:  k = %f  FWHM = %f" % (k, fwhm_func(k, 0.0)))
     if k < 0.05:
-        tmp = Num.cos(phsval + phi)
+        tmp = np.cos(phsval + phi)
         tmp2 = tmp * tmp
         return norm * (
             k * (tmp + 1)
@@ -1613,7 +1435,7 @@ def expcos_profile(N, phase, fwhm):
             + k * k * k * (tmp2 * tmp + 1.0) / 6.0
         )
     else:
-        return norm * (Num.exp(k * Num.cos(phsval + phi)) - Num.exp(-k))
+        return norm * (np.exp(k * np.cos(phsval + phi)) - np.exp(-k))
 
 
 def read_gaussfitfile(gaussfitfile, proflen):
@@ -1640,19 +1462,19 @@ def read_gaussfitfile(gaussfitfile, proflen):
             % gaussfitfile
         )
         return 0.0
-    phass = Num.asarray(phass)
-    ampls = Num.asarray(ampls)
-    fwhms = Num.asarray(fwhms)
+    phass = np.asarray(phass)
+    ampls = np.asarray(ampls)
+    fwhms = np.asarray(fwhms)
     # Now sort them all according to decreasing amplitude
-    new_order = Num.argsort(ampls)
+    new_order = np.argsort(ampls)
     new_order = new_order[::-1]
-    ampls = Num.take(ampls, new_order)
-    phass = Num.take(phass, new_order)
-    fwhms = Num.take(fwhms, new_order)
+    ampls = np.take(ampls, new_order)
+    phass = np.take(phass, new_order)
+    fwhms = np.take(fwhms, new_order)
     # Now put the biggest gaussian at phase = 0.0
     phass = phass - phass[0]
-    phass = Num.where(phass < 0.0, phass + 1.0, phass)
-    template = Num.zeros(proflen, dtype="d")
+    phass = np.where(phass < 0.0, phass + 1.0, phass)
+    template = np.zeros(proflen, dtype="d")
     for ii in range(len(ampls)):
         template += ampls[ii] * gaussian_profile(proflen, phass[ii], fwhms[ii])
     return template
@@ -1670,14 +1492,14 @@ def gaussian_profile(N, phase, fwhm):
     """
     sigma = fwhm / 2.35482
     mean = phase % 1.0  # Ensures between 0-1
-    phss = Num.arange(N, dtype=Num.float64) / N - mean
+    phss = np.arange(N, dtype=np.float64) / N - mean
     # Following two lines allow the Gaussian to wrap in phase
     phss[phss > 0.5] -= 1.0
     phss[phss < -0.5] += 1.0
-    zs = Num.fabs(phss) / sigma
+    zs = np.fabs(phss) / sigma
     # The following avoids overflow by truncating the Gaussian at 20 sigma
-    return Num.where(
-        zs < 20.0, Num.exp(-0.5 * zs**2.0) / (sigma * Num.sqrt(2 * Num.pi)), 0.0
+    return np.where(
+        zs < 20.0, np.exp(-0.5 * zs**2.0) / (sigma * np.sqrt(2 * np.pi)), 0.0
     )
 
 
@@ -1695,7 +1517,7 @@ def gauss_profile_params(profile, output=0):
         If 'output' is true, the fit will be plotted and
            the return values will be printed.
     """
-    profile = Num.asarray(profile)
+    profile = np.asarray(profile)
 
     def funct(afpo, profile):
         return (
@@ -1715,7 +1537,7 @@ def gauss_profile_params(profile, output=0):
         args=(profile),
     )
     if output:
-        phases = Num.arange(0.0, 1.0, 1.0 / len(profile)) + 0.5 / len(profile)
+        phases = np.arange(0.0, 1.0, 1.0 / len(profile)) + 0.5 / len(profile)
         Pgplot.plotxy(
             profile,
             phases,
@@ -1744,7 +1566,7 @@ def gauss_profile_params(profile, output=0):
             symbol=3,
         )
         ppgplot.pgerrb(
-            6, phases, residuals, Num.zeros(len(residuals), "d") + resid_std, 2
+            6, phases, residuals, np.zeros(len(residuals), "d") + resid_std, 2
         )
         Pgplot.plotxy([resid_avg, resid_avg], [0.0, 1.0], line=2)
         Pgplot.closeplot()
@@ -1792,16 +1614,16 @@ def twogauss_profile_params(profile, output=0):
         [
             max(profile) - min(profile),
             0.05,
-            Num.argmax(profile) / float(len(profile)),
+            np.argmax(profile) / float(len(profile)),
             0.2 * max(profile) - min(profile),
             0.1,
-            Num.fmod(Num.argmax(profile) / float(len(profile)) + 0.5, 1.0),
+            np.fmod(np.argmax(profile) / float(len(profile)) + 0.5, 1.0),
             min(profile),
         ],
         args=(profile),
     )
     if output:
-        phases = Num.arange(0.0, 1.0, 1.0 / len(profile)) + 0.5 / len(profile)
+        phases = np.arange(0.0, 1.0, 1.0 / len(profile)) + 0.5 / len(profile)
         Pgplot.plotxy(
             profile,
             phases,
@@ -1828,7 +1650,7 @@ def twogauss_profile_params(profile, output=0):
             symbol=3,
         )
         ppgplot.pgerrb(
-            6, phases, residuals, Num.zeros(len(residuals), "d") + resid_std, 2
+            6, phases, residuals, np.zeros(len(residuals), "d") + resid_std, 2
         )
         Pgplot.plotxy([resid_avg, resid_avg], [0.0, 1.0], line=2)
         Pgplot.closeplot()
@@ -1876,7 +1698,7 @@ def estimate_flux_density(profile, N, dt, Ttot, G, BW, prof_stdev, display=0):
     )
     T = N * dt
     norm_fact = (prof_stdev * len(profile)) / smin_noise(Ttot, G, BW, T / len(profile))
-    return Num.add.reduce(profile - offset) / norm_fact
+    return np.add.reduce(profile - offset) / norm_fact
 
 
 def max_spike_power(FWHM):
@@ -1922,7 +1744,7 @@ def incoherent_sum(amps):
         Given a series of complex Fourier amplitudes, return a vector
             showing the accumulated incoherently-summed powers.
     """
-    return Num.add.accumulate(Num.absolute(amps) ** 2.0)
+    return np.add.accumulate(np.absolute(amps) ** 2.0)
 
 
 def coherent_sum(amps):
@@ -1931,11 +1753,11 @@ def coherent_sum(amps):
         Given a series of complex Fourier amplitudes, return a vector
             showing the accumulated coherently-summed powers.
     """
-    phss = Num.arctan2(amps.imag, amps.real)
+    phss = np.arctan2(amps.imag, amps.real)
     phs0 = phss[0]
-    phscorr = phs0 - Num.fmod((Num.arange(len(amps), dtype="d") + 1.0) * phs0, pc.TWOPI)
-    sumamps = Num.add.accumulate(amps * Num.exp(complex(0.0, 1.0) * phscorr))
-    return Num.absolute(sumamps) ** 2.0
+    phscorr = phs0 - np.fmod((np.arange(len(amps), dtype="d") + 1.0) * phs0, pc.TWOPI)
+    sumamps = np.add.accumulate(amps * np.exp(complex(0.0, 1.0) * phscorr))
+    return np.absolute(sumamps) ** 2.0
 
 
 def dft_vector_response(roff, z=0.0, w=0.0, phs=0.0, N=1000):
@@ -1949,9 +1771,9 @@ def dft_vector_response(roff, z=0.0, w=0.0, phs=0.0, N=1000):
     """
     r0 = roff - 0.5 * z + w / 12.0  # Make symmetric for all z and w
     z0 = z - 0.5 * w
-    us = Num.linspace(0.0, 1.0, N)
-    phss = 2.0 * Num.pi * (us * (us * (us * w / 6.0 + z0 / 2.0) + r0) + phs)
-    return Num.cumsum(Num.exp(Num.complex(0.0, 1.0) * phss)) / N
+    us = np.linspace(0.0, 1.0, N)
+    phss = 2.0 * np.pi * (us * (us * (us * w / 6.0 + z0 / 2.0) + r0) + phs)
+    return np.cumsum(np.exp(np.complex(0.0, 1.0) * phss)) / N
 
 
 def prob_power(power):
@@ -1960,7 +1782,7 @@ def prob_power(power):
         Return the probability for noise to exceed a normalized power
         level of 'power' in a power spectrum.
     """
-    return Num.exp(-power)
+    return np.exp(-power)
 
 
 def Ftest(chi2_1, dof_1, chi2_2, dof_2):
@@ -1993,14 +1815,14 @@ def equivalent_gaussian_sigma(p):
             words, return x, such that Q(x) = p, where Q(x) is the
             cumulative normal distribution.  For very small
     """
-    if Num.isscalar(p):
-        logp = Num.log(p)
+    if np.isscalar(p):
+        logp = np.log(p)
         return ndtri(1.0 - p) if logp > -30.0 else extended_equiv_gaussian_sigma(logp)
     else:  # logp is an array
         return _vec_equivalent_gaussian_sigma(p)
 
 
-_vec_equivalent_gaussian_sigma = Num.vectorize(
+_vec_equivalent_gaussian_sigma = np.vectorize(
     equivalent_gaussian_sigma, doc="Vectorized `equivalent_gaussian_sigma` over p"
 )
 
@@ -2016,7 +1838,7 @@ def extended_equiv_gaussian_sigma(logp):
             eqn 26.2.23.  Using the log(P) as input gives a much
             extended range.
     """
-    t = Num.sqrt(-2.0 * logp)
+    t = np.sqrt(-2.0 * logp)
     num = 2.515517 + t * (0.802853 + t * 0.010328)
     denom = 1.0 + t * (1.432788 + t * (0.189269 + t * 0.001308))
     return t - num / denom
@@ -2033,12 +1855,12 @@ def log_asymtotic_incomplete_gamma(a, z):
     newxpart = 1.0
     term = 1.0
     ii = 1
-    while Num.fabs(newxpart) > 1e-15:
+    while np.fabs(newxpart) > 1e-15:
         term *= a - ii
         newxpart = term / z**ii
         x += newxpart
         ii += 1
-    return (a - 1.0) * Num.log(z) - z + Num.log(x)
+    return (a - 1.0) * np.log(z) - z + np.log(x)
 
 
 def log_asymtotic_gamma(z):
@@ -2047,7 +1869,7 @@ def log_asymtotic_gamma(z):
         Return the log of the gamma function in its asymtotic limit
             as z->infty.  This is from Abramowitz and Stegun eqn 6.1.41.
     """
-    x = (z - 0.5) * Num.log(z) - z + 0.91893853320467267
+    x = (z - 0.5) * np.log(z) - z + 0.91893853320467267
     y = 1.0 / (z * z)
     x += (
         (
@@ -2098,10 +1920,10 @@ def log_prob_sum_powers(power, nsum):
     # For chi^2 dist with dof=2*nsum, mean=dof and var=2*dof
     # And our powers are 1/2 what they should be in chi^2 dist
     # Set our cutoff above ~10 sigma
-    thresh = 0.5 * (2 * nsum + 10 * Num.sqrt(4 * nsum))  # (mean + 10*std) / 2
-    if Num.isscalar(power):
+    thresh = 0.5 * (2 * nsum + 10 * np.sqrt(4 * nsum))  # (mean + 10*std) / 2
+    if np.isscalar(power):
         return (
-            Num.log(prob_sum_powers(power, nsum))
+            np.log(prob_sum_powers(power, nsum))
             if power < thresh
             else log_asymtotic_incomplete_gamma(nsum, power) - log_asymtotic_gamma(nsum)
         )
@@ -2109,7 +1931,7 @@ def log_prob_sum_powers(power, nsum):
         return _vec_log_prob_sum_powers(power, nsum)
 
 
-_vec_log_prob_sum_powers = Num.vectorize(
+_vec_log_prob_sum_powers = np.vectorize(
     log_prob_sum_powers, doc="Vectorized `log_prob_sum_powers` over powers"
 )
 
@@ -2121,9 +1943,9 @@ def sigma_power(power):
         to exceed a normalized power level given as 'power'
         in a power spectrum.
     """
-    if Num.isscalar(power):
+    if np.isscalar(power):
         return (
-            Num.sqrt(2.0 * power - Num.log(pc.PI * power))
+            np.sqrt(2.0 * power - np.log(pc.PI * power))
             if power > 36.0
             else equivalent_gaussian_sigma(prob_power(power))
         )
@@ -2131,9 +1953,7 @@ def sigma_power(power):
         return _vec_sigma_power(power)
 
 
-_vec_sigma_power = Num.vectorize(
-    sigma_power, doc="Vectorized `sigma_power` over powers"
-)
+_vec_sigma_power = np.vectorize(sigma_power, doc="Vectorized `sigma_power` over powers")
 
 
 def sigma_sum_powers(power, nsum):
@@ -2146,8 +1966,8 @@ def sigma_sum_powers(power, nsum):
     # For chi^2 dist with dof=2*nsum, mean=dof and var=2*dof
     # And our powers are 1/2 what they should be in chi^2 dist
     # Set our cutoff above ~10 sigma
-    thresh = 0.5 * (2 * nsum + 10 * Num.sqrt(4 * nsum))  # (mean + 10*std) / 2
-    if Num.isscalar(power):
+    thresh = 0.5 * (2 * nsum + 10 * np.sqrt(4 * nsum))  # (mean + 10*std) / 2
+    if np.isscalar(power):
         return (
             equivalent_gaussian_sigma(prob_sum_powers(power, nsum))
             if power < thresh
@@ -2157,7 +1977,7 @@ def sigma_sum_powers(power, nsum):
         return _vec_sigma_sum_powers(power, nsum)
 
 
-_vec_sigma_sum_powers = Num.vectorize(
+_vec_sigma_sum_powers = np.vectorize(
     sigma_sum_powers, doc="Vectorized `sigma_sum_powers` over powers"
 )
 
@@ -2168,7 +1988,7 @@ def power_at_sigma(sigma):
         Return the approximate normalized power level that is
         equivalent to a detection of significance 'sigma'.
     """
-    return sigma**2 / 2.0 + Num.log(Num.sqrt(pc.PIBYTWO) * sigma)
+    return sigma**2 / 2.0 + np.log(np.sqrt(pc.PIBYTWO) * sigma)
 
 
 def powersum_at_sigma(sigma, nsum):
@@ -2203,8 +2023,8 @@ def fft_max_pulsed_frac(N, numphot, sigma=3.0):
     # The following is the power level required to get a
     # noise spike that would appear somewhere in N bins
     # at the 'sigma' level
-    power_required = -Num.log((1.0 - ndtr(sigma)) / N)
-    return Num.sqrt(4.0 * numphot * power_required) / N
+    power_required = -np.log((1.0 - ndtr(sigma)) / N)
+    return np.sqrt(4.0 * numphot * power_required) / N
 
 
 def p_to_f(p, pd, pdd=None):
@@ -2236,7 +2056,7 @@ def pferrs(porf, porferr, pdorfd=None, pdorfderr=None):
         return [1.0 / porf, porferr / porf**2.0]
     else:
         forperr = porferr / porf**2.0
-        fdorpderr = Num.sqrt(
+        fdorpderr = np.sqrt(
             (4.0 * pdorfd**2.0 * porferr**2.0) / porf**6.0 + pdorfderr**2.0 / porf**4.0
         )
         [forp, fdorpd] = p_to_f(porf, pdorfd)
@@ -2299,7 +2119,7 @@ def pulsar_B(f, fdot):
         Return the estimated pulsar surface magnetic field strength
         (in Gauss) given the spin frequency and frequency derivative.
     """
-    return 3.2e19 * Num.sqrt(-fdot / f**3.0)
+    return 3.2e19 * np.sqrt(-fdot / f**3.0)
 
 
 def pulsar_B_lightcyl(f, fdot):
@@ -2310,7 +2130,7 @@ def pulsar_B_lightcyl(f, fdot):
         frequency derivative.
     """
     p, pd = p_to_f(f, fdot)
-    return 2.9e8 * p ** (-5.0 / 2.0) * Num.sqrt(pd)
+    return 2.9e8 * p ** (-5.0 / 2.0) * np.sqrt(pd)
 
 
 def psr_info(porf, pdorfd, time=None, input=None, I=1e45):
@@ -2324,7 +2144,7 @@ def psr_info(porf, pdorfd, time=None, input=None, I=1e45):
         (duration of an observation) it will also return the Fourier
         frequency 'r' and Fourier fdot 'z'.  I is the NS moment of inertia.
     """
-    if (input == None and porf > 1.0) or (input == "f" or input == "F"):
+    if (input is None and porf > 1.0) or (input == "f" or input == "F"):
         pdorfd = -pdorfd / (porf * porf)
         porf = 1.0 / porf
     [f, fd] = p_to_f(porf, pdorfd)
