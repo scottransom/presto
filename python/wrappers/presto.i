@@ -591,7 +591,6 @@ float get_localpower3d(fcomplex *data, long numdata, double r,
   /*       signal smears over during the observation).            */
   /*   'w' is the Fourier Frequency 2nd derivative (change in the */
   /*       Fourier f-dot during the observation).                 */
-%clear (fcomplex *data, long numdata);
 
 void get_derivs3d(fcomplex *data, long numdata, double r,
                   double z, double w, float localpower,
@@ -611,6 +610,7 @@ void get_derivs3d(fcomplex *data, long numdata, double r,
   /*   'localpower' is the local power level around the signal. */
   /*   'result' is a pointer to an rderivs structure that will  */
   /*       contain the results.                                 */
+%clear (fcomplex *data, long numdata);
 
 void calc_props(rderivs data, double r, double z, double w, 
 		fourierprops * result);

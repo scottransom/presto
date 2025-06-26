@@ -347,8 +347,8 @@ def get_localpower(data, r):
 def get_localpower3d(data, r, z, w):
     return _presto.get_localpower3d(data, r, z, w)
 
-def get_derivs3d(data, numdata, r, z, w, localpower, result):
-    return _presto.get_derivs3d(data, numdata, r, z, w, localpower, result)
+def get_derivs3d(data, r, z, w, localpower, result):
+    return _presto.get_derivs3d(data, r, z, w, localpower, result)
 
 def calc_props(data, r, z, w, result):
     return _presto.calc_props(data, r, z, w, result)

@@ -1,7 +1,7 @@
 scripts = ['a2x.sh', 'binary_info.py', 'chooseN.py', 'combine_weights.py', 
   'compare_periods.py', 'dat2tim.py', 'DDplan.py', 'detrend_dat.py', 
   'downsample_filterbank.py', 'event_peak.py', 'fb_truncate.py', 
-  'filter_zerolags.py', 'fit_circular_orbit.py', 'fitorb.py', 
+  'filter_zerolags.py', 'fit_circular_orbit.py', 'fitorb.py', 'fourier_fold.py',
   'GBNCC_search.py', 'GBT350_drift_prep.py', 'GBT350_drift_search.py', 
   'get_TOAs.py', 'gotocand.py', 'guppidrift2fil.py', 'GUPPI_drift_prep.py', 
   'injectpsr.py', 'make_spd.py', 'makezaplist.py', 'orbellipsefit.py', 

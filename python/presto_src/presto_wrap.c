@@ -11765,10 +11765,8 @@ SWIGINTERN PyObject *_wrap_get_derivs3d(PyObject *self, PyObject *args) {
   double arg5 ;
   float arg6 ;
   rderivs *arg7 = (rderivs *) 0 ;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  long val2 ;
-  int ecode2 = 0 ;
+  PyArrayObject *array1 = NULL ;
+  int is_new_object1 = 0 ;
   double val3 ;
   int ecode3 = 0 ;
   double val4 ;
@@ -11779,41 +11777,43 @@ SWIGINTERN PyObject *_wrap_get_derivs3d(PyObject *self, PyObject *args) {
   int ecode6 = 0 ;
   void *argp7 = 0 ;
   int res7 = 0 ;
-  PyObject *swig_obj[7] ;
+  PyObject *swig_obj[6] ;
   
   (void)self;
-  if (!SWIG_Python_UnpackTuple(args, "get_derivs3d", 7, 7, swig_obj)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(swig_obj[0], &argp1,SWIGTYPE_p_FCOMPLEX, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "get_derivs3d" "', argument " "1"" of type '" "fcomplex *""'"); 
+  if (!SWIG_Python_UnpackTuple(args, "get_derivs3d", 6, 6, swig_obj)) SWIG_fail;
+  {
+    npy_intp size[1] = {
+      -1 
+    };
+    array1 = obj_to_array_contiguous_allow_conversion(swig_obj[0],
+      NPY_CFLOAT,
+      &is_new_object1);
+    if (!array1 || !require_dimensions(array1, 1) ||
+      !require_size(array1, size, 1)) SWIG_fail;
+    arg1 = (fcomplex*) array_data(array1);
+    arg2 = (long) array_size(array1,0);
   }
-  arg1 = (fcomplex *)(argp1);
-  ecode2 = SWIG_AsVal_long(swig_obj[1], &val2);
-  if (!SWIG_IsOK(ecode2)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "get_derivs3d" "', argument " "2"" of type '" "long""'");
-  } 
-  arg2 = (long)(val2);
-  ecode3 = SWIG_AsVal_double(swig_obj[2], &val3);
+  ecode3 = SWIG_AsVal_double(swig_obj[1], &val3);
   if (!SWIG_IsOK(ecode3)) {
     SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "get_derivs3d" "', argument " "3"" of type '" "double""'");
   } 
   arg3 = (double)(val3);
-  ecode4 = SWIG_AsVal_double(swig_obj[3], &val4);
+  ecode4 = SWIG_AsVal_double(swig_obj[2], &val4);
   if (!SWIG_IsOK(ecode4)) {
     SWIG_exception_fail(SWIG_ArgError(ecode4), "in method '" "get_derivs3d" "', argument " "4"" of type '" "double""'");
   } 
   arg4 = (double)(val4);
-  ecode5 = SWIG_AsVal_double(swig_obj[4], &val5);
+  ecode5 = SWIG_AsVal_double(swig_obj[3], &val5);
   if (!SWIG_IsOK(ecode5)) {
     SWIG_exception_fail(SWIG_ArgError(ecode5), "in method '" "get_derivs3d" "', argument " "5"" of type '" "double""'");
   } 
   arg5 = (double)(val5);
-  ecode6 = SWIG_AsVal_float(swig_obj[5], &val6);
+  ecode6 = SWIG_AsVal_float(swig_obj[4], &val6);
   if (!SWIG_IsOK(ecode6)) {
     SWIG_exception_fail(SWIG_ArgError(ecode6), "in method '" "get_derivs3d" "', argument " "6"" of type '" "float""'");
   } 
   arg6 = (float)(val6);
-  res7 = SWIG_ConvertPtr(swig_obj[6], &argp7,SWIGTYPE_p_RDERIVS, 0 |  0 );
+  res7 = SWIG_ConvertPtr(swig_obj[5], &argp7,SWIGTYPE_p_RDERIVS, 0 |  0 );
   if (!SWIG_IsOK(res7)) {
     SWIG_exception_fail(SWIG_ArgError(res7), "in method '" "get_derivs3d" "', argument " "7"" of type '" "rderivs *""'"); 
   }
@@ -11836,8 +11836,20 @@ SWIGINTERN PyObject *_wrap_get_derivs3d(PyObject *self, PyObject *args) {
     }
   }
   resultobj = SWIG_Py_Void();
+  {
+    if (is_new_object1 && array1)
+    {
+      Py_DECREF(array1); 
+    }
+  }
   return resultobj;
 fail:
+  {
+    if (is_new_object1 && array1)
+    {
+      Py_DECREF(array1); 
+    }
+  }
   return NULL;
 }
 
