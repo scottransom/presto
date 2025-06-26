@@ -1,5 +1,5 @@
 project('PRESTO', 'c',
-  version: '5.0.3',
+  version: '5.0.3.dev7',
   license: 'GPL-2.0',
   default_options: [
     'buildtype=release',
@@ -7,6 +7,7 @@ project('PRESTO', 'c',
   ],
 )
 # Other buildtype possibilities:
+#    'buildtype=release',
 #    'buildtype=debugoptimized',
 #    'buildtype=debug',
 # Can also set install prefix as option via e.g. 'prefix=/home/sransom'
