@@ -5,6 +5,7 @@ import getopt
 import numpy as np
 import presto.infodata as pi
 import presto.presto as pp
+import presto.psr_utils as pu
 import matplotlib.pyplot as plt
 
 def get_fourier_prof(fft, rr, zz=0.0, Nbins=None):
@@ -12,7 +13,7 @@ def get_fourier_prof(fft, rr, zz=0.0, Nbins=None):
 
     Parameters
     ----------
-    fft : PRESTO .fft file
+    fft : Numpy array of type complex64 which contains FFT amplitudes
     rr : Fractional Fourier bin number for the fundamental frequency
     zz : Fractional Fourier f-dot for fundamental (defaults to 0.0)
     Nbins : The number of bins to use in the pulse profile. By default None,
@@ -25,13 +26,10 @@ def get_fourier_prof(fft, rr, zz=0.0, Nbins=None):
     A numpy float array containing the pulse profile.
     """
     if Nbins is None:
-        Nbins = pp.next2_to_n(len(fft) / rr)
-        if Nbins > 256:
-            Nbins = 256
+        Nbins = min(256, pp.next2_to_n(len(fft) / rr))
     proffft = np.zeros(Nbins // 2 + 1, dtype=np.complex64)
     for ii in range(1, Nbins // 2 + 1):
-        nr = ii * rr
-        nz = ii * zz
+        nr, nz = ii * rr, ii * zz
         if nr > len(fft):
             break
         rl, im = pp.rz_interp(fft, nr, nz, pp.z_resp_halfwidth(nz, pp.LOWACC))
@@ -44,7 +42,7 @@ def estimate_profile_variance(fft, rr, Nbins=None, Ntrials=10):
 
     Parameters
     ----------
-    fft : PRESTO .fft file
+    fft : Numpy array of type complex64 which contains FFT amplitudes
     rr : Fractional Fourier bin number for the fundamental frequency
     Nbins : The number of bins to use in the pulse profile. By default None,
             which means that you will get the number corresponding to the
@@ -58,12 +56,9 @@ def estimate_profile_variance(fft, rr, Nbins=None, Ntrials=10):
     A float estimate of the off-pulse profile variance.
     """
     minoff, maxoff = 10, 30  # in bins
-    offsets = np.random.uniform(minoff, maxoff, Ntrials)
-    offsets[::2] *= -1  # make half of the offsets negative
-    vars = np.zeros(Ntrials)
-    for ii in range(Ntrials):
-        vars[ii] = get_fourier_prof(fft, rr + offsets[ii], 0.0, Nbins).var()
-    return np.median(vars)
+    drs = np.random.uniform(minoff, maxoff, Ntrials)
+    drs[::2] *= -1  # make half of the offsets negative
+    return np.median([get_fourier_prof(fft, rr + dr, 0.0, Nbins).var() for dr in drs])
 
 
 def optimize_freq(fft, rr, var, Nbins=None, dr=0.01, maxoff=1.0):
@@ -71,7 +66,7 @@ def optimize_freq(fft, rr, var, Nbins=None, dr=0.01, maxoff=1.0):
 
     Parameters
     ----------
-    fft : PRESTO .fft file
+    fft : Numpy array of type complex64 which contains FFT amplitudes
     rr : Fractional Fourier bin number for the fundamental frequency
     var : The float variance of the profile
     Nbins : The number of bins to use in the pulse profile. By default None,
@@ -94,6 +89,12 @@ def optimize_freq(fft, rr, var, Nbins=None, dr=0.01, maxoff=1.0):
         prof = get_fourier_prof(fft, r, 0.0, Nbins)
         chis[ii] = pp.compute_chi2(prof, np.median(prof), var) / (len(prof) - 1.0)
     return chis, rs[chis.argmax()]
+
+
+def profile_for_plot(prof):
+    "Return a centered and doubled pulse profile"
+    newprof = prof - np.median(prof)
+    return np.tile(pu.rotate(newprof, newprof.argmax()), 2)
 
 
 def usage():
@@ -204,23 +205,24 @@ if __name__ == "__main__":
             prof = get_fourier_prof(fft, bestr, zz, Nbins=None)
             # Now plot it
             fig, (ax1, ax2) = plt.subplots(
-                1, 2, sharex=False, sharey=False, layout="constrained"
+                1, 2, sharex=False, sharey=False, layout="constrained", figsize=(8, 4)
             )
-            ax1.plot(prof - np.median(prof))
-            ax1.set_xlabel("Pulse phase")
+            ax1.plot(np.linspace(0.0, 2.0, 2*len(prof)), profile_for_plot(prof))
+            ax1.set_xlabel("Pulse phase (bins)")
             ax1.set_ylabel("Relative intensity")
             ax2.plot(np.linspace(-maxoff, maxoff, int(2 * maxoff / dr) + 1), chis)
+            ax2.vlines(0.0, chis.min(), chis.max() * 1.05, colors='grey', alpha=0.4)
             ax2.set_xlabel("Fourier frequency offset (bins)")
             ax2.set_ylabel(r"Reduced-$\chi^2$")
-            fig.suptitle(f"Best freq = {bestr / idata.T:.12f} Hz ({bestr:.2f} bins)")
+            fig.suptitle(f"Best freq = {bestr / idata.T:.12f} Hz  ({bestr:.2f} bins)")
             fig.savefig(filenm, dpi=400)
             plt.close()
         else:
             prof = get_fourier_prof(fft, rr, zz, Nbins=None)
             # Now plot it
-            plt.plot(prof - np.median(prof))
-            plt.xlabel("Pulse phase")
+            plt.plot(np.linspace(0.0, 2.0, 2*len(prof)), profile_for_plot(prof))
+            plt.xlabel("Pulse phase (bins)")
             plt.ylabel("Relative intensity")
-            plt.title(f"Best freq = {rr / idata.T:.12f} Hz ({rr:.2f} bins)")
+            plt.title(f"Freq = {rr / idata.T:.12f} Hz  ({rr:.2f} bins)")
             plt.savefig(filenm, dpi=400)
             plt.close()
