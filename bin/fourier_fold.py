@@ -7,21 +7,6 @@ import presto.infodata as pi
 import presto.presto as pp
 import matplotlib.pyplot as plt
 
-
-def powphs_to_complex(rds):
-    """Convert PRESTO rderivs structure to a complex Fourier amplitude
-
-    Parameters
-    ----------
-    rds : PRESTO rderivs structure
-
-    Returns
-    -------
-    The equivalent complex Fourier amplitude (np.complex64)
-    """
-    return (np.sqrt(rds.pow) * np.exp(1.0j * rds.phs)).astype(np.complex64)
-
-
 def get_fourier_prof(fft, rr, zz=0.0, Nbins=None):
     """Generate a pulse profile from the Fourier amplitudes in a .fft file
 
@@ -41,21 +26,20 @@ def get_fourier_prof(fft, rr, zz=0.0, Nbins=None):
     """
     if Nbins is None:
         Nbins = pp.next2_to_n(len(fft) / rr)
-        if Nbins > 1024:
-            Nbins = 1024
+        if Nbins > 256:
+            Nbins = 256
     proffft = np.zeros(Nbins // 2 + 1, dtype=np.complex64)
-    rds = pp.rderivs()
     for ii in range(1, Nbins // 2 + 1):
         nr = ii * rr
         nz = ii * zz
         if nr > len(fft):
             break
-        pp.get_derivs3d(fft, nr, nz, 0.0, 1.0, rds)
-        proffft[ii] = powphs_to_complex(rds)
+        rl, im = pp.rz_interp(fft, nr, nz, pp.z_resp_halfwidth(nz, pp.LOWACC))
+        proffft[ii] = complex(rl, im)
     return np.fft.irfft(proffft)
 
 
-def estimate_profile_variance(fft, rr, Nbins=None, Ntrials=20):
+def estimate_profile_variance(fft, rr, Nbins=None, Ntrials=10):
     """Estimate the variance of a pulse profile based on the FFT harmonics
 
     Parameters
@@ -175,10 +159,10 @@ if __name__ == "__main__":
         if o in ("-n", "--accelcand"):
             accelcand = int(a)
 
-    fft = np.fromfile(args[0], dtype=np.complex64)
+    #fft = np.fromfile(args[0], dtype=np.complex64)
+    fft = np.memmap(args[0], dtype=np.complex64, mode='r')
     idata = pi.infodata(args[0][:-4] + ".inf")
     idata.T = idata.N * idata.dt
-    ncands = 1
 
     if accelfile:
         ncands = os.stat(accelfile).st_size // 88
@@ -199,6 +183,7 @@ if __name__ == "__main__":
         freq = fprops.r / idata.T
         zz = fprops.z
         filenm = f"{accelfile}.{accelcand}.png"
+        ncands = 1
 
     # Step over the candidates
     for ii in range(ncands):
@@ -212,9 +197,9 @@ if __name__ == "__main__":
         rr = freq * idata.T
 
         if optimize:
-            var = estimate_profile_variance(fft, rr, Nbins=None, Ntrials=20)
-            maxoff = 1.0
-            dr = 0.01
+            var = estimate_profile_variance(fft, rr, Nbins=None, Ntrials=10)
+            maxoff = 0.5
+            dr = 1.0 / min(len(fft)/rr, 100)
             chis, bestr = optimize_freq(fft, rr, var, Nbins=None, dr=dr, maxoff=maxoff)
             prof = get_fourier_prof(fft, bestr, zz, Nbins=None)
             # Now plot it
@@ -229,6 +214,7 @@ if __name__ == "__main__":
             ax2.set_ylabel(r"Reduced-$\chi^2$")
             fig.suptitle(f"Best freq = {bestr / idata.T:.12f} Hz ({bestr:.2f} bins)")
             fig.savefig(filenm, dpi=400)
+            plt.close()
         else:
             prof = get_fourier_prof(fft, rr, zz, Nbins=None)
             # Now plot it

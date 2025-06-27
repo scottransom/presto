@@ -3177,22 +3177,23 @@ SWIG_Python_NonDynamicSetAttr(PyObject *obj, PyObject *name, PyObject *value) {
 #define SWIGTYPE_p_binaryprops swig_types[6]
 #define SWIGTYPE_p_char swig_types[7]
 #define SWIGTYPE_p_double swig_types[8]
-#define SWIGTYPE_p_foldstats swig_types[9]
-#define SWIGTYPE_p_int swig_types[10]
-#define SWIGTYPE_p_long swig_types[11]
-#define SWIGTYPE_p_orbitparams swig_types[12]
-#define SWIGTYPE_p_p_FCOMPLEX swig_types[13]
-#define SWIGTYPE_p_p_double swig_types[14]
-#define SWIGTYPE_p_p_float swig_types[15]
-#define SWIGTYPE_p_presto_checkaliased swig_types[16]
-#define SWIGTYPE_p_presto_datainf swig_types[17]
-#define SWIGTYPE_p_presto_ffts swig_types[18]
-#define SWIGTYPE_p_presto_interp_acc swig_types[19]
-#define SWIGTYPE_p_presto_interptype swig_types[20]
-#define SWIGTYPE_p_presto_optype swig_types[21]
-#define SWIGTYPE_p_rzwerrs swig_types[22]
-static swig_type_info *swig_types[24];
-static swig_module_info swig_module = {swig_types, 23, 0, 0, 0, 0};
+#define SWIGTYPE_p_float swig_types[9]
+#define SWIGTYPE_p_foldstats swig_types[10]
+#define SWIGTYPE_p_int swig_types[11]
+#define SWIGTYPE_p_long swig_types[12]
+#define SWIGTYPE_p_orbitparams swig_types[13]
+#define SWIGTYPE_p_p_FCOMPLEX swig_types[14]
+#define SWIGTYPE_p_p_double swig_types[15]
+#define SWIGTYPE_p_p_float swig_types[16]
+#define SWIGTYPE_p_presto_checkaliased swig_types[17]
+#define SWIGTYPE_p_presto_datainf swig_types[18]
+#define SWIGTYPE_p_presto_ffts swig_types[19]
+#define SWIGTYPE_p_presto_interp_acc swig_types[20]
+#define SWIGTYPE_p_presto_interptype swig_types[21]
+#define SWIGTYPE_p_presto_optype swig_types[22]
+#define SWIGTYPE_p_rzwerrs swig_types[23]
+static swig_type_info *swig_types[25];
+static swig_module_info swig_module = {swig_types, 24, 0, 0, 0, 0};
 #define SWIG_TypeQuery(name) SWIG_TypeQueryModule(&swig_module, &swig_module, name)
 #define SWIG_MangledTypeQuery(name) SWIG_MangledTypeQueryModule(&swig_module, &swig_module, name)
 
@@ -4364,6 +4365,15 @@ SWIG_AsVal_unsigned_SS_long (PyObject *obj, unsigned long *val)
 #endif
   return SWIG_TypeError;
 }
+
+
+    void wrap_rz_interp(fcomplex *data, long N, double r, double z,
+                        int kern_half_width, float * ansr, float * ansi){
+        fcomplex ans;
+        rz_interp(data, N, r, z, kern_half_width, &ans);
+        *ansr = ans.r;
+        *ansi = ans.i;
+    }
 
 
     void wrap_corr_rz_plane(fcomplex *data, long N, int numbetween,
@@ -12775,6 +12785,204 @@ fail:
 }
 
 
+SWIGINTERN PyObject *_wrap_fopen(PyObject *self, PyObject *args) {
+  PyObject *resultobj = 0;
+  char *arg1 = (char *) 0 ;
+  char *arg2 = (char *) 0 ;
+  int res1 ;
+  char *buf1 = 0 ;
+  int alloc1 = 0 ;
+  int res2 ;
+  char *buf2 = 0 ;
+  int alloc2 = 0 ;
+  PyObject *swig_obj[2] ;
+  FILE *result = 0 ;
+  
+  (void)self;
+  if (!SWIG_Python_UnpackTuple(args, "fopen", 2, 2, swig_obj)) SWIG_fail;
+  res1 = SWIG_AsCharPtrAndSize(swig_obj[0], &buf1, NULL, &alloc1);
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "fopen" "', argument " "1"" of type '" "char const *""'");
+  }
+  arg1 = (char *)(buf1);
+  res2 = SWIG_AsCharPtrAndSize(swig_obj[1], &buf2, NULL, &alloc2);
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "fopen" "', argument " "2"" of type '" "char const *""'");
+  }
+  arg2 = (char *)(buf2);
+  {
+    errno = 0;
+    result = (FILE *)fopen((char const *)arg1,(char const *)arg2);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_FILE, 0 |  0 );
+  if (alloc1 == SWIG_NEWOBJ) free((char*)buf1);
+  if (alloc2 == SWIG_NEWOBJ) free((char*)buf2);
+  return resultobj;
+fail:
+  if (alloc1 == SWIG_NEWOBJ) free((char*)buf1);
+  if (alloc2 == SWIG_NEWOBJ) free((char*)buf2);
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_fputs(PyObject *self, PyObject *args) {
+  PyObject *resultobj = 0;
+  char *arg1 = (char *) 0 ;
+  FILE *arg2 = (FILE *) 0 ;
+  int res1 ;
+  char *buf1 = 0 ;
+  int alloc1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  PyObject *swig_obj[2] ;
+  int result;
+  
+  (void)self;
+  if (!SWIG_Python_UnpackTuple(args, "fputs", 2, 2, swig_obj)) SWIG_fail;
+  res1 = SWIG_AsCharPtrAndSize(swig_obj[0], &buf1, NULL, &alloc1);
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "fputs" "', argument " "1"" of type '" "char const *""'");
+  }
+  arg1 = (char *)(buf1);
+  res2 = SWIG_ConvertPtr(swig_obj[1], &argp2,SWIGTYPE_p_FILE, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "fputs" "', argument " "2"" of type '" "FILE *""'"); 
+  }
+  arg2 = (FILE *)(argp2);
+  {
+    errno = 0;
+    result = (int)fputs((char const *)arg1,arg2);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_From_int((int)(result));
+  if (alloc1 == SWIG_NEWOBJ) free((char*)buf1);
+  return resultobj;
+fail:
+  if (alloc1 == SWIG_NEWOBJ) free((char*)buf1);
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_fclose(PyObject *self, PyObject *args) {
+  PyObject *resultobj = 0;
+  FILE *arg1 = (FILE *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  PyObject *swig_obj[1] ;
+  int result;
+  
+  (void)self;
+  if (!args) SWIG_fail;
+  swig_obj[0] = args;
+  res1 = SWIG_ConvertPtr(swig_obj[0], &argp1,SWIGTYPE_p_FILE, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "fclose" "', argument " "1"" of type '" "FILE *""'"); 
+  }
+  arg1 = (FILE *)(argp1);
+  {
+    errno = 0;
+    result = (int)fclose(arg1);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_From_int((int)(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_fseek(PyObject *self, PyObject *args) {
+  PyObject *resultobj = 0;
+  FILE *arg1 = (FILE *) 0 ;
+  long arg2 ;
+  int arg3 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  long val2 ;
+  int ecode2 = 0 ;
+  int val3 ;
+  int ecode3 = 0 ;
+  PyObject *swig_obj[3] ;
+  int result;
+  
+  (void)self;
+  if (!SWIG_Python_UnpackTuple(args, "fseek", 3, 3, swig_obj)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(swig_obj[0], &argp1,SWIGTYPE_p_FILE, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "fseek" "', argument " "1"" of type '" "FILE *""'"); 
+  }
+  arg1 = (FILE *)(argp1);
+  ecode2 = SWIG_AsVal_long(swig_obj[1], &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "fseek" "', argument " "2"" of type '" "long""'");
+  } 
+  arg2 = (long)(val2);
+  ecode3 = SWIG_AsVal_int(swig_obj[2], &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "fseek" "', argument " "3"" of type '" "int""'");
+  } 
+  arg3 = (int)(val3);
+  {
+    errno = 0;
+    result = (int)fseek(arg1,arg2,arg3);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_From_int((int)(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
 SWIGINTERN PyObject *_wrap_read_rzw_cand(PyObject *self, PyObject *args) {
   PyObject *resultobj = 0;
   FILE *arg1 = (FILE *) 0 ;
@@ -13408,6 +13616,92 @@ SWIGINTERN PyObject *_wrap_sphere_ang_diff(PyObject *self, PyObject *args) {
     }
   }
   resultobj = SWIG_From_double((double)(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_rz_interp(PyObject *self, PyObject *args) {
+  PyObject *resultobj = 0;
+  fcomplex *arg1 = (fcomplex *) 0 ;
+  long arg2 ;
+  double arg3 ;
+  double arg4 ;
+  int arg5 ;
+  float *arg6 = (float *) 0 ;
+  float *arg7 = (float *) 0 ;
+  PyArrayObject *array1 = NULL ;
+  int i1 = 1 ;
+  double val3 ;
+  int ecode3 = 0 ;
+  double val4 ;
+  int ecode4 = 0 ;
+  int val5 ;
+  int ecode5 = 0 ;
+  float temp6 ;
+  int res6 = SWIG_TMPOBJ ;
+  float temp7 ;
+  int res7 = SWIG_TMPOBJ ;
+  PyObject *swig_obj[4] ;
+  
+  arg6 = &temp6;
+  arg7 = &temp7;
+  (void)self;
+  if (!SWIG_Python_UnpackTuple(args, "rz_interp", 4, 4, swig_obj)) SWIG_fail;
+  {
+    array1 = obj_to_array_no_conversion(swig_obj[0], NPY_CFLOAT);
+    if (!array1 || !require_dimensions(array1,1) || !require_contiguous(array1)
+      || !require_native(array1)) SWIG_fail;
+    arg1 = (fcomplex*) array_data(array1);
+    arg2 = 1;
+    for (i1=0; i1 < array_numdims(array1); ++i1) arg2 *= array_size(array1,i1);
+  }
+  ecode3 = SWIG_AsVal_double(swig_obj[1], &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "rz_interp" "', argument " "3"" of type '" "double""'");
+  } 
+  arg3 = (double)(val3);
+  ecode4 = SWIG_AsVal_double(swig_obj[2], &val4);
+  if (!SWIG_IsOK(ecode4)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode4), "in method '" "rz_interp" "', argument " "4"" of type '" "double""'");
+  } 
+  arg4 = (double)(val4);
+  ecode5 = SWIG_AsVal_int(swig_obj[3], &val5);
+  if (!SWIG_IsOK(ecode5)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode5), "in method '" "rz_interp" "', argument " "5"" of type '" "int""'");
+  } 
+  arg5 = (int)(val5);
+  {
+    errno = 0;
+    wrap_rz_interp(arg1,arg2,arg3,arg4,arg5,arg6,arg7);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_Py_Void();
+  if (SWIG_IsTmpObj(res6)) {
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_From_float((*arg6)));
+  } else {
+    int new_flags = SWIG_IsNewObj(res6) ? (SWIG_POINTER_OWN |  0 ) :  0 ;
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_NewPointerObj((void*)(arg6), SWIGTYPE_p_float, new_flags));
+  }
+  if (SWIG_IsTmpObj(res7)) {
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_From_float((*arg7)));
+  } else {
+    int new_flags = SWIG_IsNewObj(res7) ? (SWIG_POINTER_OWN |  0 ) :  0 ;
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_NewPointerObj((void*)(arg7), SWIGTYPE_p_float, new_flags));
+  }
   return resultobj;
 fail:
   return NULL;
@@ -14836,6 +15130,10 @@ static PyMethodDef SwigMethods[] = {
 	 { "z2n", _wrap_z2n, METH_VARARGS, NULL},
 	 { "print_candidate", _wrap_print_candidate, METH_VARARGS, NULL},
 	 { "print_bin_candidate", _wrap_print_bin_candidate, METH_VARARGS, NULL},
+	 { "fopen", _wrap_fopen, METH_VARARGS, NULL},
+	 { "fputs", _wrap_fputs, METH_VARARGS, NULL},
+	 { "fclose", _wrap_fclose, METH_O, NULL},
+	 { "fseek", _wrap_fseek, METH_VARARGS, NULL},
 	 { "read_rzw_cand", _wrap_read_rzw_cand, METH_VARARGS, NULL},
 	 { "get_rzw_cand", _wrap_get_rzw_cand, METH_VARARGS, NULL},
 	 { "read_bin_cand", _wrap_read_bin_cand, METH_VARARGS, NULL},
@@ -14848,6 +15146,7 @@ static PyMethodDef SwigMethods[] = {
 	 { "hours2hms", _wrap_hours2hms, METH_O, NULL},
 	 { "deg2dms", _wrap_deg2dms, METH_O, NULL},
 	 { "sphere_ang_diff", _wrap_sphere_ang_diff, METH_VARARGS, NULL},
+	 { "rz_interp", _wrap_rz_interp, METH_VARARGS, NULL},
 	 { "corr_rz_plane", _wrap_corr_rz_plane, METH_VARARGS, NULL},
 	 { "corr_rzw_vol", _wrap_corr_rzw_vol, METH_VARARGS, NULL},
 	 { "max_r_arr", _wrap_max_r_arr, METH_VARARGS, NULL},
@@ -14875,6 +15174,7 @@ static swig_type_info _swigt__p_RDERIVS = {"_p_RDERIVS", "rderivs *|struct RDERI
 static swig_type_info _swigt__p_binaryprops = {"_p_binaryprops", "binaryprops *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_char = {"_p_char", "char *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_double = {"_p_double", "double *", 0, 0, (void*)0, 0};
+static swig_type_info _swigt__p_float = {"_p_float", "float *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_foldstats = {"_p_foldstats", "foldstats *|struct foldstats *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_int = {"_p_int", "int *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_long = {"_p_long", "long *", 0, 0, (void*)0, 0};
@@ -14900,6 +15200,7 @@ static swig_type_info *swig_type_initial[] = {
   &_swigt__p_binaryprops,
   &_swigt__p_char,
   &_swigt__p_double,
+  &_swigt__p_float,
   &_swigt__p_foldstats,
   &_swigt__p_int,
   &_swigt__p_long,
@@ -14925,6 +15226,7 @@ static swig_cast_info _swigc__p_RDERIVS[] = {  {&_swigt__p_RDERIVS, 0, 0, 0},{0,
 static swig_cast_info _swigc__p_binaryprops[] = {  {&_swigt__p_binaryprops, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_char[] = {  {&_swigt__p_char, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_double[] = {  {&_swigt__p_double, 0, 0, 0},{0, 0, 0, 0}};
+static swig_cast_info _swigc__p_float[] = {  {&_swigt__p_float, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_foldstats[] = {  {&_swigt__p_foldstats, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_int[] = {  {&_swigt__p_int, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_long[] = {  {&_swigt__p_long, 0, 0, 0},{0, 0, 0, 0}};
@@ -14950,6 +15252,7 @@ static swig_cast_info *swig_cast_initial[] = {
   _swigc__p_binaryprops,
   _swigc__p_char,
   _swigc__p_double,
+  _swigc__p_float,
   _swigc__p_foldstats,
   _swigc__p_int,
   _swigc__p_long,

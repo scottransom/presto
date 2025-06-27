@@ -398,6 +398,18 @@ def print_candidate(cand, dt, N, nph, numerrdigits):
 def print_bin_candidate(cand, numerrdigits):
     return _presto.print_bin_candidate(cand, numerrdigits)
 
+def fopen(filename, mode):
+    return _presto.fopen(filename, mode)
+
+def fputs(arg1, arg2):
+    return _presto.fputs(arg1, arg2)
+
+def fclose(arg1):
+    return _presto.fclose(arg1)
+
+def fseek(stream, offset, whence):
+    return _presto.fseek(stream, offset, whence)
+
 def read_rzw_cand(file, cands):
     return _presto.read_rzw_cand(file, cands)
 
@@ -433,6 +445,9 @@ def deg2dms(degrees):
 
 def sphere_ang_diff(ra1, dec1, ra2, dec2):
     return _presto.sphere_ang_diff(ra1, dec1, ra2, dec2)
+
+def rz_interp(data, r, z, kern_half_width):
+    return _presto.rz_interp(data, r, z, kern_half_width)
 
 def corr_rz_plane(data, numbetween, startbin, zlo, zhi, numz, fftlen, accuracy):
     return _presto.corr_rz_plane(data, numbetween, startbin, zlo, zhi, numz, fftlen, accuracy)

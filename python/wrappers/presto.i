@@ -705,6 +705,12 @@ void print_candidate(fourierprops * cand, double dt, unsigned long N,
 void print_bin_candidate(binaryprops * cand, int numerrdigits);
 /* Outputs a 2 column summary of all the properties or a fourier peak  */
 
+/* We need some basic FILE handling to deal with the FILE pointers */
+FILE *fopen(const char *filename, const char *mode);
+int fputs(const char *, FILE *);
+int fclose(FILE *);
+int fseek(FILE *stream, long offset, int whence);
+
 int read_rzw_cand(FILE *file, fourierprops *cands);
 /* Read the next rzw candidate from the file */
 /* If successful, return 1, else 0           */
@@ -746,6 +752,20 @@ void deg2dms(double degrees, int *xx, int *mm, double *ss);
 
 double sphere_ang_diff(double ra1, double dec1, double ra2, double dec2);
 /* Return the spherical angle (radians) between two RA and DECS */
+
+%apply (fcomplex* INPLACE_ARRAY1, long DIM1) {(fcomplex *data, long N)};
+%apply float *OUTPUT { float * ansr, float * ansi };
+%rename (rz_interp) wrap_rz_interp;
+%inline %{
+    void wrap_rz_interp(fcomplex *data, long N, double r, double z,
+                        int kern_half_width, float * ansr, float * ansi){
+        fcomplex ans;
+        rz_interp(data, N, r, z, kern_half_width, &ans);
+        *ansr = ans.r;
+        *ansi = ans.i;
+    }
+%}
+%clear (fcomplex *data, long N);
 
 %apply (fcomplex** ARGOUTVIEWM_ARRAY2, long* DIM1, long* DIM2) \
     {(fcomplex **arr, long *nr, long *nc)};
