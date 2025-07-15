@@ -100,7 +100,7 @@ def profile_for_plot(prof):
 def usage():
     print(
         """
-usage:  fourier_fold.py [options which must include -f or -c] fft_file
+usage:  fourier_fold.py [options which must include -f or -c] fft_file(s)
   [-h, --help]                          : Display this help
   [-o, --optimize]                      : Optimize the candidates over local nearby frequencies
   [-f freq, --freq=freq]                : Frequency (Hz) to use for profile
@@ -108,14 +108,17 @@ usage:  fourier_fold.py [options which must include -f or -c] fft_file
                                           By default all candidates will be folded.
   [-n accelcand, --accelcand=accelcand  : Only generate this candidate number from candfile (1 offset)
 
-  This program uses the complex amplitudes in a PRESTO .fft file to generate
-  pulse profiles without having to do time-domain folding. It either reads in 
-  all of the accelsearch candidates from a ".cand" file, or folds a single
-  candidate from that file (via -n option) or one specified on the command line
-  (via -f option). PNG plot or plots showing the resulting profiles are generated
-  and saved. If the optimizing option is requested, then the significance of the 
-  candidate is optimized before the plots are generated (along with additional
-  plots of the reduced-chi^2 significance of the pulsations.
+  This program uses the complex amplitudes in a PRESTO .fft file (or in
+  multiple FFT files) to generate pulse profiles without having to do
+  time-domain folding. It either reads in all of the accelsearch
+  candidates from a ".cand" file, or folds a single candidate from that
+  file (via -n option) or one specified on the command line (via -f
+  option). PNG plot or plots showing the resulting profiles are generated
+  and saved. If the optimizing option is requested, then the significance
+  of the candidate is optimized before the plots are generated (along with
+  additional plots of the reduced-chi^2 significance of the pulsations). If
+  multiple FFT files are given, the same harmonics are read from each, and
+  a plot of significance vs DM from each of the FFT files is shown.
   
 """
     )
@@ -164,6 +167,9 @@ if __name__ == "__main__":
     fft = np.memmap(args[0], dtype=np.complex64, mode='r')
     idata = pi.infodata(args[0][:-4] + ".inf")
     idata.T = idata.N * idata.dt
+    profs = []
+    DMs = []
+    chis = []
 
     if accelfile:
         ncands = os.stat(accelfile).st_size // 88
@@ -188,41 +194,76 @@ if __name__ == "__main__":
 
     # Step over the candidates
     for ii in range(ncands):
-        if accelfile is not None and accelcand is None:
-            fprops = pp.fourierprops()
-            pp.get_rzw_cand(accelfile, ii + 1, fprops)
-            freq = fprops.r / idata.T
-            zz = fprops.z
-            filenm = f"{accelfile}.{ii+1}.png"
 
-        rr = freq * idata.T
+        # Step over the .fft files if needed
+        for jj in range(len(args)):
+            if jj > 0:
+                fft = np.memmap(args[jj], dtype=np.complex64, mode='r')
+                idata = pi.infodata(args[jj][:-4] + ".inf")
+                idata.T = idata.N * idata.dt
+            
+            if accelfile is not None and accelcand is None:
+                fprops = pp.fourierprops()
+                pp.get_rzw_cand(accelfile, ii + 1, fprops)
+                freq = fprops.r / idata.T
+                zz = fprops.z
+                filenm = f"{accelfile}.{ii+1}.png"
 
-        if optimize:
-            var = estimate_profile_variance(fft, rr, Nbins=None, Ntrials=10)
-            maxoff = 0.5
-            dr = 1.0 / min(len(fft)/rr, 100)
-            chis, bestr = optimize_freq(fft, rr, var, Nbins=None, dr=dr, maxoff=maxoff)
-            prof = get_fourier_prof(fft, bestr, zz, Nbins=None)
+            rr = freq * idata.T
+
+            if optimize:
+                if len(args) > 1:
+                    print("Can't optimize freq if more than one .fft file. Using first one.")
+                var = estimate_profile_variance(fft, rr, Nbins=None, Ntrials=10)
+                maxoff = 0.5
+                dr = 1.0 / min(len(fft)/rr, 100)
+                chis, bestr = optimize_freq(fft, rr, var, Nbins=None, dr=dr, maxoff=maxoff)
+                print(f"Orig freq: {rr / idata.T:.15g} Hz    Optimized freq: {bestr / idata.T:.15g} Hz")
+                prof = get_fourier_prof(fft, bestr, zz, Nbins=None)
+                # Now plot it
+                fig, (ax1, ax2) = plt.subplots(
+                    1, 2, sharex=False, sharey=False, layout="constrained", figsize=(8, 4)
+                )
+                ax1.plot(np.linspace(0.0, 2.0, 2*len(prof)), profile_for_plot(prof))
+                ax1.set_xlabel("Pulse phase (bins)")
+                ax1.set_ylabel("Relative intensity")
+                ax2.plot(np.linspace(-maxoff, maxoff, int(2 * maxoff / dr) + 1), chis)
+                ax2.vlines(0.0, chis.min(), chis.max() * 1.05, colors='grey', alpha=0.4)
+                ax2.set_xlabel("Fourier frequency offset (bins)")
+                ax2.set_ylabel(r"Reduced-$\chi^2$")
+                fig.suptitle(f"Best freq = {bestr / idata.T:.12f} Hz  ({bestr:.2f} bins)")
+                fig.savefig(filenm, dpi=400)
+                plt.close()
+                sys.exit()
+
+            profs.append(get_fourier_prof(fft, rr, zz, Nbins=None))
+            DMs.append(idata.DM)
+            if (len(args) > 1):
+                var = estimate_profile_variance(fft, rr, Nbins=None, Ntrials=10)
+                chis.append(pp.compute_chi2(profs[-1], np.median(profs[-1]), var) / (len(profs[-1]) - 1.0))
+
+        if len(args)==1:
             # Now plot it
-            fig, (ax1, ax2) = plt.subplots(
-                1, 2, sharex=False, sharey=False, layout="constrained", figsize=(8, 4)
-            )
-            ax1.plot(np.linspace(0.0, 2.0, 2*len(prof)), profile_for_plot(prof))
-            ax1.set_xlabel("Pulse phase (bins)")
-            ax1.set_ylabel("Relative intensity")
-            ax2.plot(np.linspace(-maxoff, maxoff, int(2 * maxoff / dr) + 1), chis)
-            ax2.vlines(0.0, chis.min(), chis.max() * 1.05, colors='grey', alpha=0.4)
-            ax2.set_xlabel("Fourier frequency offset (bins)")
-            ax2.set_ylabel(r"Reduced-$\chi^2$")
-            fig.suptitle(f"Best freq = {bestr / idata.T:.12f} Hz  ({bestr:.2f} bins)")
-            fig.savefig(filenm, dpi=400)
-            plt.close()
-        else:
-            prof = get_fourier_prof(fft, rr, zz, Nbins=None)
-            # Now plot it
-            plt.plot(np.linspace(0.0, 2.0, 2*len(prof)), profile_for_plot(prof))
+            plt.plot(np.linspace(0.0, 2.0, 2*len(profs[0])), profile_for_plot(profs[0]))
             plt.xlabel("Pulse phase (bins)")
             plt.ylabel("Relative intensity")
             plt.title(f"Freq = {rr / idata.T:.12f} Hz  ({rr:.2f} bins)")
             plt.savefig(filenm, dpi=400)
             plt.close()
+        else:
+            schis = np.asarray([x for _, x in sorted(zip(DMs, chis))])
+            sDMs = np.sort(DMs)
+            prof = profs[np.asarray(chis).argmax()]
+            for chi, DM in zip(schis, sDMs):
+                # Now plot it
+                fig, (ax1, ax2) = plt.subplots(
+                    1, 2, sharex=False, sharey=False, layout="constrained", figsize=(8, 4)
+                )
+                ax1.plot(np.linspace(0.0, 2.0, 2*len(prof)), profile_for_plot(prof))
+                ax1.set_xlabel("Pulse phase (bins)")
+                ax1.set_ylabel("Relative intensity")
+                ax2.plot(sDMs, schis)
+                ax2.set_xlabel(r"Dispersion Measure (pc/cm$^3$)")
+                ax2.set_ylabel(r"Reduced-$\chi^2$")
+                fig.savefig(filenm, dpi=400)
+                plt.close()
