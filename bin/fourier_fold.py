@@ -163,13 +163,9 @@ if __name__ == "__main__":
         if o in ("-n", "--accelcand"):
             accelcand = int(a)
 
-    #fft = np.fromfile(args[0], dtype=np.complex64)
     fft = np.memmap(args[0], dtype=np.complex64, mode='r')
     idata = pi.infodata(args[0][:-4] + ".inf")
     idata.T = idata.N * idata.dt
-    profs = []
-    DMs = []
-    chis = []
 
     if accelfile:
         ncands = os.stat(accelfile).st_size // 88
@@ -194,6 +190,9 @@ if __name__ == "__main__":
 
     # Step over the candidates
     for ii in range(ncands):
+        profs = []
+        DMs = []
+        chis = []
 
         # Step over the .fft files if needed
         for jj in range(len(args)):
@@ -254,16 +253,23 @@ if __name__ == "__main__":
             schis = np.asarray([x for _, x in sorted(zip(DMs, chis))])
             sDMs = np.sort(DMs)
             prof = profs[np.asarray(chis).argmax()]
-            for chi, DM in zip(schis, sDMs):
-                # Now plot it
-                fig, (ax1, ax2) = plt.subplots(
-                    1, 2, sharex=False, sharey=False, layout="constrained", figsize=(8, 4)
-                )
-                ax1.plot(np.linspace(0.0, 2.0, 2*len(prof)), profile_for_plot(prof))
-                ax1.set_xlabel("Pulse phase (bins)")
-                ax1.set_ylabel("Relative intensity")
-                ax2.plot(sDMs, schis)
-                ax2.set_xlabel(r"Dispersion Measure (pc/cm$^3$)")
-                ax2.set_ylabel(r"Reduced-$\chi^2$")
-                fig.savefig(filenm, dpi=400)
-                plt.close()
+            print("---------")
+            print(f"Cand {ii+1}:")
+            outstr = rf" Orig freq: {rr / idata.T:.15g} Hz    Best DM: {sDMs[schis.argmax()]:.3f} pc/cm$^3$"
+            print(outstr)
+            dof = len(prof)-1
+            sigma = pp.equivalent_gaussian_sigma(pp.chi2_logp(schis.max() * dof, dof))
+            print(rf" Best reduced-chi^2: {schis.max():.3f} with {dof} DOF (~{sigma:.1f} sigma)")
+            # Now plot it
+            fig, (ax1, ax2) = plt.subplots(
+                1, 2, sharex=False, sharey=False, layout="constrained", figsize=(8, 4)
+            )
+            ax1.plot(np.linspace(0.0, 2.0, 2*len(prof)), profile_for_plot(prof))
+            ax1.set_xlabel("Pulse phase (bins)")
+            ax1.set_ylabel("Relative intensity")
+            ax2.plot(sDMs, schis)
+            ax2.set_xlabel(r"Dispersion Measure (pc/cm$^3$)")
+            ax2.set_ylabel(r"Reduced-$\chi^2$")
+            fig.suptitle(outstr)
+            fig.savefig(filenm, dpi=400)
+            plt.close()
