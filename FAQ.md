@@ -468,7 +468,7 @@ MYFILE_rfifind.inf`
 
 Maybe! I highly recommend you browse the code in `$PRESTO/python`, and
 especially the highly useful `psr_utils.py`. I normally load that with: `import
-presto.psr_utils as pu`.
+presto.psr_utils as pu`. There are dozens of useful functions in that module.
 
 You can also read in `rfifind` result files using the `presto.rfifind` module
 and `prepfold` files using the `presto.prepfold` module. The ATNF pulsar
@@ -476,6 +476,43 @@ database is available in `presto.pypsrcat`. And there are tools for reading
 filterbank and PSRFITs files into PRESTO as well (i.e. `psrfits.py`,
 `filterbank.py`, and `spectra.py`). You can read TEMPO residuals using
 `residuals.py`.
+
+As for the ATNF pulsar database code, since many people don't know about it,
+you might want to take a look at `$PRESTO/examplescripts/ppdot_plane_plot.py`
+which was used to make this really nice version of the [P-Pdot 
+diagram](https://www.cv.nrao.edu/~sransom/web/Ch6.html#F3).
+
+And here is some sample code to show how to use it:
+```
+In [1]: import presto.pypsrcat as ppsr
+
+In [2]: print(ppsr.version) # ATNF Catalog version number
+v2.51
+
+In [3]: # All the pulsars are available as keys in a dictionary (without "J" or "B" to start)
+   ...: print(list(ppsr.pulsars.keys())[:10])
+['0002+6216', '0006+1834', '0007+7303', '0011+08', '0012+5431', '0014+4746', '0021-0909', '0023+0923', '0024-7204C', '0024-7204D']
+
+In [4]: # You can print a summary info about a pulsar
+   ...: print(ppsr.pulsars["1124-5638"])
+
+Pulsar J1124-5638
+     Survey Detections = pksmb,htru_pks
+    (Discoverer first)
+            RA (J2000) = 11:24:56.4700 +/- 0.0600s
+           DEC (J2000) = -56:38:39.7000 +/- 0.5000"
+                (l, b) = (291.21, 4.25)
+          DM (cm-3 pc) = 289.5 +/- 1.6
+       S_1400MHz (mJy) = 0.31 +/- 0.04
+        Distance (kpc) = 2.64
+            Period (s) = 0.185559973401813 +/- 1.37730014915527e-11
+           P-dot (s/s) = 8.952451e-18 +/- 5.1648756e-18
+           Epoch (MJD) = 51752
+
+In [5]: # Or grab individual information
+   ...: print(ppsr.pulsars["1124-5638"].p, ppsr.pulsars["1124-5638"].dm)
+0.18555997340181338 289.5
+```
 
 -----------------
 
@@ -1078,6 +1115,79 @@ which uses PRESTO's C-code and structures, as wrapped by `swig`, or:
     Out[9]: <presto.infodata.infodata at 0x7f80c9d2d400>
 
 which is pure Python (and therefore much easier to modify, if needed).
+
+-----------------
+
+### How do I add a new telescope into PRESTO?
+
+Thanks to Pascual Marcone for providing this question and a first-cut at the answer!
+​
+In general, you will need to edit two files in PRESTO and one in Tempo:
+
+- `$TEMPO/obsys.dat`
+- `$PRESTO/src/misc_utils.c`
+- `$PRESTO/src/polycos.c`
+​
+#### TEMPO's `obsys.dat` file:
+If this is for temporary work, I recommend removing a telescope from this file
+and replacing it with the telescope that you want.  For instance, we can remove
+the LWA line (which has observatory codes `x` and `LW`) with the following for
+Gemini South. Make sure that you get the coordinates correct!
+​
+```
+...
+ 5088964.00    301689.80        3825017.0      1  PICO VELETA         v  PV
+-1820198.1987  -5208357.7142   -3194851.5658   1  Gemini South        x  GS
+-2059166.313    -3621302.972    4814304.113    1  CHIME               y  CH
+...
+```
+​
+You will need to use the `x` and `GS` codes below in the changes to the PRESTO files.
+​
+#### PRESTO's `misc_utils.c` file:
+​In the long list of `else if` commands, just enter the new observatory using
+the two-character code (`GS`) that you used in `$TEMPO/obsys.dat`. Note that you
+need things in lower case with the same spelling that you will have in the raw
+data and `.inf` files. ​
+
+```c
+...
+    } else if (strcmp(scope, "meerkat") == 0 ) {
+        strcpy(obscode, "MK");
+        strcpy(outname, "MeerKAT");
+    } else if (strcmp(scope, "gemini-s") == 0 ) {
+        strcpy(obscode, "GS");
+        strcpy(outname, "Gemini-S");
+    } else if (strcmp(scope, "ata") == 0) {
+        strcpy(obscode, "AT");
+        strcpy(outname, "ATA");
+...
+```
+​​
+#### PRESTO's `polycos.c` file (in the `make_polycos()` function.)
+​Make a similar addition here, but where the observatory name is the same as
+the `outname` from `misc_utils.c`.  In this case you need to use the same
+one-character code (`x`) that you used in `$TEMPO/obsys.dat`. ​
+
+```c
+...
+    } else if (strcmp(idata->telescope, "MeerKAT") == 0) {
+        scopechar = 'm';
+        tracklen = 12;
+    } else if (strcmp(idata->telescope, "Gemini-S") == 0) {
+        scopechar = 'x';
+        tracklen = 12;
+    } else if (strcmp(idata->telescope, "KAT-7") == 0) {
+        scopechar = 'k';
+        tracklen = 12;
+...
+```
+​
+#### Final Step
+​Now you need to re-build and re-install PRESTO.  Tempo does not need to be
+re-built.  And as long as your data has the correct telescope name in the raw
+data (or `.inf`) files, you should be able to barycenter or use `prepfold` with
+(for instance) the `-timing` flag.
 
 -----------------
 

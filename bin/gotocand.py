@@ -8,7 +8,7 @@ import re
 from subprocess import Popen, PIPE, STDOUT
 from presto.presto import fourierprops, get_rzw_cand
 
-short_re = re.compile("_\d\d\dM_\d\d_ACCEL_")
+short_re = re.compile(r"_\d\d\dM_\d\d_ACCEL_")
 
 
 def determine_dt(candfile):
@@ -75,7 +75,7 @@ def find_node(DM):
 
 def find_local_datfile(basename, DM):
     p = Popen(
-        "find .. -name \*%s\*DM%s\*dat" % (basename, DM),
+        r"find .. -name \*%s\*DM%s\*dat" % (basename, DM),
         shell=True,
         bufsize=-1,
         stdin=PIPE,
@@ -98,7 +98,7 @@ def find_local_datfile(basename, DM):
 
 def find_datfile(nodename, basename, DM):
     p = Popen(
-        "ssh %s find -L /scratch -name \*%s\*DM%s\*dat" % (nodename, basename, DM),
+        r"ssh %s find -L /scratch -name \*%s\*DM%s\*dat" % (nodename, basename, DM),
         shell=True,
         bufsize=-1,
         stdin=PIPE,
@@ -239,7 +239,7 @@ if __name__ == "__main__":
         if not local:
             os.system("ssh -X %s 'cd %s ; %s'" % (node, datfiledir, foldcommand))
             os.system(
-                "scp -c blowfish %s:%s*ACCEL_Cand_%d*.pfd* %s"
+                "scp %s:%s*ACCEL_Cand_%d*.pfd* %s"
                 % (node, os.path.join(datfiledir, outfile), int(candnum), outdir)
             )
         else:

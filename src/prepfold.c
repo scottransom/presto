@@ -378,7 +378,6 @@ int main(int argc, char *argv[])
                 idata.N = rzwidata.N;
                 idata.dt = rzwidata.dt;
             }
-            printf("Assuming the events are barycentered or geocentered.\n");
             if (!cmd->proflenP) {
                 cmd->proflenP = 1;
                 cmd->proflen = 20;
@@ -404,6 +403,8 @@ int main(int argc, char *argv[])
                    Thanks to Paul Ray for finding this. */
                 T = events[numevents - 1] + 1e-8;
             }
+            printf("Found %d events starting at MJD %.15f over %.2f seconds\n",
+                numevents, idata.mjd_i + idata.mjd_f, T);
         } else {
             if (!insubs)
                 s.files[0] = chkfopen(s.filenames[0], "rb");
@@ -898,7 +899,10 @@ int main(int argc, char *argv[])
     }
 
     if (cmd->eventsP) {
-        search.dt = (search.bary.p1 + 0.5 * T * search.bary.p2) / search.proflen;
+        if (search.topo.p1 == 0.0)
+            search.dt = (search.bary.p1 + 0.5 * T * search.bary.p2) / search.proflen;
+        else
+            search.dt = (search.topo.p1 + 0.5 * T * search.topo.p2) / search.proflen;
         N = ceil(T / search.dt);
     }
 
