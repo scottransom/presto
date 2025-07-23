@@ -9,7 +9,7 @@ scripts = ['a2x.sh', 'binary_info.py', 'chooseN.py', 'combine_weights.py',
   'powerstats.py', 'psrfits2fil.py', 'psrfits_quick_bandpass.py', 
   'pulsestack.py', 'pygaussfit.py', 'pyplotres.py', 'quickffdots.py', 
   'quick_prune_cands.py', 'rfifind_stats.py', 'rrattrap.py', 
-  'simple_zapbirds.py', 'single_pulse_search.py', 'sortwappfiles.py', 
+  'simple_zapbirds.py', 'single_pulse_search.py', 'sortwappfiles.py', 'stacksearch.py',
   'subband_smearing.py', 'sum_profiles.py', 'tim2dat.py', 
   'waterfaller.py', 'weights_to_ignorechan.py']
 
