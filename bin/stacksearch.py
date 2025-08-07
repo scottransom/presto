@@ -256,7 +256,7 @@ class stack:
         xmean, xmed, xstd = self.expected_stack_stats(hstack=hstack)
         extra = f" and nharms={self.nharms}:" if hstack else ":"
         print(
-            f"For {"harmonic " if hstack else ""}stack with nstacked={self.nstacked}{extra}"
+            f"For {'harmonic ' if hstack else ''}stack with nstacked={self.nstacked}{extra}"
         )
         print(f"  Mean   = {mean:7.3f} (expect {xmean:7.3f})")
         print(f"  Median = {med:7.3f} (expect {xmed:7.3f})")
@@ -406,7 +406,7 @@ class stackcands:
         else:
             out = open(outfile, "w")
         out.write(
-            f"# {"Sigma":^7} {"Freq (Hz)":^13} {"Fourier Bin":^13} {"Power":^8} {"#Harm":^5}\n"
+            f"# {'Sigma':^7} {'Freq (Hz)':^13} {'Fourier Bin':^13} {'Power':^8} {'#Harm':^5}\n"
         )
         out.write(f"#{'-'*(7+13+13+8+5+5)}\n")
         for ii, cand in enumerate(self.cands):
