@@ -203,9 +203,11 @@ class stack:
             The lowest frequency bin to include in the stats (useful for avoiding rednoise)
         """
         if self.stack is not None:
-            return (self.stack[lobin:].mean(),
-                    np.median(self.stack[lobin:]),
-                    self.stack[lobin:].std())
+            return (
+                self.stack[lobin:].mean(),
+                np.median(self.stack[lobin:]),
+                self.stack[lobin:].std(),
+            )
         else:
             return (None, None, None)
 
@@ -219,8 +221,8 @@ class stack:
         """
         if self.stack is not None:
             mean, med, std = self.get_stats(lobin=lobin)
-            mean *= 2 # since we normalize a single power spectrum to 1
-            var = (2 * std)**2 
+            mean *= 2  # since we normalize a single power spectrum to 1
+            var = (2 * std) ** 2
             print(f"Mean     = {mean:.3f} (expect {2 * self.nstacked})")
             print(f"Variance = {var:.3f} (expect {4 * self.nstacked})")
 
@@ -234,13 +236,51 @@ class stack:
         """
         if self.hstack is not None:
             mean, std = (self.hstack[lobin:].mean(), self.hstack[lobin:].std())
-            mean *= 2 # since we normalize a single power spectrum to 1
-            var = (2 * std)**2 
+            mean *= 2  # since we normalize a single power spectrum to 1
+            var = (2 * std) ** 2
             print(f"Mean     = {mean:.3f} (expect {2 * self.nstacked * self.nharms})")
             print(f"Variance = {var:.3f} (expect {4 * self.nstacked * self.nharms})")
 
     def sum_next_harmonics(self):
         """Generate a stack with summed harmonics based on the next power of two"""
-        pstack = self.stack if self.nharms==1 else self.hstack
-        self.hstack = ph.harmonic_sum(self.nharms*2, self.stack, partial=pstack, partialN=self.nharms)
+        pstack = self.stack if self.nharms == 1 else self.hstack
+        self.hstack = ph.harmonic_sum(
+            self.nharms * 2, self.stack, partial=pstack, partialN=self.nharms
+        )
         self.nharms *= 2
+
+    def power_threshold_from_sigma(self, sigma: float = 5.0) -> float:
+        """Return the threshold power required for the harmonic stack to exceed sigma"""
+        return pu.powersum_at_sigma(sigma, self.nstacked * self.nharms)
+
+    def search_hstack(self, pthresh: float, lobin: int = 50) -> np.ndarray:
+        """Return a sorted array of the hstack indices exceeding pthresh (most->least significant)
+
+        Parameters
+        ----------
+        pthresh : float
+            The summed power threshold required to return a candidate
+                (usually set by using the power_threshold_from_sigma() method)
+        lobin : int
+            The lowest bin to search for significant signals
+        """
+        stack = self.hstack if self.nharms > 1 else self.stack
+        inds = np.arange(self.N // 2)
+        # following is a boolean array for the bins above pthresh and with index above lobin
+        good = np.logical_and(inds > lobin, stack > pthresh)
+        # Select the powers that made the cut
+        goodpows = stack[good]
+        # And figure out what their indices are
+        goodinds = inds[good]
+        # return the indices with the highest powers first
+        return goodinds[np.argsort(goodpows)[::-1]]
+
+    def calc_freqs(self, bins: np.ndarray) -> np.ndarray:
+        """Return the harmonic-compensated fundamental frequencies (Hz) for the bins
+
+        Parameters
+        ----------
+        bins : np.ndarray
+            An array of indices in the hstack to compute fundamental frequencies for
+        """
+        return (self.freqs / self.nharms)[bins]
