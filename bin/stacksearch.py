@@ -381,7 +381,13 @@ class stackcands:
         """
         for ind, pow in zip(indices, powers):
             self.cands.append(
-                candidate(ind, ind / stack.T / stack.nharms, stack.nharms, stack.nstacked, pow)
+                candidate(
+                    ind / stack.nharms,
+                    ind / stack.T / stack.nharms,
+                    stack.nharms,
+                    stack.nstacked,
+                    pow,
+                )
             )
 
     def output_candidates(self, outfile=None, maxncands=100) -> None:
@@ -406,7 +412,7 @@ class stackcands:
         for ii, cand in enumerate(self.cands):
             if ii > maxncands:
                 break
-            out.write(str(cand)+"\n")
+            out.write(str(cand) + "\n")
 
 
 if __name__ == "__main__":
