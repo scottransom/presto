@@ -283,4 +283,4 @@ class stack:
         bins : np.ndarray
             An array of indices in the hstack to compute fundamental frequencies for
         """
-        return (self.freqs / self.nharms)[bins]
+        return self.freqs[bins] / self.nharms
