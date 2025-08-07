@@ -57,7 +57,7 @@ class fftfile:
         return self._freqs
 
     def rednoise_normalize(self, b0=50, bmax=10000, get_medians=False):
-        """Normalise the power spectrum while removing rednoise. Based on PRESTO's method
+        """Normalize the power spectrum while removing rednoise. Based on PRESTO's method
         of rednoise removal, in which a logarithmically increasing window is used at low
         frequencies to compute the local median. The median value to divide for each
         frequency bin is identified by a linear fit between adjacent local medians.
@@ -88,7 +88,7 @@ class fftfile:
                 pass
             else:
                 window = int(new_window)
-            scale.append(window)
+            scale.append(window)  # type: ignore
             if np.sum(scale) > ps_len:
                 scale[-1] = ps_len - np.sum(scale[:-1])
                 break
@@ -166,80 +166,101 @@ class stack:
         self.ffts = [ff if isinstance(ff, os.PathLike) else Path(ff) for ff in ffts]
         self.nstacked = 0
         self.nharms = 1
-        self.stack = None
-        self.hstack = None
         self.filenms = []
         for fft in self.ffts:
             self.add_to_stack(fft)
 
-    def add_to_stack(self, ff: Union[str, os.PathLike], blocklen: int = 1000):
+    def add_to_stack(
+        self, ff: Union[str, os.PathLike], detrended: bool = False, blocklen: int = 1000
+    ):
         """Add a PRESTO FFT to a power spectrum stack class instance.
 
         Parameters
         ----------
         ff : file or str or Path
             The PRESTO .fft file to open and add to the stack
+        detrended : bool
+            Whether the FFT has already been detrended or not (default is False)
         blocklen : int
             The block length for linear detrending of the powers (if detrending is needed)
         """
         ft = fftfile(ff)
-        if self.stack is None:
+        ft.detrended = True if detrended else ft.detrended
+        fname = str(ft.ff)
+        print(f"Adding '{fname}' to stack.")
+        if not hasattr(self, "stack"):
             self.N = ft.N
             self.freqs = ft.freqs
+            self.T = ft.T
             self.df = ft.df
-            self.filenms.append(str(ft.ff))
+            self.filenms.append(fname)
             self.stack = np.zeros(ft.N // 2)
         else:
-            assert self.N == ft.N
-        self.stack += ft.powers if ft.detrended else ft.rednoise_normalize()
+            assert np.isclose(
+                self.df, ft.df
+            ), f"{fname} has freq spacing {ft.df:.12g} rather than {self.df:.12g}"
+        if self.N == ft.N:
+            self.stack += ft.powers if ft.detrended else ft.rednoise_normalize()
+        elif self.N < ft.N:  # truncate
+            print(f"{fname} is shorter than current stack. Truncating.")
+            self.stack += (
+                ft.powers[: self.N]
+                if ft.detrended
+                else ft.rednoise_normalize()[: self.N]
+            )
+        else:  # pad
+            print(f"{fname} is longer than current stack. Padding.")
+            self.stack[: ft.N] += ft.powers if ft.detrended else ft.rednoise_normalize()
+            self.stack[ft.N :] += 1.0
         self.nstacked += 1
 
-    def get_stats(self, lobin=10):
-        """Return the mean, median, and standard deviation of the stack
+    def expected_stack_stats(self, hstack=False) -> tuple[float, float, float]:
+        """The mean, median, and stdev expected in the stack or hstack from chi^2 stats
+
+        Parameters
+        ----------
+        hstack : boolean
+            Use hstack (if True) or stack (if False)
+        """
+        DOF = 2 * self.nstacked * self.nharms if hstack else 2 * self.nstacked
+        # The divides by two below are because we normalize powers to mean=std=1 for
+        # a single power spectrum, which is off by a factor of 2 for pure chi^2
+        return (DOF / 2, DOF / 2 * (1 - 2 / (9 * DOF)) ** 3, np.sqrt(DOF / 2))
+
+    def get_stats(self, lobin=100, hstack=False):
+        """Return the mean, median, and standard deviation of the stack or hstack
+
+        Parameters
+        ----------
+        lobin : int
+            The lowest frequency bin to include in the stats (useful for avoiding rednoise)
+        hstack : boolean
+            Use hstack (if True) or stack (if False)
+        """
+        tmpstack: np.ndarray = self.hstack if hstack else self.stack  # type: ignore
+        return (
+            tmpstack[lobin:].mean(),
+            np.median(tmpstack[lobin:]),
+            tmpstack[lobin:].std(),
+        )
+
+    def show_stats(self, lobin=100, hstack=False):
+        """Show the stats of the stack or hstack as compared to what is expected
 
         Parameters
         ----------
         lobin : int
             The lowest frequency bin to include in the stats (useful for avoiding rednoise)
         """
-        if self.stack is not None:
-            return (
-                self.stack[lobin:].mean(),
-                np.median(self.stack[lobin:]),
-                self.stack[lobin:].std(),
-            )
-        else:
-            return (None, None, None)
-
-    def show_chi2_stack_stats(self, lobin=10):
-        """Show the converted stats of the stack for the proper chi^2 distribution
-
-        Parameters
-        ----------
-        lobin : int
-            The lowest frequency bin to include in the stats (useful for avoiding rednoise)
-        """
-        if self.stack is not None:
-            mean, med, std = self.get_stats(lobin=lobin)
-            mean *= 2  # since we normalize a single power spectrum to 1
-            var = (2 * std) ** 2
-            print(f"Mean     = {mean:.3f} (expect {2 * self.nstacked})")
-            print(f"Variance = {var:.3f} (expect {4 * self.nstacked})")
-
-    def show_chi2_hstack_stats(self, lobin=10):
-        """Show the converted stats of the harmonic stack for the proper chi^2 distribution
-
-        Parameters
-        ----------
-        lobin : int
-            The lowest frequency bin to include in the stats (useful for avoiding rednoise)
-        """
-        if self.hstack is not None:
-            mean, std = (self.hstack[lobin:].mean(), self.hstack[lobin:].std())
-            mean *= 2  # since we normalize a single power spectrum to 1
-            var = (2 * std) ** 2
-            print(f"Mean     = {mean:.3f} (expect {2 * self.nstacked * self.nharms})")
-            print(f"Variance = {var:.3f} (expect {4 * self.nstacked * self.nharms})")
+        mean, med, std = self.get_stats(lobin=lobin, hstack=hstack)
+        xmean, xmed, xstd = self.expected_stack_stats(hstack=hstack)
+        extra = f" and nharms={self.nharms}:" if hstack else ":"
+        print(
+            f"For {"harmonic " if hstack else ""}stack with nstacked={self.nstacked}{extra}"
+        )
+        print(f"  Mean   = {mean:7.3f} (expect {xmean:7.3f})")
+        print(f"  Median = {med:7.3f} (expect {xmed:7.3f})")
+        print(f"  StdDev = {std:7.3f} (expect {xstd:7.3f})")
 
     def sum_next_harmonics(self):
         """Generate a stack with summed harmonics based on the next power of two"""
@@ -264,19 +285,19 @@ class stack:
         lobin : int
             The lowest bin to search for significant signals
         """
-        stack = self.hstack if self.nharms > 1 else self.stack
+        tmpstack: np.ndarray = self.hstack if self.nharms > 1 else self.stack  # type: ignore
         inds = np.arange(self.N // 2)
         # following is a boolean array for the bins above pthresh and with index above lobin
-        good = np.logical_and(inds > lobin, stack > pthresh)
+        good = np.logical_and(inds > lobin, tmpstack > pthresh)
         # Select the powers that made the cut
-        goodpows = stack[good]
+        goodpows = tmpstack[good]
         # And figure out what their indices are
         goodinds = inds[good]
         # return the indices with the highest powers first
         return goodinds[np.argsort(goodpows)[::-1]]
 
     def calc_freqs(self, bins: np.ndarray) -> np.ndarray:
-        """Return the harmonic-compensated fundamental frequencies (Hz) for the bins
+        """Return the harmonic-adjusted (i.e. fundamental) frequencies (Hz) for the bins
 
         Parameters
         ----------
@@ -284,3 +305,189 @@ class stack:
             An array of indices in the hstack to compute fundamental frequencies for
         """
         return self.freqs[bins] / self.nharms
+
+
+def mycmp(a, b):
+    return (a > b) - (a < b)
+
+
+class candidate:
+    "An individual stack candidate."
+
+    def __init__(self, bin, freq, nharm, nstack, power):
+        self.bin = bin
+        self.freq = freq
+        self.nharm = nharm
+        self.power = power
+        self.sigma = pp.candidate_sigma(power, nharm * nstack, 1)
+
+    def __str__(self):
+        return f" {self.sigma:7.2f} {self.freq:13.6f} {self.bin:13.3f} {self.power:8.2f} {self.nharm:5d}"
+
+    def __eq__(self, other):
+        return self.sigma == other.sigma
+
+    def __ne__(self, other):
+        return self.sigma != other.sigma
+
+    def __lt__(self, other):
+        return self.sigma < other.sigma
+
+    def __le__(self, other):
+        return self.sigma <= other.sigma
+
+    def __gt__(self, other):
+        return self.sigma > other.sigma
+
+    def __ge__(self, other):
+        return self.sigma >= other.sigma
+
+    def __cmp__(self, other):
+        # Sort by sigma by default)
+        return mycmp(self.sigma, other.sigma)
+
+
+class stackcands:
+    "Candidates from a stack search of power spectra."
+
+    def __init__(self, stack: stack, indices: np.ndarray, powers: np.ndarray) -> None:
+        """Initialize a stackcands class which will contain a list of stack cands.
+
+        Parameters
+        ----------
+        stack : stack
+            The stack class instance for the search.
+        indices : np.ndarray
+            The Fourier indices which were selected.
+        powers : np.ndarray
+            The corresponding stack powers for the candidate indices.
+        """
+        self.cands = []
+        self.add_candidates(stack, indices, powers)
+
+    def add_candidates(
+        self, stack: stack, indices: np.ndarray, powers: np.ndarray
+    ) -> None:
+        """Add more candidates to the current stack candidates list.
+
+        Parameters
+        ----------
+        stack : stack
+            The stack class instance for the search.
+        indices : np.ndarray
+            The Fourier indices which were selected.
+        powers : np.ndarray
+            The corresponding stack powers for the candidate indices.
+        """
+        for ind, pow in zip(indices, powers):
+            self.cands.append(
+                candidate(ind, ind / stack.T / stack.nharms, stack.nharms, stack.nstacked, pow)
+            )
+
+    def output_candidates(self, outfile=None, maxncands=100) -> None:
+        """Write text-formatted stack candidates to stdout or to a file.
+
+        Parameters
+        ----------
+        outfile : string, optional
+            Output file name, by default None
+        maxncands : int, optional
+            Max number of candidates to output, by default 100
+        """
+        self.cands = sorted(self.cands, reverse=True)
+        if outfile is None:
+            out = sys.stdout
+        else:
+            out = open(outfile, "w")
+        out.write(
+            f"# {"Sigma":^7} {"Freq (Hz)":^13} {"Fourier Bin":^13} {"Power":^8} {"#Harm":^5}\n"
+        )
+        out.write(f"#{'-'*(7+13+13+8+5+5)}\n")
+        for ii, cand in enumerate(self.cands):
+            if ii > maxncands:
+                break
+            out.write(str(cand)+"\n")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Read multiple PRESTO-style *.fft files and conduct a stack search for periodicities.",
+        epilog="""In general, the FFT files should probably be barycentered and have known
+RFI zapped (i.e. barycentering happens by default if you use `prepdata` or
+`prepsubband` and zapping can be done using, for instance, simple_zapbirds.py`).
+The sigma threshold is single-trial and based on equivalent gaussian sigma.
+If no output candidate file name is given, the results will be written to stdout.
+""",
+    )
+    parser.add_argument("fftfiles", nargs="*", help="PRESTO .fft files to be stacked.")
+    parser.add_argument(
+        "-t",
+        "--threshold",
+        type=float,
+        default=8,
+        help="Sigma cutoff for picking candidates (default=8)",
+    )
+    parser.add_argument(
+        "-o", "--outputfilenm", type=str, help="Output filename to record candidates"
+    )
+    parser.add_argument(
+        "-c",
+        "--ncands",
+        type=int,
+        default=100,
+        help="Maximum number of candidates to return for each harmonic fold (default=100)",
+    )
+    parser.add_argument(
+        "-l",
+        "--lobin",
+        type=int,
+        default=100,
+        help="Lowest frequency bin to search or to use for statistics (to avoid rednoise, default=100)",
+    )
+    parser.add_argument(
+        "-f",
+        "--lofreq",
+        type=float,
+        default=0.1,
+        help="Lowest frequency (in Hz) to search or to use for statistics (to avoid rednoise, default=0.1)",
+    )
+    parser.add_argument(
+        "-n",
+        "--nharms",
+        type=int,
+        default=16,
+        help="Maximum number of harmonics to sum. A power-of-two. (default=16)",
+    )
+    args = parser.parse_args()
+    if not args.fftfiles:
+        parser.print_help()
+        sys.exit(1)
+
+    print("PRESTO Stack Search by Scott Ransom (copyright 2025)\n")
+
+    # Create the stack
+    ss = stack(args.fftfiles)
+    lobin = int(max(args.lobin, args.lofreq * ss.T))
+    print(
+        f"\nLowest bin to use for searches or stats is {lobin} ({lobin/ss.T:.4f} Hz)\n"
+    )
+    ss.show_stats(lobin=lobin, hstack=False)
+
+    # Search the stack for single-harmonic candidates
+    print("\nSearching the stack with no harmonics summed:")
+    pthresh = ss.power_threshold_from_sigma(args.threshold)
+    inds = ss.search_hstack(pthresh=pthresh, lobin=lobin)
+    cands = stackcands(ss, inds, ss.stack[inds])
+
+    while ss.nharms < pp.next2_to_n(args.nharms):
+        ss.sum_next_harmonics()
+        print(f"\nSearching the stack with {ss.nharms:2d} harmonics summed:", end=" ")
+        pthresh = ss.power_threshold_from_sigma(args.threshold)
+        inds = ss.search_hstack(pthresh=pthresh, lobin=lobin)
+        print(f"({len(inds)} cands)")
+        cands.add_candidates(ss, inds, ss.hstack[inds])  # type: ignore
+
+    # Now output the candidates
+    if args.outputfilenm is None:
+        print("")
+    cands.output_candidates(outfile=args.outputfilenm, maxncands=args.ncands)
