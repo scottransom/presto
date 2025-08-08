@@ -25,6 +25,9 @@ telescope_to_id = {"GBT": '1', \
                    "FAST": 'k', \
                    "GMRT": 'r', \
                    "CHIME": 'y', \
+                   "YEBES40M": 'l', \
+                   "RAEGYEB": 'j', \
+                   "RAEGSMAR": 'p', \
                    "Geocenter": '0', \
                    "Barycenter": '@'}
 
@@ -42,6 +45,9 @@ id_to_telescope = {'1': "GBT", \
                    'k': "FAST", \
                    'r': "GMRT", \
                    'y': "CHIME", \
+                   'l': "YEBES40M", \
+                   'j': "RAEGYEB", \
+                   'p': "RAEGSMAR", \
                    '0': "Geocenter", \
                    '@': "Barycenter"}
 
@@ -59,6 +65,9 @@ telescope_to_maxha = {"GBT": 12, \
                    "WSRT": 12, \
                    "GMRT": 12, \
                    "CHIME": 1, \
+                   "YEBES40M": 12, \
+                   "RAEGYEB": 12, \
+                   "RAEGSMAR": 12, \
                    "Geocenter": 12, \
                    "Barycenter": 12}
 
