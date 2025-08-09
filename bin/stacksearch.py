@@ -83,11 +83,8 @@ class fftfile:
         scale = []
         for n in range(0, ps_len):
             # create the log range for normalization
-            new_window = np.exp(1 + n / 3) * b0 / np.exp(1)
-            if new_window > bmax:
-                pass
-            else:
-                window = int(new_window)
+            new_window = bmax if n > 50 else np.exp(1.0 + n / 3.0) * b0 / np.exp(1.0)
+            window = min(bmax, int(new_window))
             scale.append(window)  # type: ignore
             if np.sum(scale) > ps_len:
                 scale[-1] = ps_len - np.sum(scale[:-1])
@@ -322,7 +319,7 @@ class candidate:
         self.sigma = pp.candidate_sigma(power, nharm * nstack, 1)
 
     def __str__(self):
-        return f" {self.sigma:7.2f} {self.freq:15.8f} {self.bin:13.3f} {self.power:8.2f} {self.nharm:5d}"
+        return f" {self.sigma:7.2f} {self.freq:15.8f} {1e3/self.freq:15.8f} {self.bin:13.3f} {self.power:8.2f} {self.nharm:5d}"
 
     def __eq__(self, other):
         return self.sigma == other.sigma
@@ -434,9 +431,9 @@ class stackcands:
         else:
             out = open(outfile, "w")
         out.write(
-            f"# {'Sigma':^7} {'Freq (Hz)':^15} {'Fourier Bin':^13} {'Power':^8} {'#Harm':^5}\n"
+            f"# {'Sigma':^7} {'Freq (Hz)':^15} {'Period (ms)':^15} {'Fourier Bin':^13} {'Power':^8} {'#Harm':^5}\n"
         )
-        out.write(f"#{'-'*(7+15+13+8+5+5)}\n")
+        out.write(f"#{'-'*(7+15+15+13+8+5+6)}\n")
         for ii, cand in enumerate(self.cands):
             if ii > maxncands:
                 break
