@@ -32,7 +32,7 @@ def harmonic_sum(numharm, spectrum, partial=None, partialN=1):
     Parameters
     ----------
     numharm : integer
-        Number of harmonics to sum (2, 4, 8, 16, or 32)
+        Number of harmonics to sum (2, 4, 8, 16, 32, or 64)
     spectrum : float or double array
         Spectrum to perform harmonic summing on
     partial : float or double array
@@ -70,6 +70,11 @@ def harmonic_sum(numharm, spectrum, partial=None, partialN=1):
         for ii in np.arange(1, 32, 2):
             np.add(partial, get_frac_harmonic(ii, 32, spectrum), partial)
         partialN = 32
+    if numharm > partialN and partialN < 64:
+        # [even]/64 have all been added
+        for ii in np.arange(1, 64, 2):
+            np.add(partial, get_frac_harmonic(ii, 64, spectrum), partial)
+        partialN = 64
     return partial
 
 

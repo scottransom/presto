@@ -509,7 +509,7 @@ If no output candidate file name is given, the results will be written to stdout
         f"\nLowest bin to use for searches or stats is {lobin} ({lobin/ss.T:.4f} Hz)\n"
     )
     ss.show_stats(lobin=lobin, hstack=False)
-    args.nharms = pp.next2_to_n(args.nharms)
+    args.nharms = min(pp.next2_to_n(args.nharms), 64)
 
     # Search the stack and do harmonic folds
     while True:
