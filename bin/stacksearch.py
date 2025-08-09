@@ -322,7 +322,7 @@ class candidate:
         self.sigma = pp.candidate_sigma(power, nharm * nstack, 1)
 
     def __str__(self):
-        return f" {self.sigma:7.2f} {self.freq:13.6f} {self.bin:13.3f} {self.power:8.2f} {self.nharm:5d}"
+        return f" {self.sigma:7.2f} {self.freq:15.8f} {self.bin:13.3f} {self.power:8.2f} {self.nharm:5d}"
 
     def __eq__(self, other):
         return self.sigma == other.sigma
@@ -390,6 +390,34 @@ class stackcands:
                 )
             )
 
+    def remove_related_cands(self) -> None:
+        """Remove duplicate or harmonically related candidates (less significant but same bin)"""
+        candlist = sorted(self.cands, reverse=True)
+        badharms = list(range(1, 17))  # The 1 removes less-significant duplicates
+        badharms += [1.0 / x for x in range(2, 10)]  # fractional harmonics
+        # fmt: off
+        badharms += [2/3, 3/2, 4/3, 3/4, 2/5, 5/2, 3/5, 5/3, 4/5, 5/4]
+        allbins = np.array([candlist[ii].bin for ii in range(len(candlist))])
+        ii = 0
+        initN = N = len(candlist)
+        while ii < N:
+            good = allbins[ii]
+            checkinds = np.arange(ii + 1, N)
+            remove = np.zeros_like(checkinds, dtype=bool)
+            for bh in badharms:
+                remove |= (
+                    np.fabs(good - bh * allbins[ii + 1 :]) < 0.5
+                )  # is 0.5 the right limit?
+            allbins = np.delete(allbins, checkinds[remove])
+            for jj in np.sort(checkinds[remove])[::-1]:
+                del candlist[jj]
+            N = len(candlist)
+            ii += 1
+        self.cands = candlist
+        print(
+            f"Removed {initN - len(self.cands)} duplicate or harmonically-related candidates."
+        )
+
     def output_candidates(self, outfile=None, maxncands=100) -> None:
         """Write text-formatted stack candidates to stdout or to a file.
 
@@ -406,9 +434,9 @@ class stackcands:
         else:
             out = open(outfile, "w")
         out.write(
-            f"# {'Sigma':^7} {'Freq (Hz)':^13} {'Fourier Bin':^13} {'Power':^8} {'#Harm':^5}\n"
+            f"# {'Sigma':^7} {'Freq (Hz)':^15} {'Fourier Bin':^13} {'Power':^8} {'#Harm':^5}\n"
         )
-        out.write(f"#{'-'*(7+13+13+8+5+5)}\n")
+        out.write(f"#{'-'*(7+15+13+8+5+5)}\n")
         for ii, cand in enumerate(self.cands):
             if ii > maxncands:
                 break
@@ -464,6 +492,12 @@ If no output candidate file name is given, the results will be written to stdout
         default=16,
         help="Maximum number of harmonics to sum. A power-of-two. (default=16)",
     )
+    parser.add_argument(
+        "-r",
+        "--noremove",
+        action="store_true",
+        help="Do not filter duplicate or harmonically-related candidates",
+    )
     args = parser.parse_args()
     if not args.fftfiles:
         parser.print_help()
@@ -485,13 +519,18 @@ If no output candidate file name is given, the results will be written to stdout
     inds = ss.search_hstack(pthresh=pthresh, lobin=lobin)
     cands = stackcands(ss, inds, ss.stack[inds])
 
+    # Search the harmonically "folded" stacks
     while ss.nharms < pp.next2_to_n(args.nharms):
         ss.sum_next_harmonics()
         print(f"\nSearching the stack with {ss.nharms:2d} harmonics summed:", end=" ")
+        # Choose the appropriate power threshold
         pthresh = ss.power_threshold_from_sigma(args.threshold)
         inds = ss.search_hstack(pthresh=pthresh, lobin=lobin)
         print(f"({len(inds)} cands)")
         cands.add_candidates(ss, inds, ss.hstack[inds])  # type: ignore
+        # Remove duplicate or harmonically-related candidates
+        if not args.noremove:
+            cands.remove_related_cands()
 
     # Now output the candidates
     if args.outputfilenm is None:
