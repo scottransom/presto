@@ -509,27 +509,28 @@ If no output candidate file name is given, the results will be written to stdout
         f"\nLowest bin to use for searches or stats is {lobin} ({lobin/ss.T:.4f} Hz)\n"
     )
     ss.show_stats(lobin=lobin, hstack=False)
+    args.nharms = pp.next2_to_n(args.nharms)
 
-    # Search the stack for single-harmonic candidates
-    print("\nSearching the stack with no harmonics summed:")
-    pthresh = ss.power_threshold_from_sigma(args.threshold)
-    inds = ss.search_hstack(pthresh=pthresh, lobin=lobin)
-    cands = stackcands(ss, inds, ss.stack[inds])
-
-    # Search the harmonically "folded" stacks
-    while ss.nharms < pp.next2_to_n(args.nharms):
-        ss.sum_next_harmonics()
-        print(f"\nSearching the stack with {ss.nharms:2d} harmonics summed:", end=" ")
+    # Search the stack and do harmonic folds
+    while True:
+        hstr = "no" if ss.nharms == 1 else f"{ss.nharms:2d}"
+        print(f"\nSearching stack with {hstr} harmonics summed:", end=" ")
         # Choose the appropriate power threshold
         pthresh = ss.power_threshold_from_sigma(args.threshold)
         inds = ss.search_hstack(pthresh=pthresh, lobin=lobin)
         print(f"({len(inds)} cands)")
-        cands.add_candidates(ss, inds, ss.hstack[inds])  # type: ignore
+        if ss.nharms == 1:
+            cands = stackcands(ss, inds, ss.stack[inds])
+        else:
+            cands.add_candidates(ss, inds, ss.hstack[inds])  # type: ignore
         # Remove duplicate or harmonically-related candidates
         if not args.noremove:
-            cands.remove_related_cands()
+            cands.remove_related_cands()  # type: ignore
+        if ss.nharms >= args.nharms:
+            break
+        ss.sum_next_harmonics()
 
     # Now output the candidates
     if args.outputfilenm is None:
         print("")
-    cands.output_candidates(outfile=args.outputfilenm, maxncands=args.ncands)
+    cands.output_candidates(outfile=args.outputfilenm, maxncands=args.ncands)  # type: ignore
