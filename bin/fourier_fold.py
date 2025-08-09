@@ -158,6 +158,7 @@ if __name__ == "__main__":
         if o in ("-f", "--freq"):
             freq = float(a)
             filenm = f"{args[0][:-4]}_{freq:.4f}Hz.png"
+            ncands = 1
         if o in ("-c", "--accelfile"):
             accelfile = a
         if o in ("-n", "--accelcand"):
