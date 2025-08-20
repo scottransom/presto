@@ -55,6 +55,8 @@ def estimate_profile_variance(fft, rr, Nbins=None, Ntrials=10):
     -------
     A float estimate of the off-pulse profile variance.
     """
+    if Nbins is None:
+        Nbins = min(256, pp.next2_to_n(len(fft) / rr))
     minoff, maxoff = 10, 30  # in bins
     drs = np.random.uniform(minoff, maxoff, Ntrials)
     drs[::2] *= -1  # make half of the offsets negative
@@ -83,6 +85,8 @@ def optimize_freq(fft, rr, var, Nbins=None, dr=0.01, maxoff=1.0):
     A tuple of an array of reduced chi^2 values of the profiles, and a float
     of the highest significance Fourier frequency of the pulsations.
     """
+    if Nbins is None:
+        Nbins = min(256, pp.next2_to_n(len(fft) / rr))
     rs = np.linspace(rr - maxoff, rr + maxoff, int(2 * maxoff / dr) + 1)
     chis = np.zeros(len(rs))
     for ii, r in enumerate(rs):
