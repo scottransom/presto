@@ -625,18 +625,13 @@ void read_prepfoldinfo(prepfoldinfo * in, char *filename)
         if (has_posn) {
             strcpy(in->rastr, temp);
             chkfread(in->decstr, sizeof(char), 16, infile);
-            in->dt = read_double(infile, byteswap);
-            in->startT = read_double(infile, byteswap);
         } else {
             strcpy(in->rastr, "Unknown");
             strcpy(in->decstr, "Unknown");
-            in->dt = *(double *) (temp + 0);
-            if (byteswap)
-                in->dt = swap_double(in->dt);
-            in->startT = *(double *) (temp + sizeof(double));
-            if (byteswap)
-                in->startT = swap_double(in->startT);
+            chkfread(temp, sizeof(char), 16, infile);
         }
+        in->dt = read_double(infile, byteswap);
+        in->startT = read_double(infile, byteswap);
     }
     in->endT = read_double(infile, byteswap);
     in->tepoch = read_double(infile, byteswap);

@@ -55,8 +55,7 @@ class pfd(object):
         else:
             self.rastr = "Unknown"
             self.decstr = "Unknown"
-            if ":" not in test:
-                infile.seek(-16, 1)  # rewind the file before the bad read
+            test = infile.read(16)
         (self.dt, self.startT) = struct.unpack(swapchar + "dd", infile.read(2 * 8))
         (
             self.endT,
