@@ -577,6 +577,7 @@ class pfd(object):
             Set all the subintervals (internally) from the list of
                 subintervals to all zeros, effectively 'killing' them.
         """
+        self.killed_intervals = []
         for part in intervals:
             self.profs[part, :, :] *= 0.0
             self.killed_intervals.append(part)
@@ -591,6 +592,7 @@ class pfd(object):
             Set all the profiles (internally) from the list of
                 subbands to all zeros, effectively 'killing' them.
         """
+        self.killed_subbands = []
         for sub in subbands:
             self.profs[:, sub, :] *= 0.0
             self.killed_subbands.append(sub)

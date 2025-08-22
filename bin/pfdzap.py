@@ -23,6 +23,10 @@ def calc_simple_SNR(psr):
     prof /= np.sqrt(psr.varprof)
     return prof.sum()
 
+def print_stats(psr):
+    print(f"SNR ~ {calc_simple_SNR(psr):6.2f}  reduced-chi^2 = {psr.calc_redchi2():6.2f}")
+    
+
 def usage():
     print(
         """
@@ -32,16 +36,14 @@ usage:  pfdzap.py pfd_file
   for show_pfd, sum_profiles.py, and get_TOAs.py.
 
   Interactive keys:
-    h or H               :  Print this help.
-    a or A or left-mouse :  Kill interval or subband (or re-add it if killed)
-    q or Q               :  Quit
-    m or M               :  Switch frequency and time modes
-    f or F               :  Switch to frequency (i.e. subband) mode
-    t or T               :  Switch to time (i.e. subint) mode
-    r or R               :  Zap a range rather than a single slice (via follow-on click)
-    s or S               :  Show the current lists of subbands and intervals to kill
-    c or C               :  Clear the kill lists and reset the profiles
-    w or W               :  Write out get_TOAs.py or sum_profiles.py lines
+    h or H                :  Print this help.
+    a or A or left-mouse  :  Kill interval or subband (or re-add it if killed)
+    q or Q                :  Quit
+    m or M                :  Switch between frequency (subband) and time (subint) modes
+    r or R or right-mouse :  Zap a range (determined via follow-on left-mouse click)
+    s or S                :  Show the current lists of subbands and intervals to kill
+    c or C                :  Clear the kill lists and reset the profiles
+    w or W                :  Write out get_TOAs.py or sum_profiles.py lines
 
 """
     )
@@ -65,8 +67,8 @@ if __name__ == "__main__":
     killints = set([])
     mode = "freq"
 
-    print(f"SNR ~ {calc_simple_SNR(psr):.3f}  reduced-chi^2 = {psr.calc_redchi2():.3f}")
     while True:
+        print_stats(psr)
         plot_normprof(psr)
         if mode == "freq":
             psr.plot_subbands()
@@ -83,69 +85,39 @@ if __name__ == "__main__":
             psr.profs = copy.copy(profsbak)
             killsubs = set([])
             killints = set([])
-            psr.kill_subbands(killsubs)
-            psr.kill_intervals(killints)
+            psr.kill_subbands(killsubs)  # These re-compute
+            psr.kill_intervals(killints) # the profile stats
             continue
-        if key in [b"r", b"R"]:
-            start = int(y)
-            if mode == "freq":
-                if 0 <= start < psr.nsub:
-                    x, y, key = ppg.pgband(3, 0, x, y)
-                    end = int(y)
-                    if 0 <= end < psr.nsub:
-                        if start < end:
-                            killsubs = killsubs.union([i for i in range(start, end+1)])
-                        else:
-                            killsubs = killsubs.union([i for i in range(end, start+1)])
+        if key in [b"r", b"R", b"x", b"X"]:
+            if 0 <= y < (psr.nsub if mode=="freq" else psr.npart):
+                x, y2, key = ppg.pgband(3, 0, x, y)
+                if 0 <= y2 < (psr.nsub if mode=="freq" else psr.npart):
+                    start, end = int(min(y, y2)), int(max(y, y2))
+                    if mode=="freq":
+                        killsubs = killsubs.union([i for i in range(start, end+1)])
                         psr.kill_subbands(killsubs)
-            else:
-                if 0 <= start < psr.npart:
-                    x, y, key = ppg.pgband(3, 0, x, y)
-                    end = int(y)
-                    if 0 <= end < psr.npart:
-                        if start < end:
-                            killints = killints.union([i for i in range(start, end+1)])
-                        else:
-                            killints = killints.union([i for i in range(end, start+1)])
+                    else:
+                        killints = killints.union([i for i in range(start, end+1)])
                         psr.kill_intervals(killints)
             continue
         if key in [b"m", b"M"]:
-            if mode == "freq":
-                print("Switching to subint (time) mode.")
-                mode = "time"
-            else:
-                print("Switching to subband (freq) mode.")
-                mode = "freq"
-            continue
-        if key in [b"f", b"F"]:
-            print("Switching to subband (freq) mode.")
-            mode = "freq"
-            continue
-        if key in [b"t", b"T"]:
-            print("Switching to subint (time) mode.")
-            mode = "time"
+            mode = "freq" if mode=="time" else "time"
+            print(f"Switching to sub{"int" if mode=="time" else "band"} ({mode}) mode.")
             continue
         if key in [b"a", b"A"]:
             ii = int(y)
-            if mode == "freq":
-                if 0 <= ii < psr.nsub:
-                    if ii not in killsubs:
-                        killsubs.add(ii)
-                    else:  # Remove the selection from the kill list
-                        killsubs.remove(ii)
+            if 0 <= ii < (psr.nsub if mode=="freq" else psr.npart):
+                kill = killsubs if mode=="freq" else killints
+                if ii not in kill:
+                    kill.add(ii)
+                else:  # Remove the selection from the kill list
+                    kill.remove(ii)
+                    if mode == "freq":
                         psr.profs[:, ii, :] = profsbak[:, ii, :]
-                    psr.kill_subbands(killsubs)
-            else:
-                if 0 <= ii < psr.npart:
-                    if ii not in killints:
-                        killints.add(ii)
-                    else:  # Remove the selection from the kill list
-                        killints.remove(ii)
+                    else:
                         psr.profs[ii, :, :] = profsbak[ii, :, :]
-                    psr.kill_intervals(killints)
-            print(
-                f"SNR ~ {calc_simple_SNR(psr):.3f}  reduced-chi^2 = {psr.calc_redchi2():.3f}"
-            )
+                psr.kill_subbands(killsubs)  # We have to re-kill both since we
+                psr.kill_intervals(killints) # potentially added some data back
             continue
         if key in [b"s", b"S"]:
             print(f"killsubs = {sorted(killsubs)}")
