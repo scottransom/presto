@@ -6,6 +6,7 @@ import presto.Pgplot as pP
 import presto.ppgplot as ppg
 import presto.prepfold as ppfd
 
+
 def plot_normprof(psr):
     pP.reset_colors()
     ppg.pgeras()
@@ -23,9 +24,12 @@ def calc_simple_SNR(psr):
     prof /= np.sqrt(psr.varprof)
     return prof.sum()
 
+
 def print_stats(psr):
-    print(f"SNR ~ {calc_simple_SNR(psr):6.2f}  reduced-chi^2 = {psr.calc_redchi2():6.2f}")
-    
+    print(
+        f"SNR ~ {calc_simple_SNR(psr):6.2f}  reduced-chi^2 = {psr.calc_redchi2():6.2f}"
+    )
+
 
 def usage():
     print(
@@ -51,7 +55,7 @@ usage:  pfdzap.py pfd_file
 
 if __name__ == "__main__":
     usage()
-    if len(sys.argv)==1:
+    if len(sys.argv) == 1:
         sys.exit()
     psr = ppfd.pfd(sys.argv[1])
     print(f"Successfully read {sys.argv[1]}.\n")
@@ -86,28 +90,30 @@ if __name__ == "__main__":
             killsubs = set([])
             killints = set([])
             psr.kill_subbands(killsubs)  # These re-compute
-            psr.kill_intervals(killints) # the profile stats
+            psr.kill_intervals(killints)  # the profile stats
             continue
         if key in [b"r", b"R", b"x", b"X"]:
-            if 0 <= y < (psr.nsub if mode=="freq" else psr.npart):
+            if 0 <= y < (psr.nsub if mode == "freq" else psr.npart):
                 x, y2, key = ppg.pgband(3, 0, x, y)
-                if 0 <= y2 < (psr.nsub if mode=="freq" else psr.npart):
+                if 0 <= y2 < (psr.nsub if mode == "freq" else psr.npart):
                     start, end = int(min(y, y2)), int(max(y, y2))
-                    if mode=="freq":
-                        killsubs = killsubs.union([i for i in range(start, end+1)])
+                    if mode == "freq":
+                        killsubs = killsubs.union([i for i in range(start, end + 1)])
                         psr.kill_subbands(killsubs)
                     else:
-                        killints = killints.union([i for i in range(start, end+1)])
+                        killints = killints.union([i for i in range(start, end + 1)])
                         psr.kill_intervals(killints)
             continue
         if key in [b"m", b"M"]:
-            mode = "freq" if mode=="time" else "time"
-            print(f"Switching to sub{"int" if mode=="time" else "band"} ({mode}) mode.")
+            mode = "freq" if mode == "time" else "time"
+            print(
+                f"Switching to sub{'int' if mode == 'time' else 'band'} ({mode}) mode."
+            )
             continue
         if key in [b"a", b"A"]:
             ii = int(y)
-            if 0 <= ii < (psr.nsub if mode=="freq" else psr.npart):
-                kill = killsubs if mode=="freq" else killints
+            if 0 <= ii < (psr.nsub if mode == "freq" else psr.npart):
+                kill = killsubs if mode == "freq" else killints
                 if ii not in kill:
                     kill.add(ii)
                 else:  # Remove the selection from the kill list
@@ -117,15 +123,19 @@ if __name__ == "__main__":
                     else:
                         psr.profs[ii, :, :] = profsbak[ii, :, :]
                 psr.kill_subbands(killsubs)  # We have to re-kill both since we
-                psr.kill_intervals(killints) # potentially added some data back
+                psr.kill_intervals(killints)  # potentially added some data back
             continue
         if key in [b"s", b"S"]:
             print(f"killsubs = {sorted(killsubs)}")
             print(f"killints = {sorted(killints)}")
             continue
         if key in [b"w", b"W"]:
-            subs = ",".join([str(i) for i in sorted(killsubs)]) if len(killsubs) else "X"
-            ints = ",".join([str(i) for i in sorted(killints)]) if len(killints) else "X"
+            subs = (
+                ",".join([str(i) for i in sorted(killsubs)]) if len(killsubs) else "X"
+            )
+            ints = (
+                ",".join([str(i) for i in sorted(killints)]) if len(killints) else "X"
+            )
             print("#-----------------------")
             print("# For show_pfd:")
             print("#-----------------------")
@@ -137,7 +147,9 @@ if __name__ == "__main__":
             print("#-----------------------")
             print("# For get_TOAs.py:")
             print("#-----------------------")
-            print(f"get_TOAs.py -n 1 -g TEMPLATE -2 -p -k {subs} -i {ints} {sys.argv[1]}")
+            print(
+                f"get_TOAs.py -n 1 -g TEMPLATE -2 -p -k {subs} -i {ints} {sys.argv[1]}"
+            )
             print("#-----------------------")
             continue
 
