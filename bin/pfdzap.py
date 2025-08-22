@@ -38,7 +38,7 @@ usage:  pfdzap.py pfd_file
     m or M               :  Switch frequency and time modes
     f or F               :  Switch to frequency (i.e. subband) mode
     t or T               :  Switch to time (i.e. subint) mode
-    r or R               :  Zap a range rather than a single slice (uses 2 clicks)
+    r or R               :  Zap a range rather than a single slice (via follow-on click)
     s or S               :  Show the current lists of subbands and intervals to kill
     c or C               :  Clear the kill lists and reset the profiles
     w or W               :  Write out get_TOAs.py or sum_profiles.py lines
@@ -49,6 +49,8 @@ usage:  pfdzap.py pfd_file
 
 if __name__ == "__main__":
     usage()
+    if len(sys.argv)==1:
+        sys.exit()
     psr = ppfd.pfd(sys.argv[1])
     print(f"Successfully read {sys.argv[1]}.\n")
     psr.dedisperse()
