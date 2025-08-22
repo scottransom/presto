@@ -28,8 +28,8 @@ def usage():
         """
 usage:  pfdzap.py pfd_file
 
-  This program allows the user to interactively zap a .pfd file, and
-  then generate appropriate lines to use for sum_profiles.py or get_TOAs.py.
+  Interactively zap a .pfd file, and generate appropriate lines to use 
+  for show_pfd, sum_profiles.py, and get_TOAs.py.
 
   Interactive keys:
     h or H               :  Print this help.
@@ -154,10 +154,19 @@ if __name__ == "__main__":
         if key in [b"w", b"W"]:
             subs = ",".join([str(i) for i in sorted(killsubs)]) if len(killsubs) else "X"
             ints = ",".join([str(i) for i in sorted(killints)]) if len(killints) else "X"
-            print("\nFor sum_profiles.py:")
+            print("#-----------------------")
+            print("# For show_pfd:")
+            print("#-----------------------")
+            print(f"show_pfd -killsubs {subs} -killparts {ints} {sys.argv[1]}")
+            print("#-----------------------")
+            print("# For sum_profiles.py:")
+            print("#-----------------------")
             print(f"{sys.argv[1]} {subs} {ints}")
-            print("For get_TOAs.py:")
+            print("#-----------------------")
+            print("# For get_TOAs.py:")
+            print("#-----------------------")
             print(f"get_TOAs.py -n 1 -g TEMPLATE -2 -p -k {subs} -i {ints} {sys.argv[1]}")
+            print("#-----------------------")
             continue
 
     sys.exit()
