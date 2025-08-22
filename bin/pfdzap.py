@@ -40,14 +40,14 @@ usage:  pfdzap.py pfd_file
   for show_pfd, sum_profiles.py, and get_TOAs.py.
 
   Interactive keys:
-    h or H                :  Print this help.
-    a or A or left-mouse  :  Kill interval or subband (or re-add it if killed)
-    q or Q                :  Quit
+    h or H                :  Print this help
     m or M                :  Switch between frequency (subband) and time (subint) modes
+    a or A or left-mouse  :  Kill interval or subband (or re-add it if killed)
     r or R or right-mouse :  Zap a range (determined via follow-on left-mouse click)
     s or S                :  Show the current lists of subbands and intervals to kill
     c or C                :  Clear the kill lists and reset the profiles
     w or W                :  Write out get_TOAs.py or sum_profiles.py lines
+    q or Q                :  Quit
 
 """
     )
