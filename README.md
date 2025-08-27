@@ -6,36 +6,13 @@ PRESTO is a large suite of pulsar search and analysis software developed primari
 
 **PRESTO has discovered well over 1500 pulsars, including ~500 recycled and/or binary pulsars!**
 
-## Version 5.0.3:
- * Updated ATNF Pulsar Catalog to v2.51
- * Added an experimental version of `fit_circular_orbit` using sliders in `examplescripts`
- * Added the ability to use `pygaussfit.py` without middle or right mouse buttons
- * Fixed a couple memory issues in `rednoise`, thanks to @bwmeyers
- * Explicitly set the random number seeds (for reproducibility) in `makedata`
- * Several other very minor tweaks and bug fixes
-
-## Version 5.0.2:
- * Updated the C wrappers for PGPLOT for the Numpy 2.0 C API (with thanks to Tom Marsh)
- * Python v3.9 or newer is now required.
- * Several minor bug fixes, including to `injectpsr.py`, thanks to @remsforian
-
-## Version 5.0.1:
- * Minor improvements over v5.0.0
- * Some clarifications and improvements to the build process
- * Addition of new recipes for docker / singularity images (thanks Alessandro Ridolfi!)
- * Bugfix in `rednoise` having to do with absolute paths (thanks Alessandro Ridolfi!)
- * Bugfix that checks to see if the maskfile you intend to use matches the properties of the data you are using
-
-## Version 5.0.0:
- * This is a major release since I've moved to a completely different and modern build system: [meson](https://mesonbuild.com/), along with the [meson-python](https://meson-python.readthedocs.io/en/latest/) backend. This was required since *Numpy* has deprecated `numpy.distutils` and this caused python builds to stop working with Python v3.12.
-   * See the [INSTALL.md](https://github.com/scottransom/presto/blob/master/INSTALL.md) for updated installation instructions.
-   * You will need to install **meson**, **meson-python**, and **ninja**, but that is easily done via `pip`!
-   * Python v3.8 or newer is now required.
- * All of the old Spigot-related codes have been removed. If you need to process Spigot data, please use the `classic` branch that is mentioned in the README.md.
- * All of the `slalib` codes (and the python interface to it) have been removed. If you need that stuff, you should transition to [ERFA](https://github.com/liberfa/erfa) and/or [Astropy](https://www.astropy.org/).
- * There are two nice new python utilities:
-   * `binary_utils.py` reads a parfile of a binary pulsar and computes min/max observed barycentric spin periods or velocities as either a function of the orbit (default), or for a prescribed duration of time, and optionally plots those. It also shows basic information about the binary.
-   * `compare_periods.py` compares candidate spin periods and their integer and fractional harmonics with one or more parfiles to a prescribed fractional tolerance. 
+## Version 5.1.0:
+ * Updated ATNF Pulsar Catalog to v2.65
+ * Three new and useful python programs / utilities:
+   * `stacksearch.py` Read multiple PRESTO-style `*.fft` files and conduct a stack search for periodicities.
+   * `fourier_fold.py` Use the complex amplitudes in a PRESTO `.fft` file (or in multiple FFT files) to generate pulse profiles without having to do time-domain folding.
+   * `pfdzap.py` Perform simple time- and/or frequency domain zapping of `.pfd` files. Generate zap commands for `show_pfd`, `get_TOAs.py`, and `sum_profiles.py`.
+ * Many small bug fixes and tweaks, including more correct handling of DM smearing in `DDplan.py`
 
 For information on older versions, please see the [CHANGELOG.md](https://github.com/scottransom/presto/blob/master/CHANGELOG.md).
 
@@ -58,10 +35,10 @@ If you need to process them, you can either checkout the "classic" branch of PRE
 
 The software is composed of numerous routines designed to handle three main areas of pulsar analysis:
 
-1. Data Preparation: Interference detection (`rfifind`) and removal (`zapbirds`), de-dispersion (`prepdata`, `prepsubband`, and `mpiprepsubband`), barycentering (via TEMPO).
+1. Data Preparation: Interference detection (`rfifind`) and removal (`zapbirds` and `pfdzap.py`), de-dispersion (`prepdata`, `prepsubband`, and `mpiprepsubband`), barycentering (via TEMPO).
 2. Searching: Fourier-domain acceleration and jerk (`accelsearch`), single-pulse (`single_pulse_search.py`), and phase-modulation or sideband searches (`search_bin`).
-3. Folding: Candidate optimization (`prepfold`) and Time-of-Arrival (TOA) generation (`get_TOAs.py`).
-4. Misc: Data exploration (`readfile`, `exploredat`, `explorefft`), de-dispersion planning (`DDplan.py`), date conversion (`mjd2cal`, `cal2mjd`), tons of python pulsar/astro libraries, average pulse creation, flux density estimation, and more...
+3. Folding: Candidate optimization (`prepfold` and `fourier_fold.py`) and Time-of-Arrival (TOA) generation (`get_TOAs.py`).
+4. Misc: Data exploration (`readfile`, `exploredat`, `explorefft`), de-dispersion planning (`DDplan.py`), date conversion (`mjd2cal`, `cal2mjd`), tons of python pulsar/astro libraries, average pulse creation and flux density estimation (`sum_profiles.py`), and more...
 5. Post Single Pulse Searching Tools: Grouping algorithm (`rrattrap.py`), Production and of single pulse diagnostic plots (`make_spd.py`, `plot_spd.py`, and `waterfaller.py`).
 
 Many additional utilities are provided for various tasks that are often required when working with pulsar data such as time conversions, Fourier transforms, time series and FFT exploration, byte-swapping, etc.

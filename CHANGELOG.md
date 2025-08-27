@@ -1,3 +1,11 @@
+## Version 5.1.0:
+ * Updated ATNF Pulsar Catalog to v2.65
+ * Three new and useful python programs / utilities:
+   * `stacksearch.py` Read multiple PRESTO-style `*.fft` files and conduct a stack search for periodicities.
+   * `fourier_fold.py` Use the complex amplitudes in a PRESTO `.fft` file (or in multiple FFT files) to generate pulse profiles without having to do time-domain folding.
+   * `pfdzap.py` Perform simple time- and/or frequency domain zapping of `.pfd` files. Generate zap commands for `show_pfd`, `get_TOAs.py`, and `sum_profiles.py`.
+ * Many small bug fixes and tweaks, including more correct handling of DM smearing in `DDplan.py`
+
 ## Version 5.0.3:
  * Updated ATNF Pulsar Catalog to v2.51
  * Added an experimental version of `fit_circular_orbit` using sliders in `examplescripts`

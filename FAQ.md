@@ -50,6 +50,10 @@ with no additional options, it gives you a brief usage statement.
   partially fixing corrupted $\chi^2$ values due to interference (`-fixchi`),
   and make publication-quality phase-vs-time plots (`-justprofs`).
 
+- `pfdzap.py` Perform simple time- and/or frequency domain zapping of `.pfd`
+  files. Generate zap commands for `show_pfd`, `get_TOAs.py`, and
+  `sum_profiles.py`.
+
 - `pygaussfit.py`: A interactive gaussian fitter that reads in a ".pfd.bestprof"
   file and outputs text that can be stored in a ".gaussians" file, which can be
   used as a template to get TOAs with `get_TOAs.py`.
@@ -61,6 +65,13 @@ with no additional options, it gives you a brief usage statement.
   files, including rotating them so that they are aligned, to make a high
   signal-to-noise profile. Can also be used to give radiometer equation
   estimates of flux density for the same profiles.
+
+- `stacksearch.py`: Read multiple PRESTO-style `*.fft` files and conduct a stack
+  search for periodicities.
+
+- `fourier_fold.py` Use the complex amplitudes in a PRESTO `.fft` file (or in
+  multiple FFT files) to generate pulse profiles without having to do
+  time-domain folding.
 
 - `dat2sdat` and `sdat2dat`: Not used much anymore, but a way to shrink the size
   of ".dat" files by a factor of 2, by saving them as short integers (and
@@ -487,7 +498,7 @@ And here is some sample code to show how to use it:
 In [1]: import presto.pypsrcat as ppsr
 
 In [2]: print(ppsr.version) # ATNF Catalog version number
-v2.51
+v2.65
 
 In [3]: # All the pulsars are available as keys in a dictionary (without "J" or "B" to start)
    ...: print(list(ppsr.pulsars.keys())[:10])
