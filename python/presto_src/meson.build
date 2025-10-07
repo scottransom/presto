@@ -2,7 +2,7 @@
 # c_args: [numpy_nodepr_api, '-Wno-unused-variable'],
 py3.extension_module('_presto', 'presto_wrap.c',
   include_directories: [inc, inc_np],
-  dependencies : [py3_dep, libm, fftw, libpresto],
+  dependencies : [py3_dep, libm, fftw, gsl, libpresto],
   install : true,
 )
 

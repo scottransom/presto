@@ -1,3 +1,6 @@
+## Version 5.2.0:
+ * Now require GSL (Gnu Scientific Library) to be installed. This library is thread-safe and allows us to more easily parallelize routines.
+
 ## Version 5.1.0:
  * Updated ATNF Pulsar Catalog to v2.65
  * Three new and useful python programs / utilities:

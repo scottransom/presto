@@ -1,5 +1,5 @@
 #include "presto.h"
-#include <errno.h>
+#include <gsl/gsl_cdf.h>
 
 double extended_equiv_gaussian_sigma(double logp);
 double log_asymtotic_incomplete_gamma(double a, double z);
@@ -460,40 +460,12 @@ double equivalent_gaussian_sigma(double logp)
 {
     double x;
 
-    // CDFLIB can trigger via 33 or 34 (math range and/or representation)
-    // but we are going to only check the returned status. errno is checked
-    // by SWIG, and can cause exceptions when we shouldn't really get them.
-    errno = 0;
     if (logp < -600.0) {
         x = extended_equiv_gaussian_sigma(logp);
     } else {
-        int which, status;
-        double p, q, bound, mean = 0.0, sd = 1.0;
-        q = exp(logp);
-        p = 1.0 - q;
-        which = 2;
-        status = 0;
-        /* Convert to a sigma */
-        cdfnor(&which, &p, &q, &x, &mean, &sd, &status, &bound);
-        if (status) {
-            if (status == -2) {
-                x = 0.0;
-            } else if (status == -3) {
-                x = 38.5;
-            } else {
-                printf("\nError in cdfnor() (candidate_sigma()):\n");
-                printf("   status = %d, bound = %g\n", status, bound);
-                printf("   p = %g, q = %g, x = %g, mean = %g, sd = %g\n\n",
-                       p, q, x, mean, sd);
-                exit(1);
-            }
-        }
+        x = gsl_cdf_gaussian_Qinv(exp(logp), 1.0);
     }
-    errno = 0;
-    if (x < 0.0)
-        return 0.0;
-    else
-        return x;
+    return (x < 0.0) ? 0.0 : x;
 }
 
 
@@ -507,10 +479,6 @@ double chi2_logp(double chi2, double dof)
         return -INFINITY;
     }
 
-    // CDFLIB can trigger via 33 or 34 (math range and/or representation)
-    // but we are going to only check the returned status. errno is checked
-    // by SWIG, and can cause exceptions when we shouldn't really get them.
-    errno = 0;
     if (chi2 / dof > 15.0 || (dof > 150 && chi2 / dof > 6.0)) {
         // printf("Using asymtotic expansion...\n");
         // Use some asymtotic expansions for the chi^2 distribution
@@ -518,23 +486,8 @@ double chi2_logp(double chi2, double dof)
         logp = log_asymtotic_incomplete_gamma(0.5 * dof, 0.5 * chi2) -
             log_asymtotic_gamma(0.5 * dof);
     } else {
-        int which, status;
-        double p, q, bound, df = dof, x = chi2;
-
-        which = 1;
-        status = 0;
-        /* Determine the basic probability */
-        cdfchi(&which, &p, &q, &x, &df, &status, &bound);
-        if (status) {
-            printf("\nError in cdfchi() (chi2_logp()):\n");
-            printf("   status = %d, bound = %g\n", status, bound);
-            printf("   p = %g, q = %g, x = %g, df = %g\n\n", p, q, x, df);
-            exit(1);
-        }
-        // printf("p = %.3g  q = %.3g\n", p, q);
-        logp = log(q);
+        logp = log(gsl_cdf_chisq_Q(chi2, dof));
     }
-    errno = 0;
     return logp;
 }
 
@@ -584,40 +537,11 @@ double power_for_sigma(double sigma, int numsum, double numtrials)
 /* to get a Gaussian significance of 'sigma', taking  */
 /* into account the number of independent trials.     */
 {
-    int which, status;
-    double p, q, x, bound, mean = 0.0, sd = 1.0, df, scale = 1.0;
+    double q, chi2;
 
-    // CDFLIB can trigger via 33 or 34 (math range and/or representation)
-    // but we are going to only check the returned status. errno is checked
-    // by SWIG, and can cause exceptions when we shouldn't really get them.
-    errno = 0;
-    which = 1;
-    status = 0;
-    x = sigma;
-    cdfnor(&which, &p, &q, &x, &mean, &sd, &status, &bound);
-    if (status) {
-        printf("\nError in cdfnor() (power_for_sigma()):\n");
-        printf("   cdfstatus = %d, bound = %g\n\n", status, bound);
-        printf("   p = %g, q = %g, x = %g, mean = %g, sd = %g\n\n", p, q, x, mean,
-               sd);
-        exit(1);
-    }
-    errno = 0;
-    q = q / numtrials;
-    p = 1.0 - q;
-    which = 2;
-    df = 2.0 * numsum;
-    status = 0;
-    cdfchi(&which, &p, &q, &x, &df, &status, &bound);
-    if (status) {
-        printf("\nError in cdfchi() (power_for_sigma()):\n");
-        printf("   status = %d, bound = %g\n", status, bound);
-        printf("   p = %g, q = %g, x = %g, df = %g, scale = %g\n\n",
-               p, q, x, df, scale);
-        exit(1);
-    }
-    errno = 0;
-    return 0.5 * x;
+    q = gsl_cdf_gaussian_Q(sigma, 1.0) / numtrials;
+    chi2 = gsl_cdf_chisq_Qinv(q, 2.0 * numsum);
+    return 0.5 * chi2;
 }
 
 

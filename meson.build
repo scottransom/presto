@@ -1,8 +1,8 @@
 project('PRESTO', 'c',
-  version: '5.1.0',
+  version: '5.2.0',
   license: 'GPL-2.0',
   default_options: [
-    'buildtype=release',
+    'buildtype=debug',
   ],
 )
 # Other buildtype possibilities:
@@ -20,8 +20,8 @@ fits = dependency('cfitsio')
 gsl = dependency('gsl')
 x11 = dependency('x11')
 png = dependency('libpng')
-# omp = dependency('openmp', required: false)
-omp = dependency('NO_openmp', required: false)
+omp = dependency('openmp', required: false)
+# omp = dependency('NO_openmp', required: false)
 mpi = dependency('mpi', language: 'c', required: false,
   not_found_message: 'MPI not found. Skipping mpiprepsubband build.')
 

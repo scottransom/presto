@@ -1,5 +1,5 @@
 project('PRESTO_python', 'c', 'fortran',
-  version: '5.0.2',
+  version: '5.2.0',
   license: 'GPL-2.0',
   default_options: [
     'buildtype=release',
@@ -21,6 +21,7 @@ py3_dep = py3.dependency()
 cc.check_header('Python.h', dependencies: [py3_dep], required: true)
 glib = dependency('glib-2.0')
 fftw = dependency('fftw3f') # Note the 'f' for the single-precision version!
+gsl = dependency('gsl')
 fits = dependency('cfitsio')
 x11 = dependency('x11')
 png = dependency('libpng')

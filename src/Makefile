@@ -32,6 +32,10 @@ PGPLOTLINK = -L$(PGPLOT_DIR) -lcpgplot -lpgplot $(X11LINK) $(PNGLINK)
 FFTINC := $(shell pkg-config --cflags fftw3f)
 FFTLINK := $(shell pkg-config --libs fftw3f)
 
+# Include and link information for GSL library
+GSLINC := $(shell pkg-config --cflags gsl)
+GSLLINK := $(shell pkg-config --libs gsl)
+
 # Link line from:
 # https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl-link-line-advisor.html
 # MKLROOT := /usr
@@ -48,7 +52,7 @@ CFITSIOINC := $(shell pkg-config --cflags cfitsio)
 CFITSIOLINK := $(shell pkg-config --libs cfitsio)
 
 # The standard PRESTO libraries to link into executables
-PRESTOLINK = $(CFITSIOLINK) -L$(PRESTO)/lib -lpresto $(FFTLINK)
+PRESTOLINK = $(CFITSIOLINK) -L$(PRESTO)/lib -lpresto $(GSLLINK) $(FFTLINK)
 
 CC = gcc
 #CC = clang-3.6
@@ -128,9 +132,9 @@ CLIG = clig
 
 PRESTOOBJS = amoeba.o atwood.o barycenter.o birdzap.o cand_output.o\
 	characteristics.o cldj.o chkio.o corr_prep.o corr_routines.o\
-	correlations.o database.o dcdflib.o dispersion.o\
+	correlations.o database.o dispersion.o\
 	fastffts.o fftcalls.o fminbr.o fold.o fresnl.o ioinf.o\
-	get_candidates.o iomak.o ipmpar.o maximize_r.o maximize_rz.o\
+	get_candidates.o iomak.o maximize_r.o maximize_rz.o\
 	maximize_rzw.o median.o minifft.o misc_utils.o clipping.o\
 	orbint.o output.o read_fft.o readpar.o responses.o\
 	rzinterp.o rzwinterp.o select.o sorter.o swapendian.o\

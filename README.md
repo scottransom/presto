@@ -6,13 +6,8 @@ PRESTO is a large suite of pulsar search and analysis software developed primari
 
 **PRESTO has discovered well over 1500 pulsars, including ~500 recycled and/or binary pulsars!**
 
-## Version 5.1.0:
- * Updated ATNF Pulsar Catalog to v2.65
- * Three new and useful python programs / utilities:
-   * `stacksearch.py` Read multiple PRESTO-style `*.fft` files and conduct a stack search for periodicities.
-   * `fourier_fold.py` Use the complex amplitudes in a PRESTO `.fft` file (or in multiple FFT files) to generate pulse profiles without having to do time-domain folding.
-   * `pfdzap.py` Perform simple time- and/or frequency domain zapping of `.pfd` files. Generate zap commands for `show_pfd`, `get_TOAs.py`, and `sum_profiles.py`.
- * Many small bug fixes and tweaks, including more correct handling of DM smearing in `DDplan.py`
+## Version 5.2.0:
+ * Now require GSL (Gnu Scientific Library) to be installed. This library is thread-safe and allows us to more easily parallelize routines.
 
 For information on older versions, please see the [CHANGELOG.md](https://github.com/scottransom/presto/blob/master/CHANGELOG.md).
 
