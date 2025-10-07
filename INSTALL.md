@@ -8,7 +8,7 @@ With v5, we have switched to building and installing with [meson](https://mesonb
 **If you are interested in using Docker or Singularity containers of PRESTO, see the bottom of this file!**
 
 As always, there are a set of essential packages required to build PRESTO. This command should do it on a Debian/Ubuntu-like system:
-`apt install git build-essential libfftw3-bin libfftw3-dev pgplot5 libglib2.0-dev libcfitsio-bin libcfitsio-dev libpng-dev latex2html gfortran tcsh autoconf libx11-dev python3-dev python3-numpy python3-pip`
+`apt install git build-essential libfftw3-bin libfftw3-dev libgsl28 libgsl-dev pgplot5 libglib2.0-dev libcfitsio-bin libcfitsio-dev libpng-dev latex2html gfortran tcsh autoconf libx11-dev python3-dev python3-numpy python3-pip`
 
 Make sure that your `PRESTO` environment variable points to the top-level PRESTO git checkout. And make sure that `$PRESTO/lib` and `$PRESTO/bin` are **not** in your `PATH` or `LD_LIBRARY_PATH` or `PYTHONPATH` environment variables as we have required in the past. It is probably a good idea to clean your earlier compiles, as well. Just cd into the `src` directory and do a `make cleaner`, and then come back here.
 
@@ -106,21 +106,25 @@ Note that you can uninstall everything via:
 
     On Linux machines this is almost certainly already on your system (check in `/usr/lib` and `/usr/include/glib*`). Although you may need to install a glib development package in order to have the required include files. On Ubuntu, the package you need is: `libglib2.0-dev`
 
-5.  **Install [CFITSIO](http://heasarc.gsfc.nasa.gov/fitsio/)**
+5.  **Install [GSL](https://www.gnu.org/software/gsl/)**
+
+    I highly recommend that you use pre-compiled packages for your OS/distribution! For example, Ubuntu has good GSL packages: `libgsl28` and `libgsl-dev`.
+
+6.  **Install [CFITSIO](http://heasarc.gsfc.nasa.gov/fitsio/)**
 
     I highly recommend using pre-compiled packages, once again (on Ubuntu they are `libcfitsio-bin` and `libcfitsio-dev`), however, this is a very easy install via source.
 
-6.  **Set the `PRESTO` environment variable**
+7.  **Set the `PRESTO` environment variable**
 
     It should be set to the top level directory of the PRESTO distribution (i.e. this directory). And make sure that `$PRESTO/lib` and `$PRESTO/bin` are **not** in your `PATH` or `LD_LIBRARY_PATH` or `PYTHONPATH` environment variables as we have required in the past.
 
-7.  **Activate your Python virtual environment *or* Conda/Mamba/Anaconda environment**
+8.  **Activate your Python virtual environment *or* Conda/Mamba/Anaconda environment**
 
     * That environment should have `numpy` installed at a minimum
     * Make sure that `pip` is recent (`pip install --upgrade pip`)
     * Install the build tools: `pip install meson meson-python ninja` or `conda install meson meson-python ninja`
 
-8.  **Configure the meson build**
+9.  **Configure the meson build**
 
     In the top level PRESTO directory (i.e. `cd $PRESTO`), configure `meson` via:
 
@@ -138,13 +142,13 @@ Note that you can uninstall everything via:
 
     `meson setup build`.
 
-9. **Check your environment variables against the configuration**
+10. **Check your environment variables against the configuration**
 
     `python check_meson_build.py`
 
     If everything looks good, it will tell you. Otherwise, try fixing the issues and starting over from step #8.
 
-10. **Build and install all the C/Fortran codes and the PRESTO shared library (e.g. `libpresto.so`)**
+11. **Build and install all the C/Fortran codes and the PRESTO shared library (e.g. `libpresto.so`)**
 
     `meson compile -C build`
 
@@ -152,11 +156,11 @@ Note that you can uninstall everything via:
 
     There should be logs in case anything goes wrong in `$PRESTO/build/meson-logs`. Note that all PRESTO compiled binaries will be installed in `{prefix}/{bindir}`, and the PRESTO shared library (likely either `libpresto.so` or `libpreso.dylib`) will be installed in `{prefix}/{libdir}` as defined by `meson`. You can see the values of `{prefix}`, `{bindir}`, and `{libdir}` using the `check_meson_build.py` script from the previous step.
 
-11. **Try running a PRESTO command like `prepfold`**
+12. **Try running a PRESTO command like `prepfold`**
 
     You should get the regular usage screen. If you get a shared library error, see the troubleshooting steps above or below.
 
-12. **Compile and install the PRESTO python codes and libraries**
+13. **Compile and install the PRESTO python codes and libraries**
 
     `cd $PRESTO/python`
 
@@ -164,7 +168,7 @@ Note that you can uninstall everything via:
 
     If you get a shared library error, see the troubleshooting steps above or below.
 
-13. **Run some basic tests**
+14. **Run some basic tests**
 
     `cd $PRESTO`
 
@@ -176,11 +180,11 @@ Note that you can uninstall everything via:
 
     Another good test is to see if you can run and fit the default profile in `pygaussfit.py`
 
-14. **Run `makewisdom` to have (slightly) fast FFTs**
+15. **Run `makewisdom` to have (slightly) fast FFTs**
 
     Just run `$PRESTO/build/src/makewisdom`. It takes about 10-20 min to run, so be patient. Note that the `fftw_wisdom.txt` file will be located in `$PRESTO/build/src`, so you will need to move it to `$PRESTO/lib` so that PRESTO can find it.
 
-15. **Go find pulsars!**
+16. **Go find pulsars!**
     
     Everything should be ready to go now, and installed (likely) in the same place as the rest of your Python virtual environment and/or Conda/Mamba/Anaconda environment.
 
@@ -193,7 +197,7 @@ Note that you can uninstall everything via:
     `pip uninstall presto` 
 
 Scott Ransom
-Updated May 2024, for v5.0.X
+Updated Oct 2025, for v5.2.0
 
 -----------------------------------------------------------------
 
@@ -211,11 +215,13 @@ Couple quick trouble-shooting tips if you are having problems compiling and runn
    - Is `$PRESTO/lib` in your `LD_LIBRARY_PATH`? (It should *not* be!)
    - Is there any `presto` stuff in your `PYTHONPATH`? (There should *not* be!)
 
-2. Have you have installed the relevant `-dev` packages for `glib2`, `FFTW` and `CFITSIO` if you are using a Debian-based Linux distribution? Here are the required packages on a clean Ubuntu:
+2. Have you have installed the relevant `-dev` packages for `glib2`, `FFTW`, `GSL`, and `CFITSIO` if you are using a Debian-based Linux distribution? Here are the required packages on a clean Ubuntu:
    - `git`
    - `build-essential`
    - `libfftw3-bin`
    - `libfftw3-dev`
+   - `libgsl28`
+   - `libgsl-dev`
    - `pgplot5`
    - `libglib2.0-dev`
    - `libcfitsio-bin`
@@ -230,7 +236,7 @@ Couple quick trouble-shooting tips if you are having problems compiling and runn
    - `python3-numpy`
    - `python3-pip`
    
-   And the following command should get all of them: `apt install git build-essential libfftw3-bin libfftw3-dev pgplot5 libglib2.0-dev libcfitsio-bin libcfitsio-dev libpng-dev latex2html gfortran tcsh autoconf libx11-dev python3-dev python3-numpy python3-pip`
+   And the following command should get all of them: `apt install git build-essential libfftw3-bin libfftw3-dev libgsl28 libgsl-dev pgplot5 libglib2.0-dev libcfitsio-bin libcfitsio-dev libpng-dev latex2html gfortran tcsh autoconf libx11-dev python3-dev python3-numpy python3-pip`
 
 3. After the Python modules are built and installed, and you run `python tests/test_presto_python.py`, if you get a memory error, please contact Scott! I think that these issues are fixed, but if they are not, we will need to change the build process a tiny bit with a special variable define.
    
