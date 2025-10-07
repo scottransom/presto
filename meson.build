@@ -17,6 +17,7 @@ cc = meson.get_compiler('c')
 glib = dependency('glib-2.0')
 fftw = dependency('fftw3f') # Note the 'f' for single-precision version!
 fits = dependency('cfitsio')
+gsl = dependency('gsl')
 x11 = dependency('x11')
 png = dependency('libpng')
 # omp = dependency('openmp', required: false)
