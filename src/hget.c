@@ -71,8 +71,6 @@
 static int use_saolib = 0;
 #endif
 
-char *hgetc();
-
 static char val[VLENGTH + 1];
 static int multiline = 0;
 

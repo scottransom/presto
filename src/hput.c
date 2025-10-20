@@ -504,7 +504,6 @@ int hputcom(char *hstring,
     char line[100];
     int lkeyword, lcom, lhead, i, lblank;
     char *vp, *v1, *v2, *c0 = NULL, *c1, *q1, *q2;
-    char *ksearch();
 
     squot = 39;
 
@@ -596,7 +595,6 @@ int hdel(char *hstring,  /* FITS header */
          char *keyword)  /* Keyword of entry to be deleted */
 {
     char *v, *v1, *v2, *ve;
-    char *ksearch();
 
     /* Search for keyword */
     v1 = ksearch(hstring, keyword);
@@ -633,7 +631,6 @@ int hadd(char *hplace,  /* FITS header position for new keyword */
          char *keyword) /* Keyword of entry to be deleted */
 {
     char *v, *v1, *v2, *ve;
-    char *ksearch();
     int i, lkey;
 
     /*  Find end of header */
@@ -679,7 +676,6 @@ int hchange(char *hstring,  /* FITS header */
 {
     char *v, *v1, *v2;
     int lv2, i;
-    char *ksearch();
 
     /* Search for keyword */
     v1 = ksearch(hstring, keyword1);

@@ -1204,7 +1204,6 @@ int fitscimage(char *filename,  /* Name of output FITS image file */
     int nbhead0;                /* Length of input file image header */
     int lhead0;
     int nbbuff, nbuff, ibuff, nbr, nbdata;
-    int fitsheadsize();
 
     /* Compute size of image in bytes using relevant header parameters */
     naxis = 1;

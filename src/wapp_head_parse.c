@@ -17,13 +17,12 @@ void ignore()
 {
 };
 
-extern int yyparse();
-int count_size();
-void close_parse();
-int key_sizes();
-
 #include "wapp_mkheaderlex.c"
 #include "wapp_key.h"
+
+extern int yyparse();
+int count_size(struct HEADERP *h);
+int key_sizes(int type);
 
 struct HEADERP *yacc_input = NULL;
 
