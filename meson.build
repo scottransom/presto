@@ -48,9 +48,16 @@ if ff.has_argument('-Wno-conversion')
   add_project_arguments('-Wno-conversion', language: 'fortran')
 endif
 
-if host_machine.system() == 'darwin' and cc.has_link_argument('-Wl,-ld_classic')
-  # New linker introduced in macOS 14 not working yet, see gh-19357 and gh-19387
-  add_project_link_arguments('-Wl,-ld_classic', language : ['c', 'cpp', 'fortran'])
+if host_machine.system() == 'darwin'
+  if cc.has_link_argument('-Wl,-ld_classic')
+    # New linker introduced in macOS 14 not working yet, see gh-19357 and gh-19387
+    add_project_link_arguments('-Wl,-ld_classic', language : ['c', 'cpp', 'fortran'])
+  endif
+  # Work around duplicate RPATH issue on macOS with gcc15
+  # See: https://github.com/mesonbuild/meson/issues/12314
+  if cc.has_link_argument('-Wl,-no_warn_duplicate_libraries')
+    add_project_link_arguments('-Wl,-no_warn_duplicate_libraries', language : ['c', 'fortran'])
+  endif
 endif
 
 subdir('src')
@@ -62,3 +69,8 @@ import('pkgconfig').generate(
   name: 'PRESTO',
   description: 'PulsaR Exploration and Search TOolkit by Scott Ransom',
 )
+
+# Post-install script to fix duplicate RPATHs on macOS
+if host_machine.system() == 'darwin'
+  meson.add_install_script('fix_rpath_duplicates.py', get_option('prefix'))
+endif
