@@ -46,28 +46,28 @@ struct Keyword {
 #define FITSBLOCK 2880
 
 /* FITS file access subroutines in fitsfile.c */
-extern int fitsropen();
-extern char *fitsrhead();
-extern char *fitsrimage();
-extern char *fitsrsect();
-extern int fitswhead();
-extern int fitswext();
-extern int fitswhdu();
-extern int fitswimage();
-extern int fitscimage();
-extern int isfits();
-extern void fitserr();          /* Print FITS error message to stderr */
+extern int fitsropen(char *inpath);
+extern char *fitsrhead(char *filename, int *lhead, int *nbhead);
+extern char *fitsrimage(char *filename, int nbhead, char *header);
+extern char *fitsrsect(char *filename, char *header, int nbhead, int x0, int y0, int nx, int ny, int nlog);
+extern int fitswhead(char *filename, char *header);
+extern int fitswext(char *filename, char *header, char *image);
+extern int fitswhdu(int fd, char *filename, char *header, char *image);
+extern int fitswimage(char *filename, char *header, char *image);
+extern int fitscimage(char *filename, char *header, char *filename0);
+extern int isfits(char *filename);
+extern void fitserr(void);          /* Print FITS error message to stderr */
 
 /* FITS table file access subroutines in fitsfile.c */
-extern int fitsrtopen();
-extern int fitsrthead();
-extern void fitsrtlset();
-extern int fitsrtline();
-extern short ftgeti2();
-extern int ftgeti4();
-extern float ftgetr4();
-extern double ftgetr8();
-extern int ftgetc();
+extern int fitsrtopen(char *inpath, int *nk, struct Keyword **kw, int *nrows, int *nchar, int *nbhead);
+extern int fitsrthead(char *header, int *nk, struct Keyword **kw, int *nrows, int *nchar);
+extern void fitsrtlset(void);
+extern int fitsrtline(int fd, int nbhead, int lbuff, char *tbuff, int irow, int nbline, char *line);
+extern short ftgeti2(char *entry, struct Keyword *kw);
+extern int ftgeti4(char *entry, struct Keyword *kw);
+extern float ftgetr4(char *entry, struct Keyword *kw);
+extern double ftgetr8(char *entry, struct Keyword *kw);
+extern int ftgetc(char *entry, struct Keyword *kw, char *string, int maxchar);
 
 /* IRAF file access subroutines in imhfile.c */
 extern char *irafrhead();

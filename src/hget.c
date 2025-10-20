@@ -79,9 +79,8 @@ static int multiline = 0;
 static int lhead0 = 0;          /* Length of header string */
 
 /* Set the length of the header string, if not terminated by NULL */
-int hlength(header, lhead)
-char *header;                   /* FITS header */
-int lhead;                      /* Maximum length of FITS header */
+int hlength(char *header,  /* FITS header */
+            int lhead)     /* Maximum length of FITS header */
 {
     char *hend;
     lhead0 = lhead;
@@ -93,8 +92,7 @@ int lhead;                      /* Maximum length of FITS header */
 }
 
 /* Return the length of the header string, computing it if lhead0 not set */
-int gethlength(header)
-char *header;                   /* FITS header */
+int gethlength(char *header)  /* FITS header */
 {
     if (lhead0 > 0)
         return (lhead0);
@@ -105,17 +103,15 @@ char *header;                   /* FITS header */
 
 /* Extract Integer*4 value for variable from FITS header string */
 
-int hgeti4c(hstring, keyword, wchar, ival)
-
-char *hstring;                  /* character string containing FITS header information
+int hgeti4c(char *hstring,      /* character string containing FITS header information
                                    in the format <keyword>= <value> {/ <comment>} */
-char *keyword;                  /* character string containing the name of the keyword
+            char *keyword,      /* character string containing the name of the keyword
                                    the value of which is returned.  hget searches for
                                    a line beginning with this string.  if "[n]" is
                                    present, the n'th token in the value is returned.
                                    (the first 8 characters must be unique) */
-unsigned char wchar;            /* Character of multiple WCS header; =0 if unused */
-int *ival;                      /* Keyword value returned */
+            unsigned char wchar, /* Character of multiple WCS header; =0 if unused */
+            int *ival)          /* Keyword value returned */
 {
     char keyword1[16];
     int lkey;
@@ -134,16 +130,14 @@ int *ival;                      /* Keyword value returned */
 
 /* Extract long value for variable from FITS header string */
 
-int hgeti4(hstring, keyword, ival)
-
-char *hstring;                  /* character string containing FITS header information
-                                   in the format <keyword>= <value> {/ <comment>} */
-char *keyword;                  /* character string containing the name of the keyword
-                                   the value of which is returned.  hget searches for a
-                                   line beginning with this string.  if "[n]" is present,
-                                   the n'th token in the value is returned.
-                                   (the first 8 characters must be unique) */
-int *ival;
+int hgeti4(char *hstring,  /* character string containing FITS header information
+                              in the format <keyword>= <value> {/ <comment>} */
+           char *keyword,  /* character string containing the name of the keyword
+                              the value of which is returned.  hget searches for a
+                              line beginning with this string.  if "[n]" is present,
+                              the n'th token in the value is returned.
+                              (the first 8 characters must be unique) */
+           int *ival)
 {
     char *value;
     double dval;
@@ -182,16 +176,14 @@ int *ival;
 
 /* Extract integer*2 value for variable from fits header string */
 
-int hgeti2(hstring, keyword, ival)
-
-char *hstring;                  /* character string containing FITS header information
-                                   in the format <keyword>= <value> {/ <comment>} */
-char *keyword;                  /* character string containing the name of the keyword
-                                   the value of which is returned.  hget searches for a
-                                   line beginning with this string.  if "[n]" is present,
-                                   the n'th token in the value is returned.
-                                   (the first 8 characters must be unique) */
-short *ival;
+int hgeti2(char *hstring,  /* character string containing FITS header information
+                              in the format <keyword>= <value> {/ <comment>} */
+           char *keyword,  /* character string containing the name of the keyword
+                              the value of which is returned.  hget searches for a
+                              line beginning with this string.  if "[n]" is present,
+                              the n'th token in the value is returned.
+                              (the first 8 characters must be unique) */
+           short *ival)
 {
     char *value;
     double dval;
@@ -229,16 +221,14 @@ short *ival;
 
 /* Extract real value for variable from FITS header string */
 
-int hgetr4(hstring, keyword, rval)
-
-char *hstring;                  /* character string containing FITS header information
-                                   in the format <keyword>= <value> {/ <comment>} */
-char *keyword;                  /* character string containing the name of the keyword
-                                   the value of which is returned.  hget searches for a
-                                   line beginning with this string.  if "[n]" is present,
-                                   the n'th token in the value is returned.
-                                   (the first 8 characters must be unique) */
-float *rval;
+int hgetr4(char *hstring,  /* character string containing FITS header information
+                              in the format <keyword>= <value> {/ <comment>} */
+           char *keyword,  /* character string containing the name of the keyword
+                              the value of which is returned.  hget searches for a
+                              line beginning with this string.  if "[n]" is present,
+                              the n'th token in the value is returned.
+                              (the first 8 characters must be unique) */
+           float *rval)
 {
     char *value;
     int lval;
@@ -266,16 +256,14 @@ float *rval;
 
 /* Extract real*8 right ascension in degrees from FITS header string */
 
-int hgetra(hstring, keyword, dval)
-
-char *hstring;                  /* character string containing FITS header information
-                                   in the format <keyword>= <value> {/ <comment>} */
-char *keyword;                  /* character string containing the name of the keyword
-                                   the value of which is returned.  hget searches for a
-                                   line beginning with this string.  if "[n]" is present,
-                                   the n'th token in the value is returned.
-                                   (the first 8 characters must be unique) */
-double *dval;                   /* Right ascension in degrees (returned) */
+int hgetra(char *hstring,  /* character string containing FITS header information
+                              in the format <keyword>= <value> {/ <comment>} */
+           char *keyword,  /* character string containing the name of the keyword
+                              the value of which is returned.  hget searches for a
+                              line beginning with this string.  if "[n]" is present,
+                              the n'th token in the value is returned.
+                              (the first 8 characters must be unique) */
+           double *dval)   /* Right ascension in degrees (returned) */
 {
     char *value;
 
@@ -293,16 +281,14 @@ double *dval;                   /* Right ascension in degrees (returned) */
 
 /* Extract real*8 declination in degrees from FITS header string */
 
-int hgetdec(hstring, keyword, dval)
-
-char *hstring;                  /* character string containing FITS header information
-                                   in the format <keyword>= <value> {/ <comment>} */
-char *keyword;                  /* character string containing the name of the keyword
-                                   the value of which is returned.  hget searches for a
-                                   line beginning with this string.  if "[n]" is present,
-                                   the n'th token in the value is returned.
-                                   (the first 8 characters must be unique) */
-double *dval;                   /* Right ascension in degrees (returned) */
+int hgetdec(char *hstring,  /* character string containing FITS header information
+                               in the format <keyword>= <value> {/ <comment>} */
+            char *keyword,  /* character string containing the name of the keyword
+                               the value of which is returned.  hget searches for a
+                               line beginning with this string.  if "[n]" is present,
+                               the n'th token in the value is returned.
+                               (the first 8 characters must be unique) */
+            double *dval)   /* Right ascension in degrees (returned) */
 {
     char *value;
 
@@ -320,17 +306,15 @@ double *dval;                   /* Right ascension in degrees (returned) */
 
 /* Extract real*8 value for variable from FITS header string */
 
-int hgetr8c(hstring, keyword, wchar, dval)
-
-char *hstring;                  /* character string containing FITS header information
+int hgetr8c(char *hstring,      /* character string containing FITS header information
                                    in the format <keyword>= <value> {/ <comment>} */
-char *keyword;                  /* character string containing the name of the keyword
+            char *keyword,      /* character string containing the name of the keyword
                                    the value of which is returned.  hget searches for
                                    a line beginning with this string.  if "[n]" is
                                    present, the n'th token in the value is returned.
                                    (the first 8 characters must be unique) */
-unsigned char wchar;            /* Character of multiple WCS header; =0 if unused */
-double *dval;                   /* Keyword value returned */
+            unsigned char wchar, /* Character of multiple WCS header; =0 if unused */
+            double *dval)       /* Keyword value returned */
 {
     char keyword1[16];
     int lkey;
@@ -350,16 +334,14 @@ double *dval;                   /* Keyword value returned */
 
 /* Extract real*8 value for variable from FITS header string */
 
-int hgetr8(hstring, keyword, dval)
-
-char *hstring;                  /* character string containing FITS header information
-                                   in the format <keyword>= <value> {/ <comment>} */
-char *keyword;                  /* character string containing the name of the keyword
-                                   the value of which is returned.  hget searches for a
-                                   line beginning with this string.  if "[n]" is present,
-                                   the n'th token in the value is returned.
-                                   (the first 8 characters must be unique) */
-double *dval;
+int hgetr8(char *hstring,  /* character string containing FITS header information
+                              in the format <keyword>= <value> {/ <comment>} */
+           char *keyword,  /* character string containing the name of the keyword
+                              the value of which is returned.  hget searches for a
+                              line beginning with this string.  if "[n]" is present,
+                              the n'th token in the value is returned.
+                              (the first 8 characters must be unique) */
+           double *dval)
 {
     char *value;
     int lval;
@@ -387,16 +369,14 @@ double *dval;
 
 /* Extract logical value for variable from FITS header string */
 
-int hgetl(hstring, keyword, ival)
-
-char *hstring;                  /* character string containing FITS header information
-                                   in the format <keyword>= <value> {/ <comment>} */
-char *keyword;                  /* character string containing the name of the keyword
-                                   the value of which is returned.  hget searches for a
-                                   line beginning with this string.  if "[n]" is present,
-                                   the n'th token in the value is returned.
-                                   (the first 8 characters must be unique) */
-int *ival;
+int hgetl(char *hstring,  /* character string containing FITS header information
+                             in the format <keyword>= <value> {/ <comment>} */
+          char *keyword,  /* character string containing the name of the keyword
+                             the value of which is returned.  hget searches for a
+                             line beginning with this string.  if "[n]" is present,
+                             the n'th token in the value is returned.
+                             (the first 8 characters must be unique) */
+          int *ival)
 {
     char *value;
     char newval;
@@ -427,16 +407,14 @@ int *ival;
 
 /* Extract real*8 date from FITS header string (dd/mm/yy or dd-mm-yy) */
 
-int hgetdate(hstring, keyword, dval)
-
-char *hstring;                  /* character string containing FITS header information
-                                   in the format <keyword>= <value> {/ <comment>} */
-char *keyword;                  /* character string containing the name of the keyword
-                                   the value of which is returned.  hget searches for a
-                                   line beginning with this string.  if "[n]" is present,
-                                   the n'th token in the value is returned.
-                                   (the first 8 characters must be unique) */
-double *dval;
+int hgetdate(char *hstring,  /* character string containing FITS header information
+                                in the format <keyword>= <value> {/ <comment>} */
+             char *keyword,  /* character string containing the name of the keyword
+                                the value of which is returned.  hget searches for a
+                                line beginning with this string.  if "[n]" is present,
+                                the n'th token in the value is returned.
+                                (the first 8 characters must be unique) */
+             double *dval)
 {
     double yeardays, seconds, fday;
     char *value, *sstr, *dstr, *tstr, *cstr, *nval;
@@ -585,17 +563,15 @@ double *dval;
 
 /* Extract IRAF multiple-keyword string value from FITS header string */
 
-int hgetm(hstring, keyword, lstr, str)
-
-char *hstring;                  /* character string containing FITS header information
-                                   in the format <keyword>= <value> {/ <comment>} */
-char *keyword;                  /* character string containing the root name of the keyword
-                                   the value of which is returned.  hget searches for a
-                                   line beginning with this string.  if "[n]" is present,
-                                   the n'th token in the value is returned.
-                                   (the first 8 characters must be unique) */
-int lstr;                       /* Size of str in characters */
-char *str;                      /* String (returned) */
+int hgetm(char *hstring,  /* character string containing FITS header information
+                             in the format <keyword>= <value> {/ <comment>} */
+          char *keyword,  /* character string containing the root name of the keyword
+                             the value of which is returned.  hget searches for a
+                             line beginning with this string.  if "[n]" is present,
+                             the n'th token in the value is returned.
+                             (the first 8 characters must be unique) */
+          int lstr,       /* Size of str in characters */
+          char *str)      /* String (returned) */
 {
     char *value;
     char *stri;
@@ -658,18 +634,16 @@ char *str;                      /* String (returned) */
 
 /* Extract string value for variable from FITS header string */
 
-int hgetsc(hstring, keyword, wchar, lstr, str)
-
-char *hstring;                  /* character string containing FITS header information
-                                   in the format <keyword>= <value> {/ <comment>} */
-char *keyword;                  /* character string containing the name of the keyword
-                                   the value of which is returned.  hget searches for
-                                   a line beginning with this string.  if "[n]" is
-                                   present, the n'th token in the value is returned.
-                                   (the first 8 characters must be unique) */
-unsigned char wchar;            /* Character of multiple WCS header; =0 if unused */
-int lstr;                       /* Size of str in characters */
-char *str;                      /* String (returned) */
+int hgetsc(char *hstring,      /* character string containing FITS header information
+                                  in the format <keyword>= <value> {/ <comment>} */
+           char *keyword,      /* character string containing the name of the keyword
+                                  the value of which is returned.  hget searches for
+                                  a line beginning with this string.  if "[n]" is
+                                  present, the n'th token in the value is returned.
+                                  (the first 8 characters must be unique) */
+           unsigned char wchar, /* Character of multiple WCS header; =0 if unused */
+           int lstr,           /* Size of str in characters */
+           char *str)          /* String (returned) */
 {
     char keyword1[16];
     int lkey;
@@ -688,17 +662,15 @@ char *str;                      /* String (returned) */
 
 /* Extract string value for variable from FITS header string */
 
-int hgets(hstring, keyword, lstr, str)
-
-char *hstring;                  /* character string containing FITS header information
-                                   in the format <keyword>= <value> {/ <comment>} */
-char *keyword;                  /* character string containing the name of the keyword
-                                   the value of which is returned.  hget searches for a
-                                   line beginning with this string.  if "[n]" is present,
-                                   the n'th token in the value is returned.
-                                   (the first 8 characters must be unique) */
-int lstr;                       /* Size of str in characters */
-char *str;                      /* String (returned) */
+int hgets(char *hstring,  /* character string containing FITS header information
+                             in the format <keyword>= <value> {/ <comment>} */
+          char *keyword,  /* character string containing the name of the keyword
+                             the value of which is returned.  hget searches for a
+                             line beginning with this string.  if "[n]" is present,
+                             the n'th token in the value is returned.
+                             (the first 8 characters must be unique) */
+          int lstr,       /* Size of str in characters */
+          char *str)      /* String (returned) */
 {
     char *value;
     int lval;
@@ -722,16 +694,14 @@ char *str;                      /* String (returned) */
 
 /* Extract number of decimal places for value in FITS header string */
 
-int hgetndec(hstring, keyword, ndec)
-
-char *hstring;                  /* character string containing FITS header information
-                                   in the format <keyword>= <value> {/ <comment>} */
-char *keyword;                  /* character string containing the name of the keyword
-                                   the value of which is returned.  hget searches for a
-                                   line beginning with this string.  if "[n]" is present,
-                                   the n'th token in the value is returned.
-                                   (the first 8 characters must be unique) */
-int *ndec;                      /* Number of decimal places in keyword value */
+int hgetndec(char *hstring,  /* character string containing FITS header information
+                                in the format <keyword>= <value> {/ <comment>} */
+             char *keyword,  /* character string containing the name of the keyword
+                                the value of which is returned.  hget searches for a
+                                line beginning with this string.  if "[n]" is present,
+                                the n'th token in the value is returned.
+                                (the first 8 characters must be unique) */
+             int *ndec)      /* Number of decimal places in keyword value */
 {
     char *value;
     int i, nchar;
@@ -756,15 +726,13 @@ int *ndec;                      /* Number of decimal places in keyword value */
 
 /* Extract character value for variable from FITS header string */
 
-char *hgetc(hstring, keyword0)
-
-char *hstring;                  /* character string containing FITS header information
-                                   in the format <keyword>= <value> {/ <comment>} */
-char *keyword0;                 /* character string containing the name of the keyword
-                                   the value of which is returned.  hget searches for a
-                                   line beginning with this string.  if "[n]" is present,
-                                   the n'th token in the value is returned.
-                                   (the first 8 characters must be unique) */
+char *hgetc(char *hstring,  /* character string containing FITS header information
+                               in the format <keyword>= <value> {/ <comment>} */
+            char *keyword0) /* character string containing the name of the keyword
+                               the value of which is returned.  hget searches for a
+                               line beginning with this string.  if "[n]" is present,
+                               the n'th token in the value is returned.
+                               (the first 8 characters must be unique) */
 {
     static char cval[80];
     char *value;
@@ -945,21 +913,19 @@ char *keyword0;                 /* character string containing the name of the k
 
 /* Find beginning of fillable blank line before FITS header keyword line */
 
-char *blsearch(hstring, keyword)
-
-/* Find entry for keyword keyword in FITS header string hstring.
-   (the keyword may have a maximum of eight letters)
-   NULL is returned if the keyword is not found */
-char *hstring;                  /* character string containing fits-style header
-                                   information in the format <keyword>= <value> {/ <comment>}
-                                   the default is that each entry is 80 characters long;
-                                   however, lines may be of arbitrary length terminated by
-                                   nulls, carriage returns or linefeeds, if packed is true.  */
-char *keyword;                  /* character string containing the name of the variable
-                                   to be returned.  ksearch searches for a line beginning
-                                   with this string.  The string may be a character
-                                   literal or a character variable terminated by a null
-                                   or '$'.  it is truncated to 8 characters. */
+char *blsearch(char *hstring,  /* character string containing fits-style header
+                                  information in the format <keyword>= <value> {/ <comment>}
+                                  the default is that each entry is 80 characters long;
+                                  however, lines may be of arbitrary length terminated by
+                                  nulls, carriage returns or linefeeds, if packed is true.  */
+               char *keyword)  /* character string containing the name of the variable
+                                  to be returned.  ksearch searches for a line beginning
+                                  with this string.  The string may be a character
+                                  literal or a character variable terminated by a null
+                                  or '$'.  it is truncated to 8 characters. */
+                               /* Find entry for keyword keyword in FITS header string hstring.
+                                  (the keyword may have a maximum of eight letters)
+                                  NULL is returned if the keyword is not found */
 {
     char *loc, *headnext, *headlast, *pval, *lc, *line;
     char *bval;
@@ -1039,21 +1005,19 @@ char *keyword;                  /* character string containing the name of the v
 
 /* Find FITS header line containing specified keyword */
 
-char *ksearch(hstring, keyword)
-
-/* Find entry for keyword keyword in FITS header string hstring.
-   (the keyword may have a maximum of eight letters)
-   NULL is returned if the keyword is not found */
-char *hstring;                  /* character string containing fits-style header
-                                   information in the format <keyword>= <value> {/ <comment>}
-                                   the default is that each entry is 80 characters long;
-                                   however, lines may be of arbitrary length terminated by
-                                   nulls, carriage returns or linefeeds, if packed is true.  */
-char *keyword;                  /* character string containing the name of the variable
-                                   to be returned.  ksearch searches for a line beginning
-                                   with this string.  The string may be a character
-                                   literal or a character variable terminated by a null
-                                   or '$'.  it is truncated to 8 characters. */
+char *ksearch(char *hstring,  /* character string containing fits-style header
+                                 information in the format <keyword>= <value> {/ <comment>}
+                                 the default is that each entry is 80 characters long;
+                                 however, lines may be of arbitrary length terminated by
+                                 nulls, carriage returns or linefeeds, if packed is true.  */
+              char *keyword)  /* character string containing the name of the variable
+                                 to be returned.  ksearch searches for a line beginning
+                                 with this string.  The string may be a character
+                                 literal or a character variable terminated by a null
+                                 or '$'.  it is truncated to 8 characters. */
+                              /* Find entry for keyword keyword in FITS header string hstring.
+                                 (the keyword may have a maximum of eight letters)
+                                 NULL is returned if the keyword is not found */
 {
     char *loc, *headnext, *headlast, *pval, *lc, *line;
     int icol, nextchar, lkey, nleft, lhead, lmax;
@@ -1134,10 +1098,7 @@ char *keyword;                  /* character string containing the name of the v
 
 /* Return the right ascension in degrees from sexagesimal hours or decimal degrees */
 
-double str2ra(in)
-
-char *in;                       /* Character string of sexigesimal hours or decimal degrees */
-
+double str2ra(char *in)  /* Character string of sexigesimal hours or decimal degrees */
 {
     double ra;                  /* Right ascension in degrees (returned) */
 
@@ -1151,10 +1112,7 @@ char *in;                       /* Character string of sexigesimal hours or deci
 
 /* Return the declination in degrees from sexagesimal or decimal degrees */
 
-double str2dec(in)
-
-char *in;                       /* Character string of sexigesimal or decimal degrees */
-
+double str2dec(char *in)  /* Character string of sexigesimal or decimal degrees */
 {
     double dec;                 /* Declination in degrees (returned) */
     double deg = 0, min = 0, sec = 0, sign;
@@ -1224,11 +1182,8 @@ char *in;                       /* Character string of sexigesimal or decimal de
 
 /* Find string s2 within null-terminated string s1 */
 
-char *strsrch(s1, s2)
-
-char *s1;                       /* String to search */
-char *s2;                       /* String to look for */
-
+char *strsrch(char *s1,  /* String to search */
+              char *s2)  /* String to look for */
 {
     int ls1;
     ls1 = strlen(s1);
@@ -1238,12 +1193,9 @@ char *s2;                       /* String to look for */
 
 /* Find string s2 within string s1 */
 
-char *strnsrch(s1, s2, ls1)
-
-char *s1;                       /* String to search */
-char *s2;                       /* String to look for */
-int ls1;                        /* Length of string being searched */
-
+char *strnsrch(char *s1,  /* String to search */
+               char *s2,  /* String to look for */
+               int ls1)   /* Length of string being searched */
 {
     char *s, *s1e;
     char cfirst, clast;
@@ -1300,11 +1252,8 @@ int ls1;                        /* Length of string being searched */
 
 /* Find string s2 within null-terminated string s1 (case-free search) */
 
-char *strcsrch(s1, s2)
-
-char *s1;                       /* String to search */
-char *s2;                       /* String to look for */
-
+char *strcsrch(char *s1,  /* String to search */
+               char *s2)  /* String to look for */
 {
     int ls1;
     ls1 = strlen(s1);
@@ -1314,12 +1263,9 @@ char *s2;                       /* String to look for */
 
 /* Find string s2 within string s1 (case-free search) */
 
-char *strncsrch(s1, s2, ls1)
-
-char *s1;                       /* String to search */
-char *s2;                       /* String to look for */
-int ls1;                        /* Length of string being searched */
-
+char *strncsrch(char *s1,  /* String to search */
+                char *s2,  /* String to look for */
+                int ls1)   /* Length of string being searched */
 {
     char *s, *s1e, sl, *os2 = NULL;
     char cfirst, clast = 0, ocfirst, oclast = 0;
@@ -1414,9 +1360,7 @@ int ls1;                        /* Length of string being searched */
 }
 
 
-int notnum(string)
-
-char *string;                   /* Character string */
+int notnum(char *string)  /* Character string */
 {
     if (isnum(string))
         return (0);
@@ -1428,9 +1372,7 @@ char *string;                   /* Character string */
 /* ISNUM-- Return 1 if string is an integer number, 2 if floating point, else 0
  */
 
-int isnum(string)
-
-char *string;                   /* Character string */
+int isnum(char *string)  /* Character string */
 {
     int lstr, i, nd;
     char cstr, cstr1;
@@ -1490,8 +1432,7 @@ char *string;                   /* Character string */
 
 
 #ifdef USE_SAOLIB
-int set_saolib(hstring)
-void *hstring;
+int set_saolib(void *hstring)
 {
     if (*((int *) hstring) == 142857)
         use_saolib = 1;

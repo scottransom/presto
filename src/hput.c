@@ -62,18 +62,15 @@ static int verbose = 0;         /* Set to 1 to print error messages and other in
 
 /*  HPUTI4 - Set int keyword = ival in FITS header string */
 
-int hputi4(hstring, keyword, ival)
-
-char *hstring;                  /* character string containing FITS-style header
-                                   information in the format
-                                   <keyword>= <value> {/ <comment>}
-                                   each entry is padded with spaces to 80 characters */
-
-char *keyword;                  /* character string containing the name of the variable
-                                   to be returned.  hput searches for a line beginning
-                                   with this string, and if there isn't one, creates one.
-                                   The first 8 characters of keyword must be unique. */
-int ival;                       /* int number */
+int hputi4(char *hstring,  /* character string containing FITS-style header
+                              information in the format
+                              <keyword>= <value> {/ <comment>}
+                              each entry is padded with spaces to 80 characters */
+           char *keyword,  /* character string containing the name of the variable
+                              to be returned.  hput searches for a line beginning
+                              with this string, and if there isn't one, creates one.
+                              The first 8 characters of keyword must be unique. */
+           int ival)       /* int number */
 {
     char value[30];
 
@@ -87,12 +84,9 @@ int ival;                       /* int number */
 
 /*  HPUTI2 - Set short keyword = ival in FITS header string */
 
-int hputi2(hstring, keyword, ival)
-
-char *hstring;                  /* FITS header string */
-char *keyword;                  /* Keyword name */
-short ival;                     /* short number */
-
+int hputi2(char *hstring,  /* FITS header string */
+           char *keyword,  /* Keyword name */
+           short ival)     /* short number */
 {
     char value[30];
 
@@ -106,11 +100,9 @@ short ival;                     /* short number */
 
 /*  HPUTR4 - Set float keyword = rval in FITS header string */
 
-int hputr4(hstring, keyword, rval)
-
-char *hstring;                  /* FITS header string */
-char *keyword;                  /* Keyword name */
-float rval;                     /* float number */
+int hputr4(char *hstring,  /* FITS header string */
+           char *keyword,  /* Keyword name */
+           float rval)     /* float number */
 {
     char value[30];
 
@@ -124,11 +116,9 @@ float rval;                     /* float number */
 
 /*  HPUTR8 - Set double keyword = dval in FITS header string */
 
-int hputr8(hstring, keyword, dval)
-
-char *hstring;                  /* FITS header string */
-char *keyword;                  /* Keyword name */
-double dval;                    /* double number */
+int hputr8(char *hstring,  /* FITS header string */
+           char *keyword,  /* Keyword name */
+           double dval)    /* double number */
 {
     char value[30];
 
@@ -142,12 +132,10 @@ double dval;                    /* double number */
 
 /*  HPUTNR8 - Set double keyword = dval in FITS header string */
 
-int hputnr8(hstring, keyword, ndec, dval)
-
-char *hstring;                  /* FITS header string */
-char *keyword;                  /* Keyword name */
-int ndec;                       /* Number of decimal places to print */
-double dval;                    /* double number */
+int hputnr8(char *hstring,  /* FITS header string */
+            char *keyword,  /* Keyword name */
+            int ndec,       /* Number of decimal places to print */
+            double dval)    /* double number */
 {
     char value[30];
     char format[8];
@@ -172,11 +160,9 @@ double dval;                    /* double number */
 
 /*  HPUTRA - Set double keyword = hh:mm:ss.sss in FITS header string */
 
-int hputra(hstring, keyword, ra)
-
-char *hstring;                  /* FITS header string */
-char *keyword;                  /* Keyword name */
-double ra;                      /* Right ascension in degrees */
+int hputra(char *hstring,  /* FITS header string */
+           char *keyword,  /* Keyword name */
+           double ra)      /* Right ascension in degrees */
 {
     char value[30];
 
@@ -190,11 +176,9 @@ double ra;                      /* Right ascension in degrees */
 
 /*  HPUTDEC - Set double keyword = dd:mm:ss.sss in FITS header string */
 
-int hputdec(hstring, keyword, dec)
-
-char *hstring;                  /* FITS header string */
-char *keyword;                  /* Keyword name */
-double dec;                     /* Declination in degrees */
+int hputdec(char *hstring,  /* FITS header string */
+            char *keyword,  /* Keyword name */
+            double dec)     /* Declination in degrees */
 {
     char value[30];
 
@@ -209,11 +193,9 @@ double dec;                     /* Declination in degrees */
 
 /*  HPUTL - Set keyword = F if lval=0, else T, in FITS header string */
 
-int hputl(hstring, keyword, lval)
-
-char *hstring;                  /* FITS header */
-char *keyword;                  /* Keyword name */
-int lval;                       /* logical variable (0=false, else true) */
+int hputl(char *hstring,  /* FITS header */
+          char *keyword,  /* Keyword name */
+          int lval)       /* logical variable (0=false, else true) */
 {
     char value[8];
 
@@ -231,12 +213,10 @@ int lval;                       /* logical variable (0=false, else true) */
 /*  HPUTM - Set multi-line character string in FITS header string */
 /*          return number of keywords written */
 
-int hputm(hstring, keyword, cval)
-
-char *hstring;                  /* FITS header */
-char *keyword;                  /* Keyword name root (6 characters or less) */
-char *cval;                     /* character string containing the value for variable
-                                   keyword.  trailing and leading blanks are removed.  */
+int hputm(char *hstring,  /* FITS header */
+          char *keyword,  /* Keyword name root (6 characters or less) */
+          char *cval)     /* character string containing the value for variable
+                             keyword.  trailing and leading blanks are removed.  */
 {
     int lroot = 0, lcv, i, ii, nkw, lkw, lval;
     int comment = 0;
@@ -308,12 +288,10 @@ char *cval;                     /* character string containing the value for var
 
 /*  HPUTS - Set character string keyword = 'cval' in FITS header string */
 
-int hputs(hstring, keyword, cval)
-
-char *hstring;                  /* FITS header */
-char *keyword;                  /* Keyword name */
-char *cval;                     /* character string containing the value for variable
-                                   keyword.  trailing and leading blanks are removed.  */
+int hputs(char *hstring,  /* FITS header */
+          char *keyword,  /* Keyword name */
+          char *cval)     /* character string containing the value for variable
+                             keyword.  trailing and leading blanks are removed.  */
 {
     char squot = 39;
     char value[80];
@@ -354,12 +332,10 @@ char *cval;                     /* character string containing the value for var
 /*  HPUTC - Set character string keyword = value in FITS header string */
 /*          Return -1 if error, 0 if OK */
 
-int hputc(hstring, keyword, value)
-
-char *hstring;
-char *keyword;
-char *value;                    /* character string containing the value for variable
-                                   keyword.  trailing and leading blanks are removed.  */
+int hputc(char *hstring,
+          char *keyword,
+          char *value)  /* character string containing the value for variable
+                           keyword.  trailing and leading blanks are removed.  */
 {
     char squot = 39;
     char line[100];
@@ -520,11 +496,9 @@ char *value;                    /* character string containing the value for var
 
 /*  HPUTCOM - Set comment for keyword or on line in FITS header string */
 
-int hputcom(hstring, keyword, comment)
-
-char *hstring;
-char *keyword;
-char *comment;
+int hputcom(char *hstring,
+            char *keyword,
+            char *comment)
 {
     char squot;
     char line[100];
@@ -618,10 +592,8 @@ char *comment;
  *	    returns 1 if entry deleted, else 0
  */
 
-int hdel(hstring, keyword)
-
-char *hstring;                  /* FITS header */
-char *keyword;                  /* Keyword of entry to be deleted */
+int hdel(char *hstring,  /* FITS header */
+         char *keyword)  /* Keyword of entry to be deleted */
 {
     char *v, *v1, *v2, *ve;
     char *ksearch();
@@ -657,10 +629,8 @@ char *keyword;                  /* Keyword of entry to be deleted */
  *	    Call hputx() to put value into entry
  */
 
-int hadd(hplace, keyword)
-
-char *hplace;                   /* FITS header position for new keyword */
-char *keyword;                  /* Keyword of entry to be deleted */
+int hadd(char *hplace,  /* FITS header position for new keyword */
+         char *keyword) /* Keyword of entry to be deleted */
 {
     char *v, *v1, *v2, *ve;
     char *ksearch();
@@ -703,11 +673,9 @@ char *keyword;                  /* Keyword of entry to be deleted */
  *	      returns 1 if entry changed, else 0
  */
 
-int hchange(hstring, keyword1, keyword2)
-
-char *hstring;                  /* FITS header */
-char *keyword1;                 /* Keyword to be changed */
-char *keyword2;                 /* New keyword name */
+int hchange(char *hstring,  /* FITS header */
+            char *keyword1, /* Keyword to be changed */
+            char *keyword2) /* New keyword name */
 {
     char *v, *v1, *v2;
     int lv2, i;
@@ -738,13 +706,10 @@ char *keyword2;                 /* New keyword name */
 
 /* Write the right ascension ra in sexagesimal format into string*/
 
-void ra2str(string, lstr, ra, ndec)
-
-char *string;                   /* Character string (returned) */
-int lstr;                       /* Maximum number of characters in string */
-double ra;                      /* Right ascension in degrees */
-int ndec;                       /* Number of decimal places in seconds */
-
+void ra2str(char *string,  /* Character string (returned) */
+            int lstr,      /* Maximum number of characters in string */
+            double ra,     /* Right ascension in degrees */
+            int ndec)      /* Number of decimal places in seconds */
 {
     double a, b;
     double seconds;
@@ -870,13 +835,10 @@ int ndec;                       /* Number of decimal places in seconds */
 
 /* Write the variable a in sexagesimal format into string */
 
-void dec2str(string, lstr, dec, ndec)
-
-char *string;                   /* Character string (returned) */
-int lstr;                       /* Maximum number of characters in string */
-double dec;                     /* Declination in degrees */
-int ndec;                       /* Number of decimal places in arcseconds */
-
+void dec2str(char *string,  /* Character string (returned) */
+             int lstr,      /* Maximum number of characters in string */
+             double dec,    /* Declination in degrees */
+             int ndec)      /* Number of decimal places in arcseconds */
 {
     double a, b, dsgn, deg1;
     double seconds;
@@ -1010,13 +972,10 @@ int ndec;                       /* Number of decimal places in arcseconds */
 
 /* Write the angle a in decimal format into string */
 
-void deg2str(string, lstr, deg, ndec)
-
-char *string;                   /* Character string (returned) */
-int lstr;                       /* Maximum number of characters in string */
-double deg;                     /* Angle in degrees */
-int ndec;                       /* Number of decimal places in degree string */
-
+void deg2str(char *string,  /* Character string (returned) */
+             int lstr,      /* Maximum number of characters in string */
+             double deg,    /* Angle in degrees */
+             int ndec)      /* Number of decimal places in degree string */
 {
     char degform[8];
     int field;
@@ -1059,13 +1018,10 @@ int ndec;                       /* Number of decimal places in degree string */
 
 /* Write the variable a in decimal format into field-character string  */
 
-void num2str(string, num, field, ndec)
-
-char *string;                   /* Character string (returned) */
-double num;                     /* Number */
-int field;                      /* Number of characters in output field (0=any) */
-int ndec;                       /* Number of decimal places in degree string */
-
+void num2str(char *string,  /* Character string (returned) */
+             double num,    /* Number */
+             int field,     /* Number of characters in output field (0=any) */
+             int ndec)      /* Number of decimal places in degree string */
 {
     char numform[8];
 
