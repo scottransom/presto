@@ -8,6 +8,7 @@ PRESTO is a large suite of pulsar search and analysis software developed primari
 
 ## Version 5.2.0:
  * Now require GSL (Gnu Scientific Library) to be installed. This library is thread-safe and allows us to more easily parallelize routines.
+ * Large set of changes that updated K&R-style declarations so that they would compile with GCC v15. These changes were made by Claude Code(!) with the prompting by Paul Ray. Thanks, Paul and Claude!
 
 For information on older versions, please see the [CHANGELOG.md](https://github.com/scottransom/presto/blob/master/CHANGELOG.md).
 

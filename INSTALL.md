@@ -258,7 +258,7 @@ If you are using **MacOS**, Paul Ray has been running PRESTO a lot and knows sev
     % sudo port select --set python python311
     % sudo port select --set virtualenv virtualenv311
     % sudo port select --set  virtualenvwrapper virtualenvwrapper311
-    % sudo port install pgplot cfitsio glib2 fftw-3 fftw-3-single
+    % sudo port install pgplot cfitsio gsl glib2 fftw-3 fftw-3-single
     ~~~
 - TEMPO should build easily with gfortran. I did not make any changes to the distro.
 - Before you build, you will likely need to set the following environment variables. You probably do *not* need to have `DYLD_LIBRARY_PATH` set at runtime.
@@ -273,6 +273,8 @@ If you are using **MacOS**, Paul Ray has been running PRESTO a lot and knows sev
     # This makes sure the MacPorts includes can be found
     export CFLAGS="-I/opt/local/include -I$PGPLOT_DIR"
     ~~~
+
+- If you are using Homebrew instead, Alessandro Ridolfi has successfully installed PRESTO using that, as well. Please let Alessandro or I know if you are having issues and we can send you some help. 
 
 ## For Docker / Singularity Users
 ----------------------------------
