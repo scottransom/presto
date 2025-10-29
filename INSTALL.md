@@ -258,12 +258,14 @@ If you are using **MacOS**, Paul Ray has been running PRESTO a lot and knows sev
 - Before you build, you will likely need to set the following environment variables. You probably do *not* need to have `DYLD_LIBRARY_PATH` set at runtime.
     ~~~
     # These are needed only at *BUILD* time
-    # This points to the MacPorts libraries and those installed in your virtualenv
-    export LIBRARY_PATH=/opt/local/lib:/opt/local/lib/libgcc
+    # This points to the MacPorts libraries and those installed in your virtualenv, 
+    # as well as a manually installed PGPLOT (not needed if PGPLOT is installed by MacPorts)
+    export LIBRARY_PATH=/opt/local/lib:/opt/local/lib/libgcc:$VIRTUAL_ENV/lib:$PGPLOT_DIR
+
     # This prevents using the macOS native "cc" command, in favor of the MacPorts gcc
     export CC=gcc
     # This makes sure the MacPorts includes can be found
-    export CFLAGS="-I/opt/local/include"
+    export CFLAGS="-I/opt/local/include -I$PGPLOT_DIR"
     ~~~
 
 ## For Docker / Singularity Users

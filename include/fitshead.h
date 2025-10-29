@@ -271,47 +271,47 @@ extern "C" {
 /* Subroutines in hget.c */
 
 /* Extract a value from a FITS header for given keyword */
-extern int hgeti4();	/* int (Multiple WCS) */
-extern int hgeti4c();	/* int */
-extern int hgeti2();	/* short */
-extern int hgetr4();	/* float */
-extern int hgetr8();	/* double */
-extern int hgetr8c();	/* double (Multiple WCS) */
-extern int hgetra();	/* Right ascension in degrees from string */
-extern int hgetdec();	/* Declination in degrees from string */
-extern int hgetdate();	/* Date in years from FITS date string */
-extern int hgetl();	/* T->1, F->0 from FITS logical entry */
-extern int hgets();	/* Previously allocated string */
-extern int hgetsc();	/* Previously allocated string (Multiple WCS) */
-extern int hgetm();	/* Previously allocated string from multiple keywords */
-extern char *hgetc();	/* Return pointer to string */
-extern int hgetndec();	/* Number of decimal places in keyword value */
+extern int hgeti4(char *hstring, char *keyword, int *ival);	/* int (Multiple WCS) */
+extern int hgeti4c(char *hstring, char *keyword, unsigned char wchar, int *ival);	/* int */
+extern int hgeti2(char *hstring, char *keyword, short *ival);	/* short */
+extern int hgetr4(char *hstring, char *keyword, float *rval);	/* float */
+extern int hgetr8(char *hstring, char *keyword, double *dval);	/* double */
+extern int hgetr8c(char *hstring, char *keyword, unsigned char wchar, double *dval);	/* double (Multiple WCS) */
+extern int hgetra(char *hstring, char *keyword, double *dval);	/* Right ascension in degrees from string */
+extern int hgetdec(char *hstring, char *keyword, double *dval);	/* Declination in degrees from string */
+extern int hgetdate(char *hstring, char *keyword, double *dval);	/* Date in years from FITS date string */
+extern int hgetl(char *hstring, char *keyword, int *ival);	/* T->1, F->0 from FITS logical entry */
+extern int hgets(char *hstring, char *keyword, int lstr, char *str);	/* Previously allocated string */
+extern int hgetsc(char *hstring, char *keyword, unsigned char wchar, int lstr, char *str);	/* Previously allocated string (Multiple WCS) */
+extern int hgetm(char *hstring, char *keyword, int lstr, char *str);	/* Previously allocated string from multiple keywords */
+extern char *hgetc(char *hstring, char *keyword0);	/* Return pointer to string */
+extern int hgetndec(char *hstring, char *keyword, int *ndec);	/* Number of decimal places in keyword value */
 
 /* Subroutines to convert strings to RA and Dec in degrees */
-extern double str2ra();
-extern double str2dec();
+extern double str2ra(char *in);
+extern double str2dec(char *in);
 
 /* Check to see whether a string is a number or not */
-extern int isnum();
-extern int notnum();
+extern int isnum(char *string);
+extern int notnum(char *string);
 
 /* Find given keyword entry in FITS header */
-extern char *ksearch();
+extern char *ksearch(char *hstring, char *keyword);
 
 /* Find beginning of fillable blank line before FITS header keyword */
-extern char *blsearch();
+extern char *blsearch(char *hstring, char *keyword);
 
 /* Search for substring s2 within string s1 */
-extern char *strsrch ();	/* s1 null-terminated */
-extern char *strnsrch ();	/* s1 ls1 characters long */
-extern char *strcsrch ();	/* s1 null-terminated (case-insensitive) */
-extern char *strncsrch ();	/* s1 ls1 characters long (case-insensitive) */
+extern char *strsrch (char *s1, char *s2);	/* s1 null-terminated */
+extern char *strnsrch (char *s1, char *s2, int ls1);	/* s1 ls1 characters long */
+extern char *strcsrch (char *s1, char *s2);	/* s1 null-terminated (case-insensitive) */
+extern char *strncsrch (char *s1, char *s2, int ls1);	/* s1 ls1 characters long (case-insensitive) */
 
 /* Set length of header which is not null-terminated */
-extern int hlength();
+extern int hlength(char *header, int lhead);
 
 /* Get length of current FITS header */
-extern int gethlength();
+extern int gethlength(char *header);
 
 /* Subroutines in iget.c */
 extern int mgets();	/* Previously allocated string from multiline keyword */
@@ -325,29 +325,29 @@ extern int igets();	/* character string from IRAF compound keyword value */
 /* Subroutines in hput.c */
 
 /* Implant a value into a FITS header for given keyword */
-extern int hputi4();	/* int */
-extern int hputi2();	/* short */
-extern int hputr4();	/* float */
-extern int hputr8();	/* double */
-extern int hputnr8();	/* double with specified number of decimal places */
-extern int hputra();	/* Right ascension in degrees into hh:mm:ss.sss */
-extern int hputdec();	/* Declination in degrees into dd:mm:ss.ss */
-extern int hputl();	/* 0 -> F, else T FITS logical entry */
-extern int hputs();	/* Quoted character string */
-extern int hputm();	/* Quoted character string into mutiple keywords */
-extern int hputc();	/* Character string without quotes (returns 0 if OK) */
-extern int hputcom();	/* Comment after keyword=value (returns 0 if OK) */
+extern int hputi4(char *hstring, char *keyword, int ival);	/* int */
+extern int hputi2(char *hstring, char *keyword, short ival);	/* short */
+extern int hputr4(char *hstring, char *keyword, float rval);	/* float */
+extern int hputr8(char *hstring, char *keyword, double dval);	/* double */
+extern int hputnr8(char *hstring, char *keyword, int ndec, double dval);	/* double with specified number of decimal places */
+extern int hputra(char *hstring, char *keyword, double ra);	/* Right ascension in degrees into hh:mm:ss.sss */
+extern int hputdec(char *hstring, char *keyword, double dec);	/* Declination in degrees into dd:mm:ss.ss */
+extern int hputl(char *hstring, char *keyword, int lval);	/* 0 -> F, else T FITS logical entry */
+extern int hputs(char *hstring, char *keyword, char *cval);	/* Quoted character string */
+extern int hputm(char *hstring, char *keyword, char *cval);	/* Quoted character string into mutiple keywords */
+extern int hputc(char *hstring, char *keyword, char *value);	/* Character string without quotes (returns 0 if OK) */
+extern int hputcom(char *hstring, char *keyword, char *comment);	/* Comment after keyword=value (returns 0 if OK) */
 
-extern int hdel();	/* Delete a keyword line from a FITS header */
-extern int hadd();	/* Add a keyword line to a FITS header */
-extern int hchange();	/* Change a keyword name in a FITS header */
+extern int hdel(char *hstring, char *keyword);	/* Delete a keyword line from a FITS header */
+extern int hadd(char *hplace, char *keyword);	/* Add a keyword line to a FITS header */
+extern int hchange(char *hstring, char *keyword1, char *keyword2);	/* Change a keyword name in a FITS header */
 
 /* Subroutines to convert RA and Dec in degrees to strings */
-extern void ra2str();
-extern void dec2str();
+extern void ra2str(char *string, int lstr, double ra, int ndec);
+extern void dec2str(char *string, int lstr, double dec, int ndec);
 
-extern void deg2str();
-extern void num2str();
+extern void deg2str(char *string, int lstr, double deg, int ndec);
+extern void num2str(char *string, double num, int field, int ndec);
 
 extern char *getltime(); /* Return current local time in ISO format */
 extern char *getutime(); /* Return current UT as an ISO-format string */

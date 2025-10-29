@@ -101,16 +101,15 @@ struct range {
  * parse_range() returns -1 on error, or the number of ranges parsed.
  */
 
-static int str_to_int();
+static int str_to_int(char *str, int *ip);
 
-int parse_ranges(str, defmin, defmax, defmult, parse_func, rangeptr, errptr)
-char *str;
-int defmin;
-int defmax;
-int defmult;
-int (*parse_func) ();
-char **rangeptr;
-char **errptr;
+int parse_ranges(char *str,
+                 int defmin,
+                 int defmax,
+                 int defmult,
+                 int (*parse_func)(char *, int *),
+                 char **rangeptr,
+                 char **errptr)
 {
     int ncommas;
     char *tmpstr, *cp, *tok, *n1str, *n2str, *multstr;
@@ -223,9 +222,7 @@ char **errptr;
  * The default integer-parsing function
  */
 
-static int str_to_int(str, ip)
-char *str;
-int *ip;
+static int str_to_int(char *str, int *ip)
 {
     char c;
 
@@ -242,33 +239,22 @@ int *ip;
  * and that r is a valid range within that buffer.
  */
 
-int range_min(rbuf, r)
-char *rbuf;
-int r;
+int range_min(char *rbuf, int r)
 {
     return ((struct range *) rbuf)[r].min;
 }
 
-int range_max(rbuf, r)
-char *rbuf;
-int r;
+int range_max(char *rbuf, int r)
 {
     return ((struct range *) rbuf)[r].max;
 }
 
-int range_mult(rbuf, r)
-char *rbuf;
-int r;
+int range_mult(char *rbuf, int r)
 {
     return ((struct range *) rbuf)[r].mult;
 }
 
-void range_vals(rbuf, r, mn, mx, mult)
-char *rbuf;
-int r;
-int *mn;
-int *mx;
-int *mult;
+void range_vals(char *rbuf, int r, int *mn, int *mx, int *mult)
 {
     *mn = ((struct range *) rbuf)[r].min;
     *mx = ((struct range *) rbuf)[r].max;

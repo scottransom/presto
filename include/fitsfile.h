@@ -46,28 +46,29 @@ struct Keyword {
 #define FITSBLOCK 2880
 
 /* FITS file access subroutines in fitsfile.c */
-extern int fitsropen();
-extern char *fitsrhead();
-extern char *fitsrimage();
-extern char *fitsrsect();
-extern int fitswhead();
-extern int fitswext();
-extern int fitswhdu();
-extern int fitswimage();
-extern int fitscimage();
-extern int isfits();
-extern void fitserr();          /* Print FITS error message to stderr */
+extern int fitsropen(char *inpath);
+extern char *fitsrhead(char *filename, int *lhead, int *nbhead);
+extern char *fitsrimage(char *filename, int nbhead, char *header);
+extern char *fitsrsect(char *filename, char *header, int nbhead, int x0, int y0, int nx, int ny, int nlog);
+extern int fitswhead(char *filename, char *header);
+extern int fitswext(char *filename, char *header, char *image);
+extern int fitswhdu(int fd, char *filename, char *header, char *image);
+extern int fitswimage(char *filename, char *header, char *image);
+extern int fitscimage(char *filename, char *header, char *filename0);
+extern int isfits(char *filename);
+extern void fitserr(void);          /* Print FITS error message to stderr */
+extern int fitsheadsize(char *header); /* Get size of FITS header in bytes */
 
 /* FITS table file access subroutines in fitsfile.c */
-extern int fitsrtopen();
-extern int fitsrthead();
-extern void fitsrtlset();
-extern int fitsrtline();
-extern short ftgeti2();
-extern int ftgeti4();
-extern float ftgetr4();
-extern double ftgetr8();
-extern int ftgetc();
+extern int fitsrtopen(char *inpath, int *nk, struct Keyword **kw, int *nrows, int *nchar, int *nbhead);
+extern int fitsrthead(char *header, int *nk, struct Keyword **kw, int *nrows, int *nchar);
+extern void fitsrtlset(void);
+extern int fitsrtline(int fd, int nbhead, int lbuff, char *tbuff, int irow, int nbline, char *line);
+extern short ftgeti2(char *entry, struct Keyword *kw);
+extern int ftgeti4(char *entry, struct Keyword *kw);
+extern float ftgetr4(char *entry, struct Keyword *kw);
+extern double ftgetr8(char *entry, struct Keyword *kw);
+extern int ftgetc(char *entry, struct Keyword *kw, char *string, int maxchar);
 
 /* IRAF file access subroutines in imhfile.c */
 extern char *irafrhead();
@@ -87,13 +88,13 @@ extern void addpix();	/* Add to one pixel in any data type 2-D array (0,0)*/
 extern void addpix1();	/* Add to one pixel in any data type 2-D array (1,1)*/
 extern void movepix();	/* Move one pixel value between two 2-D arrays (0,0) */
 extern void movepix1();	/* Move one pixel value between two 2-D arrays (1,1) */
-extern void getvec();	/* Read vector from 2-D array */
-extern void putvec();	/* Write vector into 2-D array */
-extern void imswap();	/* Swap alternating bytes in a vector */
-extern void imswap2();	/* Swap bytes in a vector of 2-byte (short) integers */
-extern void imswap4();	/* Reverse bytes in a vector of 4-byte numbers */
-extern void imswap8();	/* Reverse bytes in a vector of 8-byte numbers */
-extern int imswapped();	/* Return 1 if machine byte order is not FITS order */
+extern void getvec(char *image, int bitpix, double bzero, double bscale, int pix1, int npix, double *dvec0);	/* Read vector from 2-D array */
+extern void putvec(char *image, int bitpix, double bzero, double bscale, int pix1, int npix, double *dvec);	/* Write vector into 2-D array */
+extern void imswap(int bitpix, char *string, int nbytes);	/* Swap alternating bytes in a vector */
+extern void imswap2(char *string, int nbytes);	/* Swap bytes in a vector of 2-byte (short) integers */
+extern void imswap4(char *string, int nbytes);	/* Reverse bytes in a vector of 4-byte numbers */
+extern void imswap8(char *string, int nbytes);	/* Reverse bytes in a vector of 8-byte numbers */
+extern int imswapped(void);	/* Return 1 if machine byte order is not FITS order */
 
 /* File utilities from fileutil.c */
 extern int getfilelines();

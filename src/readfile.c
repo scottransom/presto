@@ -81,7 +81,7 @@ int objs_at_a_time[NUMTYPES] = {
 
 /* You don't see this every day -- An array of pointers to functions: */
 
-int (*print_funct_ptrs[NUMTYPES]) () = {
+int (*print_funct_ptrs[NUMTYPES]) (long, char *) = {
 BYTE_print,
         FLOAT_print,
         DOUBLE_print,
