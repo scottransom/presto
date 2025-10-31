@@ -7,6 +7,7 @@ import scipy, scipy.signal, scipy.stats
 from presto.presto import rfft, next2_to_n
 from presto import infodata
 from presto.Pgplot import *
+import presto.ppgplot as ppgplot
 
 # This is for Python 2/3 comptibility
 def mycmp(a, b):
