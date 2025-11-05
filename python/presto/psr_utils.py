@@ -1438,13 +1438,18 @@ def expcos_profile(N, phase, fwhm):
         return norm * (np.exp(k * np.cos(phsval + phi)) - np.exp(-k))
 
 
-def read_gaussfitfile(gaussfitfile, proflen):
+def read_gaussfitfile(gaussfitfile, proflen, rotate=True, normalize=False):
     """
-    read_gaussfitfile(gaussfitfile, proflen):
+    read_gaussfitfile(gaussfitfile, proflen, rotate=True, normalize=False):
         Read a Gaussian-fit file as created by the output of pygaussfit.py.
-            The input parameters are the name of the file and the number of
-            bins to include in the resulting template file.  A numpy array
-            of that length is returned.
+            The input parameters are the name of the file and the number of bins
+            to include in the resulting template file.  A numpy array of that
+            length is returned. If `rotate` is True, the resulting profile is
+            rotated so that the gaussian with the largest amplitude is placed at
+            phase=0. If `rotate` is a number, all of the gaussians are rotated
+            leftward by that amount of pulse phase (0-1). If `rotate` is False,
+            no rotation is performed. If `normalize` is True, then the sum of
+            all of the gaussians will be 1.0, and the minimum value will be 0.0.
     """
     phass = []
     ampls = []
@@ -1471,12 +1476,19 @@ def read_gaussfitfile(gaussfitfile, proflen):
     ampls = np.take(ampls, new_order)
     phass = np.take(phass, new_order)
     fwhms = np.take(fwhms, new_order)
-    # Now put the biggest gaussian at phase = 0.0
-    phass = phass - phass[0]
-    phass = np.where(phass < 0.0, phass + 1.0, phass)
+    if rotate is not False:
+        if rotate is True:
+            # Put the biggest gaussian at phase = 0.0
+            phass = phass - phass[0]
+        elif isinstance(rotate, float):
+            phass = phass - rotate
+        phass = phass % 1.0
     template = np.zeros(proflen, dtype="d")
     for ii in range(len(ampls)):
         template += ampls[ii] * gaussian_profile(proflen, phass[ii], fwhms[ii])
+    if normalize:
+        template -= template.min()
+        template = template / template.sum()
     return template
 
 
