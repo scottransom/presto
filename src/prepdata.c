@@ -27,7 +27,7 @@ static int read_floats(FILE * file, float *data, int numpts, int numchan);
 static int read_shorts(FILE * file, float *data, int numpts, int numchan);
 static int downsample(float outdata[], int numread, int downsampfact);
 static void update_infodata(infodata * idata, long datawrote, long padwrote,
-                            int *barybins, int numbarybins);
+                            long *barybins, int numbarybins);
 
 /* The main program */
 
@@ -47,7 +47,7 @@ int main(int argc, char *argv[])
     long slen, ii, numbarypts = 0, worklen = 65536;
     long numread = 0, numtowrite = 0, totwrote = 0, datawrote = 0;
     long padwrote = 0, padtowrite = 0, statnum = 0;
-    int numdiffbins = 0, *diffbins = NULL, *diffbinptr = NULL, good_padvals = 0;
+    long numdiffbins = 0, *diffbins = NULL, *diffbinptr = NULL, good_padvals = 0;
     int *idispdt;
     struct spectra_info s;
     infodata idata;
@@ -477,11 +477,11 @@ int main(int argc, char *argv[])
 
         {                       /* Find the points where we need to add or remove bins */
 
-            int oldbin = 0, currentbin;
+            long oldbin = 0, currentbin;
             double lobin, hibin, calcpt;
 
             numdiffbins = labs(NEAREST_LONG(btoa[numbarypts - 1])) + 1;
-            diffbins = gen_ivect(numdiffbins);
+            diffbins = gen_lvect(numdiffbins);
             diffbinptr = diffbins;
             for (ii = 1; ii < numbarypts; ii++) {
                 currentbin = NEAREST_LONG(btoa[ii]);
@@ -521,7 +521,7 @@ int main(int argc, char *argv[])
         outdata = gen_fvect(worklen);
 
         do {                    /* Loop to read and write the data */
-            int numwritten = 0;
+            long numwritten = 0;
             double block_avg, block_var;
 
             if (RAWDATA)
@@ -555,7 +555,7 @@ int main(int argc, char *argv[])
             /* OR write the amount of data up to cmd->numout or */
             /* the next bin that will be added or removed.      */
 
-            numtowrite = abs(*diffbinptr) - datawrote;
+            numtowrite = labs(*diffbinptr) - datawrote;
             /* FIXME: numtowrite+totwrote can wrap! */
             if ((totwrote + numtowrite) > cmd->numout)
                 numtowrite = cmd->numout - totwrote;
@@ -574,9 +574,9 @@ int main(int argc, char *argv[])
                 statnum += numtowrite;
             }
 
-            if ((datawrote == abs(*diffbinptr)) && (numwritten != numread) && (totwrote < cmd->numout)) {       /* Add/remove a bin */
+            if ((datawrote == labs(*diffbinptr)) && (numwritten != numread) && (totwrote < cmd->numout)) {       /* Add/remove a bin */
                 float favg;
-                int skip, nextdiffbin;
+                long skip, nextdiffbin;
 
                 skip = numtowrite;
 
@@ -606,7 +606,7 @@ int main(int argc, char *argv[])
                     numtowrite = numread - numwritten;
                     if ((totwrote + numtowrite) > cmd->numout)
                         numtowrite = cmd->numout - totwrote;
-                    nextdiffbin = abs(*diffbinptr) - datawrote;
+                    nextdiffbin = labs(*diffbinptr) - datawrote;
                     if (numtowrite > nextdiffbin)
                         numtowrite = nextdiffbin;
                     chkfwrite(outdata + skip, sizeof(float), numtowrite, outfile);
@@ -665,7 +665,7 @@ int main(int argc, char *argv[])
     /* Set the padded points equal to the average data point */
 
     if (idata.numonoff >= 1) {
-        int jj, index, startpad, endpad;
+        long jj, index, startpad, endpad;
 
         for (ii = 0; ii < worklen; ii++)
             outdata[ii] = avg;
@@ -832,7 +832,7 @@ static int downsample(float outdata[], int numread, int downsampfact)
 
 
 static void update_infodata(infodata * idata, long datawrote, long padwrote,
-                            int *barybins, int numbarybins)
+                            long *barybins, int numbarybins)
 /* Update our infodata for barycentering and padding */
 {
     int ii, jj, index;
@@ -857,7 +857,7 @@ static void update_infodata(infodata * idata, long datawrote, long padwrote,
         ii = 1;                 /* onoff index    */
         jj = 0;                 /* barybins index */
         while (ii < idata->numonoff * 2) {
-            while (abs(barybins[jj]) <= idata->onoff[ii] && jj < numbarybins) {
+            while (labs(barybins[jj]) <= idata->onoff[ii] && jj < numbarybins) {
                 if (barybins[jj] < 0)
                     numremoved++;
                 else

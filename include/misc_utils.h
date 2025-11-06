@@ -111,7 +111,7 @@ void davg_dvar(double *x, int n, double *mean, double *var);
 /* For a double vector, *x, of length n, this routine  */
 /* returns the mean and variance of *x.                */
 
-static inline void update_stats(int N, double x, double *min, double *max,
+static inline void update_stats(long N, double x, double *min, double *max,
                               double *avg, double *var)
 /* Update time series statistics using one-pass technique */
 {

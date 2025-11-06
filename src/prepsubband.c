@@ -23,9 +23,9 @@
 #define NEAREST_LONG(x) (long) (x < 0 ? ceil(x - 0.5) : floor(x + 0.5))
 
 static void write_data(FILE * outfiles[], int numfiles, float **outdata,
-                       int startpoint, int numtowrite);
+                       long startpoint, long numtowrite);
 static void write_subs(FILE * outfiles[], int numfiles, short **subsdata,
-                       int startpoint, int numtowrite);
+                       long startpoint, long numtowrite);
 static void write_padding(FILE * outfiles[], int numfiles, float value,
                           int numtowrite);
 static int read_PRESTO_subbands(FILE * infiles[], int numfiles,
@@ -37,7 +37,7 @@ static int get_data(float **outdata, int blocksperread,
                     mask * obsmask, int *idispdts, int **offsets,
                     int *padding, short **subsdata);
 static void update_infodata(infodata * idata, long datawrote, long padwrote,
-                            int *barybins, int numbarybins, int downsamp);
+                            long *barybins, int numbarybins, int downsamp);
 static void print_percent_complete(int current, int number);
 
 /* From CLIG */
@@ -65,8 +65,8 @@ int main(int argc, char *argv[])
     int ii, jj, numadded = 0, numremoved = 0, padding = 0;
     int numbarypts = 0, blocksperread = 0, worklen = 0;
     int numread = 0, numtowrite = 0;
-    int padtowrite = 0, statnum = 0, good_padvals = 0;
-    int numdiffbins = 0, *diffbins = NULL, *diffbinptr = NULL;
+    long padtowrite = 0, statnum = 0, good_padvals = 0;
+    long numdiffbins = 0, *diffbins = NULL, *diffbinptr = NULL;
     int *idispdt;
     char *datafilenm;
     int dmprecision = 2;
@@ -523,11 +523,11 @@ int main(int argc, char *argv[])
 
         {                       /* Find the points where we need to add or remove bins */
 
-            int oldbin = 0, currentbin;
+            long oldbin = 0, currentbin;
             double lobin, hibin, calcpt;
 
             numdiffbins = labs(NEAREST_LONG(btoa[numbarypts - 1])) + 1;
-            diffbins = gen_ivect(numdiffbins);
+            diffbins = gen_lvect(numdiffbins);
             diffbinptr = diffbins;
             for (ii = 1; ii < numbarypts; ii++) {
                 currentbin = NEAREST_LONG(btoa[ii]);
@@ -567,7 +567,7 @@ int main(int argc, char *argv[])
                            &obsmask, idispdt, offsets, &padding, subsdata);
 
         while (numread == worklen) {    /* Loop to read and write the data */
-            int numwritten = 0;
+            long numwritten = 0;
             double block_avg, block_var;
 
             numread /= cmd->downsamp;
@@ -580,7 +580,7 @@ int main(int argc, char *argv[])
             /* OR write the amount of data up to cmd->numout or */
             /* the next bin that will be added or removed.      */
 
-            numtowrite = abs(*diffbinptr) - datawrote;
+            numtowrite = labs(*diffbinptr) - datawrote;
             if ((totwrote + numtowrite) > cmd->numout)
                 numtowrite = cmd->numout - totwrote;
             if (numtowrite > numread)
@@ -602,8 +602,8 @@ int main(int argc, char *argv[])
                 statnum += numtowrite;
             }
 
-            if ((datawrote == abs(*diffbinptr)) && (numwritten != numread) && (totwrote < cmd->numout)) {       /* Add/remove a bin */
-                int skip, nextdiffbin;
+            if ((datawrote == labs(*diffbinptr)) && (numwritten != numread) && (totwrote < cmd->numout)) {       /* Add/remove a bin */
+                long skip, nextdiffbin;
 
                 skip = numtowrite;
 
@@ -628,7 +628,7 @@ int main(int argc, char *argv[])
                     numtowrite = numread - numwritten;
                     if ((totwrote + numtowrite) > cmd->numout)
                         numtowrite = cmd->numout - totwrote;
-                    nextdiffbin = abs(*diffbinptr) - datawrote;
+                    nextdiffbin = labs(*diffbinptr) - datawrote;
                     if (numtowrite > nextdiffbin)
                         numtowrite = nextdiffbin;
                     if (cmd->subP)
@@ -697,7 +697,7 @@ int main(int argc, char *argv[])
     /* Set the padded points equal to the average data point */
 
     if (idata.numonoff >= 1) {
-        int index, startpad, endpad;
+        long index, startpad, endpad;
 
         for (ii = 0; ii < cmd->numdms; ii++) {
             fclose(outfiles[ii]);
@@ -783,7 +783,7 @@ int main(int argc, char *argv[])
 }
 
 static void write_data(FILE * outfiles[], int numfiles, float **outdata,
-                       int startpoint, int numtowrite)
+                       long startpoint, long numtowrite)
 {
     int ii;
 
@@ -793,7 +793,7 @@ static void write_data(FILE * outfiles[], int numfiles, float **outdata,
 
 
 static void write_subs(FILE * outfiles[], int numfiles, short **subsdata,
-                       int startpoint, int numtowrite)
+                       long startpoint, long numtowrite)
 {
     int ii;
 
@@ -1059,7 +1059,7 @@ static void print_percent_complete(int current, int number)
 
 
 static void update_infodata(infodata * idata, long datawrote, long padwrote,
-                            int *barybins, int numbarybins, int downsamp)
+                            long *barybins, int numbarybins, int downsamp)
 /* Update our infodata for barycentering and padding */
 {
     int ii, jj, index;
@@ -1089,7 +1089,7 @@ static void update_infodata(infodata * idata, long datawrote, long padwrote,
         ii = 1;                 /* onoff index    */
         jj = 0;                 /* barybins index */
         while (ii < idata->numonoff * 2) {
-            while (abs(barybins[jj]) <= idata->onoff[ii] && jj < numbarybins) {
+            while (labs(barybins[jj]) <= idata->onoff[ii] && jj < numbarybins) {
                 if (barybins[jj] < 0)
                     numremoved++;
                 else
