@@ -1,6 +1,6 @@
 #include "presto.h"
 
-fcomplex **corr_rz_plane(fcomplex * data, int numdata, int numbetween,
+fcomplex **corr_rz_plane(fcomplex * data, long numdata, int numbetween,
                          int startbin, double zlo, double zhi,
                          int numz, int fftlen,
                          presto_interp_acc accuracy, int *nextbin)
@@ -115,7 +115,7 @@ fcomplex **corr_rz_plane(fcomplex * data, int numdata, int numbetween,
 }
 
 
-fcomplex *corr_rz_interp(fcomplex * data, int numdata, int numbetween,
+fcomplex *corr_rz_interp(fcomplex * data, long numdata, int numbetween,
                          int startbin, double z, int fftlen,
                          presto_interp_acc accuracy, int *nextbin)
   /* This routine uses the correlation method to do a Fourier        */
@@ -141,7 +141,7 @@ fcomplex *corr_rz_interp(fcomplex * data, int numdata, int numbetween,
 }
 
 
-void rz_interp(fcomplex * data, int numdata, double r, double z,
+void rz_interp(fcomplex * data, long numdata, double r, double z,
                int kern_half_width, fcomplex * ans)
   /* This routine uses the correlation method to do a Fourier        */
   /* complex interpolation at a single point in the f-fdot plane.    */
@@ -156,7 +156,8 @@ void rz_interp(fcomplex * data, int numdata, double r, double z,
   /*   'ans' is the complex answer.                                  */
 {
     float *dataptr, *respptr;
-    int ii, numkern, nsum, intfreq, lodata, hidata, loresp, hiresp;
+    int ii, numkern, nsum;
+    long intfreq, lodata, hidata, loresp, hiresp;
     double fracfreq, dintfreq, tmpd, tmpr;
     fcomplex *response;
 

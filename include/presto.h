@@ -1019,7 +1019,7 @@ float *corr_loc_pow(float *powers, int numpowers);
 
 /* In rzinterp.c */
 
-fcomplex **corr_rz_plane(fcomplex *data, int numdata, int numbetween, \
+fcomplex **corr_rz_plane(fcomplex *data, long numdata, int numbetween, \
 			 int startbin, double zlo, double zhi, \
 			 int numz, int fftlen, \
 			 presto_interp_acc accuracy, int *nextbin);
@@ -1038,7 +1038,7 @@ fcomplex **corr_rz_plane(fcomplex *data, int numdata, int numbetween, \
   /*   'nextbin' will contain the bin number of the first bin not    */
   /*      interpolated in data.                                      */
 
-fcomplex *corr_rz_interp(fcomplex *data, int numdata, int numbetween, \
+fcomplex *corr_rz_interp(fcomplex *data, long numdata, int numbetween, \
 			 int startbin, double z, int fftlen, \
 			 presto_interp_acc accuracy, int *nextbin);
   /* This routine uses the correlation method to do a Fourier        */
@@ -1054,7 +1054,7 @@ fcomplex *corr_rz_interp(fcomplex *data, int numdata, int numbetween, \
   /*   'nextbin' will contain the bin number of the first bin not    */
   /*      interpolated in data.                                      */
 
-fcomplex ***corr_rzw_vol(fcomplex * data, int numdata, int numbetween, \
+fcomplex ***corr_rzw_vol(fcomplex * data, long numdata, int numbetween, \
                          int startbin, double zlo, double zhi, int numz, \
                          double wlo, double whi, int numw, int fftlen, \
                          presto_interp_acc accuracy, int *nextbin);
@@ -1076,7 +1076,7 @@ fcomplex ***corr_rzw_vol(fcomplex * data, int numdata, int numbetween, \
   /*   'nextbin' will contain the bin number of the first bin not    */
   /*      interpolated in data.                                      */
 
-    fcomplex *corr_rzw_interp(fcomplex *data, int numdata, int numbetween, \
+fcomplex *corr_rzw_interp(fcomplex *data, long numdata, int numbetween, \
 			  int startbin, double z, double w, int fftlen, \
 			  presto_interp_acc accuracy, int *nextbin);
   /* This routine uses the correlation method to do a Fourier        */
@@ -1093,7 +1093,7 @@ fcomplex ***corr_rzw_vol(fcomplex * data, int numdata, int numbetween, \
   /*   'nextbin' will contain the bin number of the first bin not    */
   /*      interpolated in data.                                      */
 
-void rz_interp(fcomplex *data, int numdata, double r, double z, \
+void rz_interp(fcomplex *data, long numdata, double r, double z, \
 	       int kern_half_width, fcomplex *ans);
   /* This routine uses the correlation method to do a Fourier        */
   /* complex interpolation at a single point in the f-fdot plane.    */
@@ -1107,7 +1107,7 @@ void rz_interp(fcomplex *data, int numdata, double r, double z, \
   /*   'kern_half_width' is the half-width of the kernel in bins.    */
   /*   'ans' is the complex answer.                                  */
 
-void rzw_interp(fcomplex *data, int numdata, double r, double z, \
+void rzw_interp(fcomplex *data, long numdata, double r, double z, \
 	       double w, int kern_half_width, fcomplex *ans);
   /* This routine uses the correlation method to do a Fourier        */
   /* complex interpolation at a single point in the f-fdot plane.    */

@@ -270,7 +270,6 @@ int main(int argc, char *argv[])
                 props[ii].werr = (float) (ACCEL_DW) / cand->numharm;
                 listptr = listptr->next;
             }
-
             /* Write the fundamentals to the output text file */
             output_fundamentals(props, cands, &obs, &idata);
 
