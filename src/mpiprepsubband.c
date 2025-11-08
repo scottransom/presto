@@ -30,7 +30,7 @@ extern void write_data(FILE * outfiles[], int numfiles, float **outdata,
 extern void write_padding(FILE * outfiles[], int numfiles, float value,
                           int numtowrite);
 extern void update_infodata(infodata * idata, long datawrote, long padwrote,
-                            int *barybins, int numbarybins, int downsamp);
+                            long *barybins, int numbarybins, int downsamp);
 extern void print_percent_complete(int current, int number);
 extern void make_infodata_struct(void);
 extern void make_maskbase_struct(void);
@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
     int ii, jj, numadded = 0, numremoved = 0, padding = 0, good_inputs = 1;
     int numbarypts = 0, numread = 0, numtowrite = 0;
     int padtowrite = 0, statnum = 0;
-    int numdiffbins = 0, *diffbins = NULL, *diffbinptr = NULL, good_padvals = 0;
+    long numdiffbins = 0, *diffbins = NULL, *diffbinptr = NULL, good_padvals = 0;
     double local_lodm;
     char *datafilenm, *outpath, *outfilenm, hostname[256];
     struct spectra_info s;
@@ -607,11 +607,11 @@ int main(int argc, char *argv[])
 
         /* Find the points where we need to add or remove bins */
         {
-            int oldbin = 0, currentbin;
+            long oldbin = 0, currentbin;
             double lobin, hibin, calcpt;
 
             numdiffbins = labs(NEAREST_LONG(btoa[numbarypts - 1])) + 1;
-            diffbins = gen_ivect(numdiffbins);
+            diffbins = gen_lvect(numdiffbins);
             diffbinptr = diffbins;
             for (ii = 1; ii < numbarypts; ii++) {
                 currentbin = NEAREST_LONG(btoa[ii]);
@@ -649,7 +649,7 @@ int main(int argc, char *argv[])
                            &obsmask, idispdt, offsets, &padding);
 
         while (numread == worklen) {    /* Loop to read and write the data */
-            int numwritten = 0;
+            long numwritten = 0;
             double block_avg, block_var;
 
             numread /= cmd->downsamp;
@@ -663,7 +663,7 @@ int main(int argc, char *argv[])
             /* OR write the amount of data up to cmd->numout or */
             /* the next bin that will be added or removed.      */
 
-            numtowrite = abs(*diffbinptr) - datawrote;
+            numtowrite = labs(*diffbinptr) - datawrote;
             if ((totwrote + numtowrite) > cmd->numout)
                 numtowrite = cmd->numout - totwrote;
             if (numtowrite > numread)
@@ -682,8 +682,8 @@ int main(int argc, char *argv[])
             totwrote += numtowrite;
             numwritten += numtowrite;
 
-            if ((datawrote == abs(*diffbinptr)) && (numwritten != numread) && (totwrote < cmd->numout)) {       /* Add/remove a bin */
-                int skip, nextdiffbin;
+            if ((datawrote == labs(*diffbinptr)) && (numwritten != numread) && (totwrote < cmd->numout)) {       /* Add/remove a bin */
+                long skip, nextdiffbin;
 
                 skip = numtowrite;
 
@@ -710,7 +710,7 @@ int main(int argc, char *argv[])
                     numtowrite = numread - numwritten;
                     if ((totwrote + numtowrite) > cmd->numout)
                         numtowrite = cmd->numout - totwrote;
-                    nextdiffbin = abs(*diffbinptr) - datawrote;
+                    nextdiffbin = labs(*diffbinptr) - datawrote;
                     if (numtowrite > nextdiffbin)
                         numtowrite = nextdiffbin;
                     if (myid > 0) {
@@ -777,7 +777,7 @@ int main(int argc, char *argv[])
         /* Set the padded points equal to the average data point */
 
         if (idata.numonoff >= 1) {
-            int index, startpad, endpad;
+            long index, startpad, endpad;
 
             for (ii = 0; ii < local_numdms; ii++) {
                 fclose(outfiles[ii]);
