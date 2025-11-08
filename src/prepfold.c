@@ -1660,22 +1660,21 @@ int main(int argc, char *argv[])
             /* Convert the indices of the folds into p, pd, pdd and DM values */
             if (cmd->nsub > 1)
                 search.bestdm = search.dms[bestidm];
-            if (idata.bary) {
-                search.bary.p1 = search.periods[bestip];
-                search.bary.p2 = search.pdots[bestipd];
+            {
+                double p1 = search.periods[bestip];
+                double p2 = search.pdots[bestipd];
+                double p3;
                 if (cmd->searchpddP)
-                    search.bary.p3 = switch_pfdotdot(1.0 / search.periods[bestip],
-                                                     foldfd + fdots[bestipd],
-                                                     foldfdd + fdotdots[bestipdd]);
-            } else {
-                search.topo.p1 = search.periods[bestip];
-                search.topo.p2 = search.pdots[bestipd];
-                if (cmd->searchpddP)
-                    search.topo.p3 = switch_pfdotdot(1.0 / search.periods[bestip],
-                                                     foldfd + fdots[bestipd],
-                                                     foldfdd + fdotdots[bestipdd]);
+                    p3 = switch_pfdotdot(1.0 / p1, foldfd + fdots[bestipd],
+                                         foldfdd + fdotdots[bestipdd]);
+                else
+                    p3 = switch_pfdotdot(1.0 / p1, foldfd + fdots[bestipd], foldfdd);
+                if (idata.bary) {
+                    search.bary.p1 = p1; search.bary.p2 = p2; search.bary.p3 = p3;
+                } else {
+                    search.topo.p1 = p1; search.topo.p2 = p2; search.topo.p3 = p3;
+                }
             }
-
             vect_free(delays);
             vect_free(pd_delays);
             vect_free(pdd_delays);
