@@ -44,7 +44,7 @@ libpresto = library(
     'rzinterp.c', 'rzwinterp.c', 'select.c', 'sorter.c', 'swapendian.c',
     'transpose.c', 'twopass.c', 'twopass_real_fwd.c',
     'twopass_real_inv.c', 'vectors.c',
-    dependencies: [glib, fftw, gsl, libm, omp],
+    dependencies: [glib, fftw, gsl, libm],
     include_directories: inc,
     install: true
 )
@@ -94,7 +94,7 @@ executable('makeinf', 'makeinf.c', 'ioinf.c',
 if mpi.found()
     executable('mpiprepsubband',
         sources: ['mpiprepsubband.c', 'mpiprepsubband_cmd.c', 'mpiprepsubband_utils.c'] + INSTRUMENTOBJS,
-        dependencies: [glib, fftw, gsl, libm, fits, omp, mpi],
+        dependencies: [glib, fftw, gsl, libm, fits, mpi],
         include_directories: inc, link_with: libpresto, install: true)
 endif
 
@@ -105,17 +105,17 @@ executable('plotbincand',
 
 executable('prepdata',
     sources: ['prepdata.c', 'prepdata_cmd.c'] + INSTRUMENTOBJS,
-    dependencies: [glib, fftw, gsl, libm, fits, omp],
+    dependencies: [glib, fftw, gsl, libm, fits],
     include_directories: inc, link_with: libpresto, install: true)
 
 executable('prepfold',
     sources: ['prepfold.c', 'prepfold_cmd.c', 'prepfold_utils.c', 'prepfold_plot.c', 'polycos.c', 'least_squares.f'] + INSTRUMENTOBJS + PLOT2DOBJS,
-    dependencies: [glib, fftw, gsl, libm, fits, pgplot, cpgplot, x11, png],
+    dependencies: [glib, fftw, gsl, libm, fits, pgplot, cpgplot, x11, png, omp],
     include_directories: inc, link_with: libpresto, install: true)
 
 executable('prepsubband',
     sources: ['prepsubband.c', 'prepsubband_cmd.c'] + INSTRUMENTOBJS,
-    dependencies: [glib, fftw, gsl, libm, fits, omp],
+    dependencies: [glib, fftw, gsl, libm, fits],
     include_directories: inc, link_with: libpresto, install: true)
 
 executable('psrorbit',
