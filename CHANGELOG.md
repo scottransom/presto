@@ -1,3 +1,9 @@
+## Version 5.2.0dev:
+ * Bug fix to accelsearch when searching datasets longer than 2^32 points that caused segfaults
+ * Bug fix to prepdata, prepsubband, and mpiprepsubband when barycentering files longer than 2^31 points that caused segfaults
+ * Bug fix in prepfold where wrong fdotdot falues were reported if folding with fdotdot
+ * Turned off OpenMP in the dedispersion routines until I figure out how to handle that better (it works in prepfold, though!)
+
 ## Version 5.2.0:
  * Now require GSL (Gnu Scientific Library) to be installed. This library is thread-safe and allows us to more easily parallelize routines.
  * Large set of changes that updated K&R-style declarations so that they would compile with GCC v15. These changes were made by Claude Code(!) with the prompting by Paul Ray. Thanks, Paul and Claude!
