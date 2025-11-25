@@ -1,5 +1,3 @@
-from future import standard_library
-standard_library.install_aliases()
 import numpy as Num
 import os
 import json
