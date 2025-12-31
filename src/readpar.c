@@ -247,7 +247,7 @@ int get_psr_from_parfile(char *parfilenm, double epoch, psrparams * psr)
         psr->orb.x += xd * orbdifft;
         psr->orb.e += ed * orbdifft;
         eps1 += eps1d * orbdifft;
-        eps2 += eps1d * orbdifft;
+        eps2 += eps2d * orbdifft;
         if (eps1 != 0.0 || eps2 != 0.0) {
             /* Convert Laplace-Lagrange params to e and w */
             /* Warning!  This is presently untested!      */
