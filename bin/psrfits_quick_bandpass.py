@@ -54,12 +54,12 @@ def main():
         if opts.nomods:
             # for a bandpass histogram of raw bits
             htot = np.zeros(1<<pf.nbits)
-        subints = np.arange(opts.subfirst, pf.specinfo.num_subint,
+        subints = np.arange(opts.subfirst, pf.specinfo.num_subint[0],
                             opts.subskip).astype(np.int64)
         means = np.zeros((len(subints), pf.nchan))
         stdevs = np.zeros((len(subints), pf.nchan))
         for ii, subint in enumerate(subints):
-            print("%.0f%%.." % (100.0 * float(subint) / pf.specinfo.num_subint), end=' ')
+            print("%.0f%%.." % (100.0 * float(subint) / pf.specinfo.num_subint[0]), end=' ')
             sys.stdout.flush()
             specs = pf.read_subint(subint, apply_weights=opts.weights,
                                    apply_scales=not opts.nomods,
