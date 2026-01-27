@@ -48,7 +48,7 @@ Many additional utilities are provided for various tasks that are often required
 ## Getting it: 
 The PRESTO source code is released under the GPL and can be browsed or gotten from here in many different ways (including zipped or tar'd or via git). If you are too lazy to read how to get it but have git on your system do:
 
-    git clone git://github.com/scottransom/presto.git
+    git clone https://github.com/scottransom/presto.git
 
 To update it on a regular basis do
 
@@ -61,7 +61,7 @@ For more detailed installation instructions, see [INSTALL.md](https://github.com
 
 If you want the "classic" branch, do the following:
 
-    git clone git://github.com/scottransom/presto.git
+    git clone https://github.com/scottransom/presto.git
     cd presto
     git checkout -b classic origin/classic
 
