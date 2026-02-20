@@ -14,7 +14,7 @@ float percolate_fftcands(fftcand * cands, int numcands);
 void print_rawbincand(rawbincand cand);
 int comp_rawbin_to_cand(rawbincand * cand, infodata * idata, char *output, int full);
 
-fftcand *search_fft(fcomplex * fft, int numfft, int lobin, int hibin,
+fftcand *search_fft(fcomplex *fft, int numfft, int lobin, int hibin,
                     int numharmsum, int numbetween,
                     presto_interptype interptype,
                     float norm, float sigmacutoff, int *numcands,
@@ -194,16 +194,22 @@ fftcand *search_fft(fcomplex * fft, int numfft, int lobin, int hibin,
 
     /* Chop off the unused parts of the dynamic array */
 
-    if (dynamic)
-        cands = (fftcand *) realloc(cands, nc * sizeof(fftcand));
+    if (dynamic) {
+        if (nc > 0) {
+            cands = (fftcand *) realloc(cands, nc * sizeof(fftcand));
+        } else {
+            free(cands);
+            cands = NULL;
+        }
+    }
     *numcands = nc;
     return cands;
 }
 
 
-void search_minifft(fcomplex * minifft, int numminifft,
+void search_minifft(fcomplex *minifft, int numminifft,
                     double min_orb_p, double max_orb_p,
-                    rawbincand * cands, int numcands, int numharmsum,
+                    rawbincand *cands, int numcands, int numharmsum,
                     int numbetween, double numfullfft, double timefullfft,
                     double lorfullfft, presto_interptype interptype,
                     presto_checkaliased checkaliased)
@@ -382,7 +388,7 @@ void print_rawbincand(rawbincand cand)
     printf("  T (full)    =  %-13.6f\n\n", cand.full_T);
 }
 
-float percolate_fftcands(fftcand * cands, int numcands)
+float percolate_fftcands(fftcand *cands, int numcands)
   /*  Pushes a fftcand candidate as far up the array of   */
   /*  candidates as it shoud go to keep the array sorted  */
   /*  in indecreasing sigmas.  Returns the new lowest     */
@@ -402,7 +408,7 @@ float percolate_fftcands(fftcand * cands, int numcands)
 }
 
 
-float percolate_rawbincands(rawbincand * cands, int numcands)
+float percolate_rawbincands(rawbincand *cands, int numcands)
   /*  Pushes a rawbincand candidate as far up the array of   */
   /*  candidates as it shoud go to keep the array sorted in  */
   /*  indecreasing significance.  Returns the new lowest     */
@@ -422,7 +428,7 @@ float percolate_rawbincands(rawbincand * cands, int numcands)
 }
 
 
-int not_already_there_rawbin(rawbincand newcand, rawbincand * list, int nlist)
+int not_already_there_rawbin(rawbincand newcand, rawbincand *list, int nlist)
 {
     int ii;
 
@@ -447,7 +453,7 @@ int not_already_there_rawbin(rawbincand newcand, rawbincand * list, int nlist)
 }
 
 
-void compare_rawbin_cands(rawbincand * list, int nlist, char *notes)
+void compare_rawbin_cands(rawbincand *list, int nlist, char *notes)
 {
     double perr;
     int ii, jj, kk, ll;
@@ -505,7 +511,7 @@ void compare_rawbin_cands(rawbincand * list, int nlist, char *notes)
 }
 
 
-void file_rawbin_candidates(rawbincand * cand, char *notes,
+void file_rawbin_candidates(rawbincand *cand, char *notes,
                             int numcands, int numharm, char name[])
 /* Outputs a .ps file describing all the binary candidates from a    */
 /*   binary search. */

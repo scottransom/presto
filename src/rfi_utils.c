@@ -19,7 +19,7 @@ rfi *new_rfi(int numchan, int numint)
     return newrfi;
 }
 
-void write_rfi(FILE * outfile, rfi * outrfi, int numchan, int numint)
+void write_rfi(FILE *outfile, rfi *outrfi, int numchan, int numint)
 /* Write the contents of an rfi structure to a file */
 {
     int num;
@@ -34,7 +34,7 @@ void write_rfi(FILE * outfile, rfi * outrfi, int numchan, int numint)
     chkfwrite(outrfi->chans, 1, num, outfile);
 }
 
-void read_rfi(FILE * infile, rfi * inrfi, int numchan, int numint)
+void read_rfi(FILE *infile, rfi *inrfi, int numchan, int numint)
 /* Read the contents of an rfi structure from a file */
 {
     int num;
@@ -56,7 +56,7 @@ void free_rfi(rfi oldrfi)
     free(oldrfi.chans);
 }
 
-rfi *rfi_vector(rfi * rfivect, int numchan, int numint, int oldnum, int newnum)
+rfi *rfi_vector(rfi *rfivect, int numchan, int numint, int oldnum, int newnum)
 /* Create or reallocate an rfi_vector */
 {
     int ii, numt, numc;
@@ -75,7 +75,7 @@ rfi *rfi_vector(rfi * rfivect, int numchan, int numint, int oldnum, int newnum)
     return rfivect;
 }
 
-void free_rfi_vector(rfi * rfivect, int numrfi)
+void free_rfi_vector(rfi *rfivect, int numrfi)
 /* Free an rfi vector and its contents */
 {
     int ii;
@@ -85,7 +85,7 @@ void free_rfi_vector(rfi * rfivect, int numrfi)
     free(rfivect);
 }
 
-void update_rfi(rfi * oldrfi, float freq, float sigma, int channel, int interval)
+void update_rfi(rfi *oldrfi, float freq, float sigma, int channel, int interval)
 /* Updates an rfi structure with a new detection */
 {
     oldrfi->numobs++;
@@ -110,7 +110,39 @@ void update_rfi(rfi * oldrfi, float freq, float sigma, int channel, int interval
     SET_BIT(oldrfi->chans, channel);
 }
 
-int find_rfi(rfi * rfivect, int numrfi, double freq, double fract_error)
+void merge_rfi(rfi *newrfi, const rfi *oldrfi, int numchan, int numint)
+/* Merges an old rfi structure into a new rfi structure */
+{
+    double a, b, freq_var, freq_avg, sigma_avg;
+
+    int numt = (numint % 8) ? numint / 8 + 1 : numint / 8;
+    int numc = (numchan % 8) ? numchan / 8 + 1 : numchan / 8;
+
+    a = (double) (newrfi->numobs);
+    b = (double) (oldrfi->numobs);
+
+    freq_var =
+        ((double) newrfi->freq_var * a + (double) oldrfi->freq_var * b) / (a + b);
+    newrfi->freq_var = freq_var;
+
+    freq_avg =
+        ((double) newrfi->freq_avg * a + (double) oldrfi->freq_avg * b) / (a + b);
+    newrfi->freq_avg = freq_avg;
+
+    sigma_avg =
+        ((double) newrfi->sigma_avg * a + (double) oldrfi->sigma_avg * b) / (a + b);
+    newrfi->sigma_avg = sigma_avg;
+
+    newrfi->numobs += oldrfi->numobs;
+
+    for (int ii = 0; ii < numt; ii++)
+        newrfi->times[ii] |= oldrfi->times[ii];
+
+    for (int ii = 0; ii < numc; ii++)
+        newrfi->chans[ii] |= oldrfi->chans[ii];
+}
+
+int find_rfi(rfi *rfivect, int numrfi, double freq, double fract_error)
 /* Try to find a birdie in an rfi ector.  Compare all */
 /* currently known birdies with the new freq.  If it  */
 /* finds one with a freq within fractional error, it  */
