@@ -394,9 +394,6 @@ int main(int argc, char *argv[])
 #pragma omp for schedule(dynamic)
 #endif
                 for (int jj = 0; jj < numchan; jj++) {  /* Loop over the channels */
-                    printf
-                        ("Static: This is thread %d. I am working on channel %d.\n",
-                         t, ii);
                     int numcands, candnum;
                     int harmsum = RFI_NUMHARMSUM, lobin = RFI_LOBIN, numbetween =
                         RFI_NUMBETWEEN;
