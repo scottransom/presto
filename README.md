@@ -6,9 +6,14 @@ PRESTO is a large suite of pulsar search and analysis software developed primari
 
 **PRESTO has discovered well over 1500 pulsars, including ~500 recycled and/or binary pulsars!**
 
-## Version 5.2.0:
- * Now require GSL (Gnu Scientific Library) to be installed. This library is thread-safe and allows us to more easily parallelize routines.
- * Large set of changes that updated K&R-style declarations so that they would compile with GCC v15. These changes were made by Claude Code(!) with the prompting by Paul Ray. Thanks, Paul and Claude!
+## Version 5.3.0:
+ * rfifind now gets speedup using multiple CPUs via OpenMP (Thanks to Erum Vohra!)
+ * Speed and parallelization improvements to accelsearch (Thanks to Erum Vohra!)
+ * Bug fix in reading of EPS2DOT in readpar()
+ * Bug fix to accelsearch when searching datasets longer than 2^32 points that caused segfaults
+ * Bug fix to prepdata, prepsubband, and mpiprepsubband when barycentering files longer than 2^31 points that caused segfaults
+ * Bug fix in prepfold where wrong fdotdot falues were reported if folding with fdotdot
+ * Turned off OpenMP in the dedispersion routines until I figure out how to handle that better (it works in prepfold, though!)
 
 For information on older versions, please see the [CHANGELOG.md](https://github.com/scottransom/presto/blob/master/CHANGELOG.md).
 
@@ -41,7 +46,7 @@ Many additional utilities are provided for various tasks that are often required
 
 **References**: The Fourier-Domain acceleration search technique that PRESTO uses in the routine `accelsearch` is described in [Ransom, Eikenberry, and Middleditch (2002)](https://ui.adsabs.harvard.edu/abs/2002AJ....124.1788R/abstract), the "jerk" search capability is described in [Andersen & Ransom (2018)](https://ui.adsabs.harvard.edu/abs/2018ApJ...863L..13A/abstract), and the phase-modulation search technique used by `search_bin` is described in [Ransom, Cordes, and Eikenberry (2003)](https://ui.adsabs.harvard.edu/abs/2003ApJ...589..911R/abstract). Some other basic information about PRESTO can be found in my [thesis](http://www.cv.nrao.edu/~sransom/ransom_thesis_2001.pdf).
 
-**Support/Docs**:  I may eventually get around to finishing the documentation for PRESTO (or not), but until then you should know that each routine returns its basic usage when you call it with no arguments. I am also willing to provide limited support via email (see below). And make sure to check out the `FAQ.md`!
+**Support/Docs**:  I may eventually get around to finishing the documentation for PRESTO (but probably not), but until then you should know that each routine returns its basic usage when you call it with no arguments. I am also willing to provide limited support via email (see below). And make sure to check out the `FAQ.md`!
 
 **Tutorial**: There is a tutorial in the "docs" directory which walks you through all the main steps of finding pulsars using PRESTO.
 
@@ -72,16 +77,20 @@ If you plan to tweak the code, I highly suggest that you use git and clone the d
 
 **Code contributions and/or patches to fix bugs are most welcome!**
 
+### Citing PRESTO in your work:
+If you use PRESTO at all, please cite it via the [ASCL](https://www.ascl.net/1107.017), which you can do using the [BibTeX entry from ADS](https://scixplorer.org/abs/2011ascl.soft07017R/exportcitation/bibtex). I also request that you add a link to the [PRESTO github repo](https://github.com/scottransom/presto). Some people are still citing my [thesis](https://scixplorer.org/abs/2001PhDT.......123R/abstract), which is nice, but probably not required anymore!
+
+In addition, if you use the specific capabilities for searching that have been published, please cite the relevant papers:
+ * For Fourier-domain acceleration searches: [Ransom, Eikenberry, and Middleditch (2002)](https://ui.adsabs.harvard.edu/abs/2002AJ....124.1788R/abstract)
+ * For jerk searches: [Andersen & Ransom (2018)](https://ui.adsabs.harvard.edu/abs/2018ApJ...863L..13A/abstract)
+ * For sideband / phase modulation searches: [Ransom, Cordes, and Eikenberry (2003)](https://ui.adsabs.harvard.edu/abs/2003ApJ...589..911R/abstract)
+
 ### Final Thoughts:
-Please let me know if you decide to use PRESTO for any "real" searches, especially if you find pulsars with it!
-
-And if you find anything with it, it would be great if you would cite either my thesis or whichever of the three papers listed above is appropriate.
-
-Also note that many people are now also citing software using the ASCL, in addition to the relevant papers: [PRESTO is there!](https://www.ascl.net/1107.017).
+Please let me know if you find pulsars or RRATs or FRBs with PRESTO!
 
 Thanks!
 
 ### Acknowledgements:
-Big thanks go to Steve Eikenberry for his help developing the algorithms, Dunc Lorimer and David Kaplan for help with (retired) code to process BCPM, SCAMP, and Spigot data, among other things, Jason Hessels and Patrick Lazarus for many contributions to the Python routines, and (alphabetical): Bridget Andersen, Anne Archibald, Cees Bassa, Matteo Bachetti, Slavko Bogdanov, Fernando Camilo, Shami Chatterjee, Kathryn Crowter, Paul Demorest, Paulo Freire, Nate Garver-Daniels, Chen Karako, Mike Keith, Maggie Livingstone, Ryan Lynch, Erik Madsen, Bradley Meyers, Gijs Molenaar, Timothy Olszanski, Chitrang Patel, Paul Ray, Alessandro Ridolfi, Paul Scholz, Maciej Serylak, Ingrid Stairs, Kevin Stovall, Nick Swainston, and Joeri van Leeuwen for many comments, suggestions and patches!
+Big thanks go to Steve Eikenberry for his help developing the algorithms, Dunc Lorimer and David Kaplan for help with (retired) code to process BCPM, SCAMP, and Spigot data, among other things, Jason Hessels and Patrick Lazarus for many contributions to the Python routines, and (alphabetical): Bridget Andersen, Anne Archibald, Cees Bassa, Matteo Bachetti, Slavko Bogdanov, Fernando Camilo, Shami Chatterjee, Kathryn Crowter, Paul Demorest, Paulo Freire, Nate Garver-Daniels, Chen Karako, Mike Keith, Maggie Livingstone, Ryan Lynch, Erik Madsen, Bradley Meyers, Gijs Molenaar, Timothy Olszanski, Chitrang Patel, Paul Ray, Alessandro Ridolfi, Paul Scholz, Maciej Serylak, Ingrid Stairs, Kevin Stovall, Nick Swainston, Joeri van Leeuwen, and Erum Vohra for many comments, suggestions and patches!
 
 Scott Ransom <sransom@nrao.edu>

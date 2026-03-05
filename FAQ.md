@@ -150,18 +150,19 @@ independent searches of different DMs at the same time (which is why
 `mpiprepsubband` was written: to speed-up de-dispersion and to distribute the
 time series among many processors/nodes).
 
-I've added some OpenMP pragmas over the years, and they make some small
-improvements in, for example, dedispersion loops.  But the improvement is not
-great.  For `prepdata`, `prepsubband`, and `rfifind`, I'd recommend not using
-more than 3-4 CPUs currently with `-ncpus`.  And even then, you won't see
-anything close to a 3-4x speedup (probably only a couple tens of percent).
+For a while now, `accelsearch` has had working parallelism via OpenMP pragmas,
+which can be enabled using the `-ncpus` option on the command line. However, the
+speed-ups are not huge, but they are there! I recommend that you give it a try,
+especially if you are doing jerk searches.
 
-`accelsearch` is the exception, and it does fairly well with `-ncpus`, although
-the performance got much worse after the addition of the jerk-search code.
+Over the past few months, UVA undergraduate Erum Vohra has been working with me
+to enable OpenMP speed-ups in other programs, and as of version 5.3.0, `rfifind`
+gets quite nice speed-ups via OpenMP using the `-ncpus` option. We are currently
+working to get some similar (but probably not as good) speed-ups in dedispersion
+loops in `prepdata`, `prepsubband`, and `prepfold`.
 
-In summary, the OpenMP stuff is very much a work in progress, and I'd love to
-work with someone on this if there is any interest.  I suspect that significant
-speed-ups could be had without a ton of work.  It is on my ToDo list!
+If you are interested in helping with these parallelization efforts, please let
+me know!
 
 -----------------
 

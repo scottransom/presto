@@ -1,4 +1,7 @@
-## Version 5.2.0dev:
+## Version 5.3.0:
+ * rfifind now gets speedup using multiple CPUs via OpenMP (Thanks to Erum Vohra!)
+ * Speed and parallelization improvements to accelsearch (Thanks to Erum Vohra!)
+ * Bug fix in reading of EPS2DOT in readpar()
  * Bug fix to accelsearch when searching datasets longer than 2^32 points that caused segfaults
  * Bug fix to prepdata, prepsubband, and mpiprepsubband when barycentering files longer than 2^31 points that caused segfaults
  * Bug fix in prepfold where wrong fdotdot falues were reported if folding with fdotdot
