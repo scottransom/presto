@@ -1,3 +1,6 @@
+## Version 5.3.1:
+ * Turned on OpenMP linking for rfifind! Oops.
+
 ## Version 5.3.0:
  * rfifind now gets speedup using multiple CPUs via OpenMP (Thanks to Erum Vohra!)
  * Speed and parallelization improvements to accelsearch (Thanks to Erum Vohra!)

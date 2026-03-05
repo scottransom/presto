@@ -1,5 +1,5 @@
 project('PRESTO', 'c',
-  version: '5.3.0',
+  version: '5.3.1',
   license: 'GPL-2.0',
   default_options: [
     'buildtype=debugoptimized',

@@ -6,6 +6,9 @@ PRESTO is a large suite of pulsar search and analysis software developed primari
 
 **PRESTO has discovered well over 1500 pulsars, including ~500 recycled and/or binary pulsars!**
 
+## Version 5.3.1:
+ * Turned on OpenMP linking for rfifind! Oops.
+
 ## Version 5.3.0:
  * rfifind now gets speedup using multiple CPUs via OpenMP (Thanks to Erum Vohra!)
  * Speed and parallelization improvements to accelsearch (Thanks to Erum Vohra!)
