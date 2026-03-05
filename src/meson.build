@@ -140,7 +140,7 @@ executable('rednoise', 'rednoise.c', 'rednoise_cmd.c',
 
 executable('rfifind',
     sources: ['rfifind.c', 'rfifind_cmd.c', 'rfi_utils.c', 'rfifind_plot.c'] + INSTRUMENTOBJS + PLOT2DOBJS,
-    dependencies: [glib, fftw, gsl, libm, fits, pgplot, cpgplot, x11, png],
+    dependencies: [glib, fftw, gsl, libm, fits, pgplot, cpgplot, x11, png, omp],
     include_directories: inc, link_with: libpresto, install: true)
 
 executable('sdat2dat', 'sdat2dat.c',
