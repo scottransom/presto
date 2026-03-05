@@ -54,26 +54,25 @@ int main(int argc, char *argv[])
 {
     FILE *bytemaskfile;
     float **dataavg = NULL, **datastd = NULL, **datapow = NULL;
-    float *chandata = NULL, powavg, powstd, powmax;
-    float inttime, norm = 0.0, fracterror = RFI_FRACTERROR;
+    float inttime, fracterror = RFI_FRACTERROR;
     float *rawdata = NULL;
     unsigned char **bytemask = NULL;
     short *srawdata = NULL;
     char *outfilenm, *statsfilenm, *maskfilenm;
     char *bytemaskfilenm, *rfifilenm;
+    int num_threads = 1;
     int numchan = 0, numint = 0, newper = 0, oldper = 0;
     int blocksperint, ptsperint = 0, ptsperblock = 0, padding = 0;
-    int numcands, candnum, numrfi = 0, numrfivect = NUM_RFI_VECT;
-    int ii, jj, kk, slen, insubs = 0;
+    int numrfi = 0, numrfivect = NUM_RFI_VECT;
+    int ii, slen, insubs = 0;
     int harmsum = RFI_NUMHARMSUM, lobin = RFI_LOBIN, numbetween = RFI_NUMBETWEEN;
-    double davg, dvar, freq;
     struct spectra_info s;
     presto_interptype interptype;
     rfi *rfivect = NULL;
     mask oldmask, newmask;
-    fftcand *cands = NULL;
     infodata idata;
     Cmdline *cmd;
+    fftwf_plan realplan;
 
     /* Call usage() if we have no command line arguments */
 
@@ -130,6 +129,14 @@ int main(int argc, char *argv[])
 #ifdef DEBUG
     showOptionValues();
 #endif
+
+#ifdef _OPENMP
+    num_threads = omp_get_max_threads();
+#endif
+
+    rfi **tmprfi_arr = (rfi **) malloc((num_threads) * sizeof(rfi *));
+    int *tmpnumrfivect_arr = (int *) malloc((num_threads) * sizeof(int));
+    int *tmpnumrfi_arr = (int *) malloc((num_threads) * sizeof(int));
 
     printf("\n\n");
     printf("               Pulsar Data RFI Finder\n");
@@ -202,10 +209,12 @@ int main(int argc, char *argv[])
         if (RAWDATA) {
             read_rawdata_files(&s);
             if (cmd->ignorechanstrP) {
-                s.ignorechans = get_ignorechans(cmd->ignorechanstr, 0, s.num_channels-1,
-                                                &s.num_ignorechans, &s.ignorechans_str);
-                if (s.ignorechans_str==NULL) {
-                    s.ignorechans_str = (char *)malloc(strlen(cmd->ignorechanstr)+1);
+                s.ignorechans =
+                    get_ignorechans(cmd->ignorechanstr, 0, s.num_channels - 1,
+                                    &s.num_ignorechans, &s.ignorechans_str);
+                if (s.ignorechans_str == NULL) {
+                    s.ignorechans_str =
+                        (char *) malloc(strlen(cmd->ignorechanstr) + 1);
                     strcpy(s.ignorechans_str, cmd->ignorechanstr);
                 }
             }
@@ -300,10 +309,9 @@ int main(int argc, char *argv[])
         dataavg = gen_fmatrix(numint, numchan);
         datastd = gen_fmatrix(numint, numchan);
         datapow = gen_fmatrix(numint, numchan);
-        chandata = gen_fvect(ptsperint);
         bytemask = gen_bmatrix(numint, numchan);
         for (ii = 0; ii < numint; ii++)
-            for (jj = 0; jj < numchan; jj++)
+            for (int jj = 0; jj < numchan; jj++)
                 bytemask[ii][jj] = GOODDATA;
         rfivect = rfi_vector(rfivect, numchan, numint, 0, numrfivect);
         if (numbetween == 2)
@@ -311,12 +319,35 @@ int main(int argc, char *argv[])
         else
             interptype = INTERPOLATE;
 
-        /* Main loop */
+        for (int ii = 0; ii < num_threads; ii++) {
+            tmpnumrfi_arr[ii] = 0;
+            tmpnumrfivect_arr[ii] = NUM_RFI_VECT;
+            tmprfi_arr[ii] = NULL;
+            tmprfi_arr[ii] =
+                rfi_vector(tmprfi_arr[ii], numchan, numint, 0,
+                           tmpnumrfivect_arr[ii]);
+        }
 
+        {
+            printf("Generating FFT plan...\n\n");
+            float *chandata = NULL, powavg, powstd, powmax;
+            chandata = gen_fvect(ptsperint);
+
+            fcomplex *fftdata = gen_cvect((ptsperint / 2) + 1);
+
+            realplan =
+                fftwf_plan_dft_r2c_1d(ptsperint, chandata, (fftwf_complex *) fftdata,
+                                      FFTW_MEASURE);
+
+            vect_free(chandata);
+            vect_free(fftdata);
+        }
+
+        /* Main loop */
         printf("Writing mask data  to '%s'.\n", maskfilenm);
         printf("Writing  RFI data  to '%s'.\n", rfifilenm);
         printf("Writing statistics to '%s'.\n\n", statsfilenm);
-        printf("Massaging the data ...\n\n");
+        printf("Massaging the data...\n\n");
         printf("Amount Complete = %3d%%", oldper);
         fflush(stdout);
 
@@ -343,76 +374,157 @@ int main(int argc, char *argv[])
             }
 
             if (padding)
-                for (jj = 0; jj < numchan; jj++)
+                for (int jj = 0; jj < numchan; jj++)
                     bytemask[ii][jj] |= PADDING;
 
-            for (jj = 0; jj < numchan; jj++) {  /* Loop over the channels */
+#ifdef _OPENMP
+#pragma omp parallel default(none) shared(ii, numchan, numint, blocksperint, ptsperint, rawdata, srawdata, \
+                                          insubs, padding, s, cmd, realplan, dataavg, datastd, datapow, inttime, \
+                                          tmprfi_arr, tmpnumrfivect_arr, tmpnumrfi_arr)
+#endif
+            {
+                int t = omp_get_thread_num();
 
-                if (RAWDATA)
-                    get_channel(chandata, jj, blocksperint, rawdata, &s);
-                else if (insubs)
-                    get_subband(jj, chandata, srawdata, blocksperint);
+                float *l_chandata = NULL, powavg, powstd, powmax;
+                l_chandata = gen_fvect(ptsperint);
 
-                /* Calculate the averages and standard deviations */
-                /* for each point in time.                        */
+                fcomplex *l_fftdata = gen_cvect((ptsperint / 2) + 1);
 
-                if (padding) {
-                    dataavg[ii][jj] = 0.0;
-                    datastd[ii][jj] = 0.0;
-                    datapow[ii][jj] = 1.0;
-                } else {
-                    avg_var(chandata, ptsperint, &davg, &dvar);
-                    dataavg[ii][jj] = davg;
-                    datastd[ii][jj] = sqrt(dvar);
-                    numcands = 0;
-                    powmax = 0.0;
-                    // Don't search the power spectrum if there is little to no variance
-                    if (datastd[ii][jj] > 1e-4) {
-                        realfft(chandata, ptsperint, -1);
-                        norm = datastd[ii][jj] * datastd[ii][jj] * ptsperint;
-                        cands = search_fft((fcomplex *) chandata, ptsperint / 2,
-                                           lobin, ptsperint / 2, harmsum,
-                                           numbetween, interptype, norm, cmd->freqsigma,
-                                           &numcands, &powavg, &powstd, &powmax);
-                        // Make sure that nothing bad happened in the FFT search
-                        if (!isnormal(powmax)) {
-                            printf("WARNING:  FFT search returned bad powmax (%f) in"
-                                   "int=%d and chan=%d.  Fixing.\n",
-                                   powmax, ii, jj);
-                            powmax = 0.0;
-                            numcands = 0;
+#ifdef _OPENMP
+#pragma omp for schedule(dynamic)
+#endif
+                for (int jj = 0; jj < numchan; jj++) {  /* Loop over the channels */
+                    int numcands, candnum;
+                    int harmsum = RFI_NUMHARMSUM, lobin = RFI_LOBIN, numbetween =
+                        RFI_NUMBETWEEN;
+
+                    double davg, dvar, freq;
+
+                    float norm = 0.0;
+
+                    presto_interptype interptype;
+                    fftcand *cands = NULL;
+
+                    if (numbetween == 2)
+                        interptype = INTERBIN;
+                    else
+                        interptype = INTERPOLATE;
+
+                    if (RAWDATA)
+                        get_channel(l_chandata, jj, blocksperint, rawdata, &s);
+                    else if (insubs)
+                        get_subband(jj, l_chandata, srawdata, blocksperint);
+
+                    /* Calculate the averages and standard deviations */
+                    /* for each point in time.                        */
+
+                    if (padding) {
+                        dataavg[ii][jj] = 0.0;
+                        datastd[ii][jj] = 0.0;
+                        datapow[ii][jj] = 1.0;
+                    } else {
+                        avg_var(l_chandata, ptsperint, &davg, &dvar);
+                        dataavg[ii][jj] = davg;
+                        datastd[ii][jj] = sqrt(dvar);
+                        numcands = 0;
+                        powmax = 0.0;
+                        // Don't search the power spectrum if there is little to no variance
+                        if (datastd[ii][jj] > 1e-4) {
+                            fftwf_execute_dft_r2c(realplan, l_chandata,
+                                                  (fftwf_complex *) l_fftdata);
+                            norm = datastd[ii][jj] * datastd[ii][jj] * ptsperint;
+                            cands =
+                                search_fft((fcomplex *) l_fftdata,
+                                           ((ptsperint / 2) + 1), lobin,
+                                           ((ptsperint / 2) + 1), harmsum,
+                                           numbetween, interptype, norm,
+                                           cmd->freqsigma, &numcands, &powavg,
+                                           &powstd, &powmax);
+                            // Make sure that nothing bad happened in the FFT search
+                            if (!isnormal(powmax)) {
+                                printf
+                                    ("WARNING:  FFT search returned bad powmax (%f) in"
+                                     "int=%d and chan=%d.  Fixing.\n", powmax, ii,
+                                     jj);
+                                powmax = 0.0;
+                                numcands = 0;
+                                free(cands);
+                            }
+                        }
+                        datapow[ii][jj] = powmax;
+
+                        /* Record the birdies */
+                        if (numcands) {
+                            for (int kk = 0; kk < numcands; kk++) {
+                                freq = cands[kk].r / inttime;
+                                candnum =
+                                    find_rfi(tmprfi_arr[t], tmpnumrfi_arr[t], freq,
+                                             RFI_FRACTERROR);
+                                if (candnum >= 0) {
+                                    update_rfi(tmprfi_arr[t] + candnum, freq,
+                                               cands[kk].sig, jj, ii);
+                                } else {
+                                    update_rfi(tmprfi_arr[t] + tmpnumrfi_arr[t],
+                                               freq, cands[kk].sig, jj, ii);
+                                    tmpnumrfi_arr[t]++;
+                                    if (tmpnumrfi_arr[t] == tmpnumrfivect_arr[t]) {
+                                        tmpnumrfivect_arr[t] *= 2;
+                                        tmprfi_arr[t] =
+                                            rfi_vector(tmprfi_arr[t], numchan,
+                                                       numint,
+                                                       tmpnumrfivect_arr[t] / 2,
+                                                       tmpnumrfivect_arr[t]);
+
+                                    }
+                                }
+                            }
                             free(cands);
                         }
                     }
-                    datapow[ii][jj] = powmax;
+                }
+                vect_free(l_chandata);
+                vect_free(l_fftdata);
+            }
 
-                    /* Record the birdies */
+        }
 
-                    if (numcands) {
-                        for (kk = 0; kk < numcands; kk++) {
-                            freq = cands[kk].r / inttime;
-                            candnum =
-                                find_rfi(rfivect, numrfi, freq, RFI_FRACTERROR);
-                            if (candnum >= 0) {
-                                update_rfi(rfivect + candnum, freq, cands[kk].sig,
-                                           jj, ii);
-                            } else {
-                                update_rfi(rfivect + numrfi, freq, cands[kk].sig, jj,
-                                           ii);
-                                numrfi++;
-                                if (numrfi == numrfivect) {
-                                    numrfivect *= 2;
-                                    rfivect = rfi_vector(rfivect, numchan, numint,
-                                                         numrfivect / 2, numrfivect);
-                                }
+        printf("\rAmount Complete = 100%%\n\n");
+        printf("Sorting RFI instances ...\n");
+
+        if (num_threads > 1) {
+            for (int ii = 0; ii < num_threads; ii++) {
+                for (int jj = 0; jj < tmpnumrfivect_arr[ii]; jj++) {
+                    if (tmprfi_arr[ii][jj].freq_avg > 0.0) {
+                        int candnum = find_rfi(rfivect, numrfi,
+                                               tmprfi_arr[ii][jj].freq_avg,
+                                               RFI_FRACTERROR);
+                        if (candnum >= 0) {
+                            merge_rfi(rfivect + candnum, &tmprfi_arr[ii][jj],
+                                      numchan, numint);
+
+                        } else {
+                            merge_rfi(rfivect + numrfi, &tmprfi_arr[ii][jj], numchan,
+                                      numint);
+
+                            numrfi++;
+                            if (numrfi == numrfivect) {
+                                numrfivect *= 2;
+                                rfivect = rfi_vector(rfivect, numchan, numint,
+                                                     numrfivect / 2, numrfivect);
                             }
                         }
-                        free(cands);
+                    } else {
+                        break;
                     }
                 }
             }
+        } else {
+            rfivect = tmprfi_arr[0];
+            numrfi = tmpnumrfi_arr[0];
+            numrfivect = tmpnumrfivect_arr[0];
+
+            tmprfi_arr[0] = NULL;
         }
-        printf("\rAmount Complete = 100%%\n");
 
         /* Write the data to the output files */
 
@@ -442,7 +554,7 @@ int main(int argc, char *argv[])
         chkfread(bytemask[0], numint * numchan, 1, bytemaskfile);
         fclose(bytemaskfile);
         for (ii = 0; ii < numint; ii++)
-            for (jj = 0; jj < numchan; jj++)
+            for (int jj = 0; jj < numchan; jj++)
                 bytemask[ii][jj] &= PADDING;    /* Clear all but the PADDING bits */
         inttime = ptsperint * idata.dt;
     }
@@ -489,7 +601,7 @@ int main(int argc, char *argv[])
         int numpad = 0, numbad = 0, numgood = 0;
 
         for (ii = 0; ii < numint; ii++) {
-            for (jj = 0; jj < numchan; jj++) {
+            for (int jj = 0; jj < numchan; jj++) {
                 if (bytemask[ii][jj] == GOODDATA) {
                     numgood++;
                 } else {
@@ -556,6 +668,15 @@ int main(int argc, char *argv[])
 
     /* Close the files and cleanup */
 
+    for (int ii = 0; ii < num_threads; ii++) {
+        if (tmprfi_arr[ii] != NULL) {
+            vect_free(tmprfi_arr[ii]);
+        }
+    }
+
+    free(tmprfi_arr);
+    free(tmpnumrfivect_arr);
+    free(tmpnumrfi_arr);
     free_rfi_vector(rfivect, numrfivect);
     free_mask(newmask);
     if (cmd->maskfileP)
@@ -576,7 +697,6 @@ int main(int argc, char *argv[])
     if (!cmd->nocomputeP) {
         //  Close all the raw files and free their vectors
         close_rawfiles(&s);
-        vect_free(chandata);
         if (insubs)
             vect_free(srawdata);
         else
@@ -585,7 +705,7 @@ int main(int argc, char *argv[])
     return (0);
 }
 
-static void write_rfifile(char *rfifilenm, rfi * rfivect, int numrfi,
+static void write_rfifile(char *rfifilenm, rfi *rfivect, int numrfi,
                           int numchan, int numint, int ptsperint,
                           int lobin, int numbetween, int harmsum,
                           float fracterror, float freqsigma)
@@ -627,7 +747,7 @@ static void write_statsfile(char *statsfilenm, float *datapow,
     fclose(outfile);
 }
 
-static void read_rfifile(char *rfifilenm, rfi ** rfivect, int *numrfi,
+static void read_rfifile(char *rfifilenm, rfi **rfivect, int *numrfi,
                          int *numchan, int *numint, int *ptsperint,
                          int *lobin, int *numbetween, int *harmsum,
                          float *fracterror, float *freqsigma)
@@ -673,7 +793,7 @@ static void read_statsfile(char *statsfilenm, float ***datapow,
     fclose(outfile);
 }
 
-int read_subband_rawblocks(FILE * infiles[], int numfiles, short *subbanddata,
+int read_subband_rawblocks(FILE *infiles[], int numfiles, short *subbanddata,
                            int numsamples, int *padding)
 {
     int ii, jj, index, numread = 0;
