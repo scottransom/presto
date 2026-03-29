@@ -1,4 +1,5 @@
 #include "presto.h"
+#include <fenv.h>
 #include <gsl/gsl_cdf.h>
 
 double extended_equiv_gaussian_sigma(double logp);
@@ -473,20 +474,31 @@ double chi2_logp(double chi2, double dof)
 /* Return the natural log probability corresponding to a chi^2 value */
 /* of chi2 given dof degrees of freedom. */
 {
-    double logp;
+    double logp, ptest;
 
+    // GSL does set IEEE floating point exception flags!
+    feclearexcept(FE_ALL_EXCEPT);
     if (chi2 <= 0.0) {
         return -INFINITY;
     }
 
-    if (chi2 / dof > 15.0 || (dof > 150 && chi2 / dof > 6.0)) {
+    // The values to use expansion are from A & S 26.4.11, assuming
+    // that we want to be well in the tails of the normal distribution
+    if (chi2 / dof > 15.0 || (dof > 30 && chi2 > 100.0)) {
         // printf("Using asymtotic expansion...\n");
         // Use some asymtotic expansions for the chi^2 distribution
         //   this is eqn 26.4.19 of A & S
         logp = log_asymtotic_incomplete_gamma(0.5 * dof, 0.5 * chi2) -
             log_asymtotic_gamma(0.5 * dof);
+        // Clear the IEEE exception
+        feclearexcept(FE_ALL_EXCEPT);
     } else {
-        logp = log(gsl_cdf_chisq_Q(chi2, dof));
+        ptest = gsl_cdf_chisq_Q(chi2, dof);
+        // Check if the FE_UNDERFLOW flag is set
+        //if (fetestexcept(FE_UNDERFLOW)) {
+        //    puts("Warning: Floating-point underflow occurred.");
+        //}
+        logp = log(ptest);
     }
     return logp;
 }
