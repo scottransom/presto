@@ -483,8 +483,10 @@ double chi2_logp(double chi2, double dof)
     }
 
     // The values to use expansion are from A & S 26.4.11, assuming
-    // that we want to be well in the tails of the normal distribution
-    if (chi2 / dof > 15.0 || (dof > 30 && chi2 > 100.0)) {
+    // that we want to be well in the tails of the normal distribution.
+    // SMR checked these criteria in March 2026. gsl_cdf_chisq_Q() does
+    // well for all values of dof as long chi2 is below 1500-2000.
+    if (chi2 > 1200.0 || (dof > 30 && chi2 > 100.0)) {
         // printf("Using asymtotic expansion...\n");
         // Use some asymtotic expansions for the chi^2 distribution
         //   this is eqn 26.4.19 of A & S
