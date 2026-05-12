@@ -153,7 +153,7 @@ char *make_polycos(char *parfilenm, infodata * idata, char *polycofilenm, int de
         scopechar = 'k';
         tracklen = 12;
     } else if (strcmp(idata->telescope, "Geocenter") == 0) {
-        scopechar = 'o';
+        scopechar = '0';
         tracklen = 12;
     } else {                    /*  Barycenter */
         printf("Defaulting to barycenter for polyco generation...\n");
@@ -161,7 +161,7 @@ char *make_polycos(char *parfilenm, infodata * idata, char *polycofilenm, int de
         tracklen = 12;
     }
     /* For optical, X-ray, or gamma-ray data */
-    if (scopechar != '@' && scopechar != 'o') {
+    if (scopechar != '@' && scopechar != '0') {
         fmid = idata->freq + (idata->num_chan / 2 - 0.5) * idata->chan_wid;
     } else {
         fmid = 0.0;
