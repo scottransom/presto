@@ -19,3 +19,6 @@ dist/
 .vscode/
 build/
 examplescripts/ppdot_*.png
+prepfold_tests/
+agent_instructions/
+AGENTS.md
