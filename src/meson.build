@@ -109,7 +109,7 @@ executable('prepdata',
     include_directories: inc, link_with: libpresto, install: true)
 
 executable('prepfold',
-    sources: ['prepfold.c', 'prepfold_cmd.c', 'prepfold_utils.c', 'prepfold_plot.c', 'polycos.c', 'least_squares.f'] + INSTRUMENTOBJS + PLOT2DOBJS,
+    sources: ['prepfold.c', 'prepfold_pipeline.c', 'prepfold_cmd.c', 'prepfold_utils.c', 'prepfold_plot.c', 'polycos.c', 'least_squares.f'] + INSTRUMENTOBJS + PLOT2DOBJS,
     dependencies: [glib, fftw, gsl, libm, fits, pgplot, cpgplot, x11, png, omp],
     include_directories: inc, link_with: libpresto, install: true)
 

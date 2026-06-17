@@ -1,6 +1,12 @@
 #include <ctype.h>
 #include "presto.h"
 #include "mask.h"
+/* The pipeline prototypes below only need Cmdline as an opaque pointer, so   */
+/* forward-declare the type rather than pulling in prepfold_cmd.h.  Including  */
+/* the full header here would drag struct s_Cmdline into show_pfd.c, which     */
+/* also includes show_pfd_cmd.h with its own (conflicting) struct s_Cmdline.   */
+/* The .c files that touch Cmdline members include prepfold_cmd.h themselves.  */
+typedef struct s_Cmdline Cmdline;
 
 /* This causes the barycentric motion to be calculated once per second */
 
@@ -66,6 +72,49 @@ typedef struct PREPFOLDINFO {
   position fold;      /* f, fd, and fdd used to fold the initial data */
   orbitparams orb;    /* Barycentric orbital parameters used in folds */
 } prepfoldinfo;
+
+/* Per-candidate folding context.  Bundles the per-candidate working state    */
+/* that the fold pipeline threads through its phase functions, so that         */
+/* "fold one candidate" is expressed as a single foldcand* rather than ~30     */
+/* loose locals plus in-place mutation of the parsed Cmdline.  Shared,         */
+/* per-observation state (spectra_info, infodata, mask, observation timing,    */
+/* barycentric time tables) is deliberately NOT stored here; it stays as       */
+/* separate parameters owned by the driver.                                    */
+/* NB: the resolved profile length lives in search.proflen (alongside          */
+/* rawfolds/stats, which prepfoldinfo already owns); there is no separate      */
+/* proflen member to avoid two sources of truth.                               */
+typedef struct FOLDCAND {
+  prepfoldinfo search; /* per-candidate output container (rawfolds, stats,    */
+                       /* proflen, nsub, npart, candnm, pgdev, ...)           */
+  /* spin parameters */
+  double f, fd, fdd;
+  double foldf, foldfd, foldfdd;
+  double orig_foldf;
+  /* dispersion (per-candidate DM is the crux of the multi-candidate goal) */
+  double dm;
+  int nsub;
+  int npart;
+  int *idispdts;
+  double *obsf;
+  /* binary / orbit */
+  int binary;
+  int numdelays;
+  long long numbinpoints;
+  double *Ep, *tp;
+  /* folding control + scratch */
+  int flags;
+  double phs;          /* per-block fold phase offset (was cmd->phs)          */
+  double *parttimes;
+  /* polyco state */
+  int polyco_index;
+  double polyco_phase0;
+  /* optimization results */
+  foldstats beststats;
+  double *bestprof;
+  float *ppdot;
+  /* output file names (the candidate name string lives in search.candnm) */
+  char *outfilenm, *plotfilenm;
+} foldcand;
 
 /* Some function definitions */
 
@@ -165,7 +214,7 @@ void normalize_stats(double *inprofs, foldstats * stats,
 // as long as you are folding raw data with many parts and subbands
 
 float estimate_offpulse_redchi2(double *inprofs, foldstats *stats,
-                                int numparts, int numsubbands, 
+                                int numparts, int numsubbands,
                                 int proflen, int numtrials, double dofeff);
 // Randomly offset each pulse profile in a .pfd data square or cube
 // and combine them to estimate a "true" off-pulse level.  Do this
@@ -173,3 +222,77 @@ float estimate_offpulse_redchi2(double *inprofs, foldstats *stats,
 // inverse of the average of the off-pulse reduced-chi^2 (i.e. the
 // correction factor).  dofeff is the effective number of DOF as
 // returned by DOF_corr().
+
+/* prepfold_pipeline.c:  the folding pipeline split out of prepfold.c's main() */
+/* into behavior-preserving phase functions.  Shared locals are passed by      */
+/* pointer (Stage 1; a foldcand context will bundle them in Stage 2).          */
+
+/* Forward declaration so the prototypes below can take a pointer to it;       */
+/* the full definition lives in backend_common.h, included by the .c files.    */
+struct spectra_info;
+
+void init_foldcand(foldcand *fc);
+/* Zero a foldcand and initialize its embedded prepfoldinfo. */
+
+void free_foldcand(foldcand *fc, Cmdline *cmd, infodata *idata);
+/* Free the per-candidate allocations owned by a foldcand (mirrors the     */
+/* per-candidate portion of the original cleanup_fold).                    */
+
+void identify_and_open_input(Cmdline *cmd, struct spectra_info *s, infodata *idata,
+                             foldcand *fc, mask *obsmask, plotflags *pflags,
+                             char **rootnm_out, int *ptsperrec_out,
+                             long long *numrec_out, int *numchan_out,
+                             int *useshorts_out, int *insubs_out,
+                             double **events_out, int *numevents_out, double *T_out);
+
+void resolve_output_names(Cmdline *cmd, foldcand *fc, char *rootnm);
+
+void compute_obs_timing(Cmdline *cmd, struct spectra_info *s, infodata *idata,
+                        foldcand *fc, mask *obsmask, int insubs,
+                        int useshorts, int ptsperrec, char *obs, char *ephem,
+                        char *rastring, char *decstring, int *numchan_out,
+                        int **maskchans_out, double *recdt_out, long long *lorec_out,
+                        double *startTday_out, long long *numrec_out,
+                        long *reads_per_part_out, double *T_out, double *N_out,
+                        long *worklen_out);
+
+void resolve_fold_params(Cmdline *cmd, infodata *idata, foldcand *fc,
+                         int insubs, double T, double startTday, double recdt,
+                         long long lorec, char *pname);
+
+void setup_orbit_delays(Cmdline *cmd, infodata *idata, foldcand *fc,
+                        int insubs, double T, double *N_out);
+
+void print_fold_info(Cmdline *cmd, foldcand *fc, double N, double T, char *pname);
+
+void allocate_fold_arrays(Cmdline *cmd, foldcand *fc);
+
+void fold_events(Cmdline *cmd, infodata *idata, foldcand *fc, double T,
+                 int numevents, double *events, double startTday);
+
+void compute_bary_corrections(Cmdline *cmd, foldcand *fc, double T,
+                              char *rastring, char *decstring, char *obs,
+                              char *ephem, int *numbarypts_out,
+                              double **barytimes_out, double **topotimes_out);
+
+void compute_dispersion_delays(Cmdline *cmd, infodata *idata, foldcand *fc,
+                               int numchan, int insubs);
+
+void fold_timeseries(Cmdline *cmd, struct spectra_info *s, infodata *idata,
+                     foldcand *fc, mask *obsmask, double T, double N,
+                     long long lorec, int ptsperrec, double recdt, long worklen,
+                     long reads_per_part, int numchan, double startTday,
+                     int useshorts, int insubs, int *maskchans, char *obs,
+                     char *ephem, char *rastring, char *decstring, float **data_out,
+                     int *numbarypts_out, double **barytimes_out,
+                     double **topotimes_out);
+
+void optimize_candidate(Cmdline *cmd, infodata *idata, foldcand *fc,
+                        plotflags *pflags, double T);
+
+void write_results_and_plot(Cmdline *cmd, infodata *idata, foldcand *fc,
+                            plotflags *pflags, double N, int insubs,
+                            double *barytimes, double *topotimes, int numbarypts);
+
+void cleanup_fold(Cmdline *cmd, mask *obsmask, int insubs, float *data,
+                  char *rootnm, double *barytimes, double *topotimes);
