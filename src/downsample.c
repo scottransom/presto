@@ -125,11 +125,9 @@ int main(int argc, char *argv[])
     idata.dt = idata.dt * cmd->factor;
     idata.numonoff = 0;
     idata.N = (double) N;
-    strncpy(idata.name, outname, strlen(outname) - 4);
-    if (useshorts)
-        idata.name[strlen(outname) - 5] = '\0';
-    else
-        idata.name[strlen(outname) - 4] = '\0';
+    size_t namelen = strlen(outname) - (useshorts ? 5 : 4);
+    memcpy(idata.name, outname, namelen);
+    idata.name[namelen] = '\0';
     writeinf(&idata);
 
     fclose(infile);

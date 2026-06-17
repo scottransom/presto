@@ -775,8 +775,17 @@ catArgv(int argc, char **argv)
   size_t l;
   char *s, *t;
 
+  if( argc == 0 ) {
+    s = (char *)malloc(1);
+    if( !s ) {
+      fprintf(stderr, "%s: out of memory\n", Program);
+      exit(EXIT_FAILURE);
+    }
+    *s = '\0';
+    return s;
+  }
   for(i=0, l=0; i<argc; i++) l += (1+strlen(argv[i]));
-  s = (char *)malloc(l);
+  s = (char *)malloc(l + 1);
   if( !s ) {
     fprintf(stderr, "%s: out of memory\n", Program);
     exit(EXIT_FAILURE);

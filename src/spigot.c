@@ -206,11 +206,11 @@ int read_SPIGOT_header(char *filename, SPIGOT_INFO * spigot)
     /* Set the lag scaling and offset values if this is the firsttime */
     if (firsttime) {
         int NomOffset = 0, ii;
-        char keyword[10], ctmp[100];
+        char keyword[15], ctmp[100];
         float ftmp1, ftmp2;
 
         for (ii = 0; ii < spigot->lags_per_sample; ii++) {
-            sprintf(keyword, "LAGD%04d", ii);
+            snprintf(keyword, sizeof(keyword), "LAGD%04d", ii);
             hgets(hdr, keyword, 100, ctmp);
             sscanf(ctmp, "%f %f %f %f", lag_factor + ii, lag_offset + ii, &ftmp1,
                    &ftmp2);
@@ -295,7 +295,7 @@ void SPIGOT_INFO_to_inf(SPIGOT_INFO * spigot, infodata * idata)
     char ctmp[100];
     struct passwd *pwd;
 
-    strncpy(idata->object, spigot->object, 24);
+    strcpy(idata->object, spigot->object);
     hours2hms(spigot->ra / 15.0, &(idata->ra_h), &(idata->ra_m), &(idata->ra_s));
     deg2dms(spigot->dec, &(idata->dec_d), &(idata->dec_m), &(idata->dec_s));
     strcpy(idata->telescope, "GBT");
@@ -320,7 +320,7 @@ void SPIGOT_INFO_to_inf(SPIGOT_INFO * spigot, infodata * idata)
     // strcpy(idata->analyzer, getlogin());
     pwd = getpwuid(geteuid());
     strcpy(idata->analyzer, pwd->pw_name);
-    strncpy(idata->observer, spigot->observer, 24);
+    strcpy(idata->observer, spigot->observer);
     if (spigot->summed_pols)
         sprintf(ctmp,
                 "%d IF(s) were summed.  Lags are %d bit ints.",

@@ -330,7 +330,7 @@ int main(int argc, char *argv[])
 
         {
             printf("Generating FFT plan...\n\n");
-            float *chandata = NULL, powavg, powstd, powmax;
+            float *chandata = NULL;
             chandata = gen_fvect(ptsperint);
 
             fcomplex *fftdata = gen_cvect((ptsperint / 2) + 1);

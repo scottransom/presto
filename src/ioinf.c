@@ -120,7 +120,7 @@ long chk_str2long(char *instr, char *desc)
 
 void readinf(infodata * data, char *filenm)
 {
-    char tmp1[100], tmp2[100], tmp3[100], *infofilenm, *sptr;
+    char tmp1[100], tmp2[100], tmp3[200], *infofilenm, *sptr;
     int ii, retval, noteslen = 0;
     FILE *infofile;
 

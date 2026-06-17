@@ -4,7 +4,7 @@
 static psrparams pulsardata[NP];
 static int np = 0, have_database = 0;
 
-static char num[41][5] = { "0th", "1st", "2nd", "3rd", "4th", "5th", "6th",
+static const char *const num[] = { "0th", "1st", "2nd", "3rd", "4th", "5th", "6th",
     "7th", "8th", "9th", "10th", "11th", "12th",
     "13th", "14th", "15th", "16th", "17th", "18th",
     "19th", "20th", "21st", "22nd", "23rd", "24th",
@@ -384,8 +384,8 @@ int comp_psr_to_cand(fourierprops * cand, infodata * idata, char *output, int fu
         sprintf(output,
                 "I don't recognize this candidate in the pulsar database.\n");
     } else {
-        strncpy(output, "                       ", 20);
-        output[20-1] = '\0';
+        memset(output, ' ', 19);
+        output[19] = '\0';
     }
     return 0;
 }
@@ -512,8 +512,8 @@ int comp_bin_to_cand(binaryprops * cand, infodata * idata, char *output, int ful
         sprintf(output,
                 "I don't recognize this candidate in the pulsar database.\n");
     } else {
-        strncpy(output, "                       ", 20);
-        output[20-1] = '\0';
+        memset(output, ' ', 19);
+        output[19] = '\0';
     }
     return 0;
 }

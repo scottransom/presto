@@ -12,6 +12,7 @@ void head_input(char *, int *, int);
 int linecount = 1;
 
 #define YY_INPUT(buf,result,max) head_input(buf,&result,max)
+#define YY_NO_INPUT
 
 void ignore()
 {

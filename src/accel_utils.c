@@ -115,7 +115,7 @@ static void compare_rzw_cands(fourierprops *list, int nlist, char *notes)
                 fabs(list[ii].z - list[jj].z) > 1.0 && list[ii].pow > list[jj].pow) {
                 if (strncmp(notes + jj * 20, "                      ", 20) == 0) {
                     sprintf(tmp, "SL? of Cand %d", ii + 1);
-                    strncpy(notes + jj * 20, tmp, 20);
+                    memcpy(notes + jj * 20, tmp, 20);
                 }
                 continue;
             }
@@ -124,7 +124,7 @@ static void compare_rzw_cands(fourierprops *list, int nlist, char *notes)
                     (fabs(list[ii].z - list[jj].z / kk) < list[jj].zerr * 2)) {
                     if (strncmp(notes + jj * 20, "                      ", 20) == 0) {
                         sprintf(tmp, "H %d of Cand %d", kk, ii + 1);
-                        strncpy(notes + jj * 20, tmp, 20);
+                        memcpy(notes + jj * 20, tmp, 20);
                         break;
                     }
                 }
@@ -638,9 +638,9 @@ static void center_string(char *outstring, char *instring, int width)
     memset(outstring, ' ', width);
     outstring[width] = '\0';
     if (len >= width) {
-        strncpy(outstring, instring, width);
+        memcpy(outstring, instring, width);
     } else {
-        strncpy(outstring + (width - len) / 2, instring, len);
+        memcpy(outstring + (width - len) / 2, instring, len);
     }
 }
 
@@ -1137,9 +1137,6 @@ ffdotpows *subharm_fderivs_vol(int numharm, int harmnum,
         vect_free(tmpout);
     }
 
-    fcomplex *tmpdat = gen_cvect(fftlen);
-    fcomplex *tmpout = gen_cvect(fftlen);
-
     // Perform the correlations in a thread-safe manner
 #ifdef _OPENMP
 #pragma omp parallel default(none) shared(pdata,shi,fftlen,binoffset,ffdot,invplan)
@@ -1338,7 +1335,7 @@ void inmem_add_ffdotpows(ffdotpows *fundamental, accelobs *obs,
         const long long rlen = (obs->highestbin + obs->corr_uselen) * ACCEL_RDR;
         float *powptr = fundamental->powers[0][0];
         float *fdp = obs->ffdotplane;
-        int ii, jj, zz, zind, subz;
+        int jj, zz, zind, subz;
         float *inpows, *outpows;
         long long offset;
 #ifdef _OPENMP

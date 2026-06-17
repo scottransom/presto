@@ -200,7 +200,7 @@ void rz_interp(fcomplex * data, long numdata, double r, double z,
 
     lodata = intfreq - kern_half_width;
     if (lodata < 0) {
-        loresp = abs(lodata);
+        loresp = labs(lodata);
         lodata = 0;
     } else {
         loresp = 0;

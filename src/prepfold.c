@@ -611,7 +611,8 @@ int main(int argc, char *argv[])
         (idata.bary && cmd->barypolycosP)) {
         char *polycofilenm;
         polycofilenm = (char *) calloc(strlen(outfilenm) + 9, sizeof(char));
-        sprintf(polycofilenm, "%s.polycos", outfilenm);
+        strcpy(polycofilenm, outfilenm);
+        strcat(polycofilenm, ".polycos");
         cmd->psrnameP = 1;
         if (cmd->timingP)
             cmd->psrname = make_polycos(cmd->timing, &idata, polycofilenm, cmd->debugP);
