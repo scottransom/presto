@@ -811,6 +811,181 @@ int read_subbands(float *fdata, int *delays, int numsubbands,
 }
 
 
+static void clean_rawblock(float *currentdata, float *rawdata,
+                           struct spectra_info *s, long long currentspec,
+                           fftwf_plan tplan, int domask,
+                           int *maskchans, int *nummasked, mask * obsmask)
+// Clean a single raw spectra block in a DM-independent way: copy it,
+// mask, clip, apply ignorechans, and transpose to channel-major order
+// (times most rapidly varying within each channel).  This mirrors steps
+// 1-6 and the transpose of prep_subbands() exactly, but does NOT
+// de-disperse (that is the per-candidate step, done by the caller via
+// dedisp_subbands()).  'currentspec' is the spectra count used to
+// compute the masking start time.  The cleaned block is written into
+// 'currentdata'; 'tplan' must have been planned for an in-place
+// spectra_per_subint x num_channels transpose.
+{
+    int ii, jj, offset;
+    double starttime = 0.0;
+
+    *nummasked = 0;
+
+    /* Copy the raw data into our working block */
+    memcpy(currentdata, rawdata,
+           s->spectra_per_subint * s->num_channels * sizeof(float));
+    starttime = currentspec * s->dt; // or -1 subint?
+    if (domask)
+        *nummasked = check_mask(starttime, s->time_per_subint, obsmask, maskchans);
+
+    /* Clip nasty RFI if requested and we're not masking all the channels */
+    if ((s->clip_sigma > 0.0) && !(domask && (*nummasked == -1)))
+        clip_times(currentdata, s->spectra_per_subint, s->num_channels,
+                   s->clip_sigma, s->padvals);
+
+    if (domask) {
+        if (*nummasked == -1) { /* If all channels are masked */
+            for (ii = 0; ii < s->spectra_per_subint; ii++)
+                memcpy(currentdata + ii * s->num_channels,
+                       s->padvals, s->num_channels * sizeof(float));
+        } else if (*nummasked > 0) {    /* Only some of the channels are masked */
+            int channum;
+            for (ii = 0; ii < s->spectra_per_subint; ii++) {
+                offset = ii * s->num_channels;
+                for (jj = 0; jj < *nummasked; jj++) {
+                    channum = maskchans[jj];
+                    currentdata[offset + channum] = s->padvals[channum];
+                }
+            }
+        }
+    }
+
+    if (s->num_ignorechans) { // These are channels we explicitly zero
+        int channum;
+        for (ii = 0; ii < s->spectra_per_subint; ii++) {
+            offset = ii * s->num_channels;
+            for (jj = 0; jj < s->num_ignorechans; jj++) {
+                channum = s->ignorechans[jj];
+                currentdata[offset + channum] = 0.0;
+            }
+        }
+    }
+
+    // Now transpose the raw block of data so that the times in each
+    // channel are the most rapidly varying index
+    fftwf_execute_r2r(tplan, currentdata, currentdata);
+}
+
+
+rawblock_reader *rawblock_reader_init(struct spectra_info *s, mask * obsmask)
+// Allocate and initialize a raw-block reader context for the read-once/
+// dedisperse-many path.  Mirrors the first-time allocation done inside
+// read_subbands()/prep_subbands(), but stores the state in a passed-in
+// context instead of file-scope statics so several candidates (and the
+// deferred buffer swap) can be handled at once.
+{
+    rawblock_reader *reader =
+        (rawblock_reader *) malloc(sizeof(rawblock_reader));
+
+    reader->num_channels = s->num_channels;
+    reader->spectra_per_subint = s->spectra_per_subint;
+    reader->currentspectra = 0;
+    reader->firsttime = 1;
+    reader->mask = (obsmask->numchan) ? 1 : 0;
+
+    // Needs to be twice as large for buffering if adding observations together
+    reader->frawdata = gen_fvect(2 * s->num_channels * s->spectra_per_subint);
+    reader->rawdata1 = gen_fvect(s->spectra_per_subint * s->num_channels);
+    reader->rawdata2 = gen_fvect(s->spectra_per_subint * s->num_channels);
+    reader->current_clean = reader->rawdata1;
+    reader->last_clean = reader->rawdata2;
+    // Make the transpose plan once.  FFTW_MEASURE clobbers the buffer
+    // during planning, so this must happen before any real data is read
+    // in.  We execute it with new-array execution on whichever buffer is
+    // "current", exactly as prep_subbands() does across its SWAPs.
+    reader->tplan1 = plan_transpose(s->spectra_per_subint, s->num_channels,
+                                    reader->current_clean, reader->current_clean);
+    return reader;
+}
+
+
+void rawblock_reader_advance(rawblock_reader * reader)
+// Roll the just-cleaned "current" block into the "last" slot so the next
+// read overwrites the now-stale block.  Call this once per raw block,
+// after every candidate has dedispersed the (current, last) pair.  This
+// is the deferred half of prep_subbands()'s SWAP(currentdata, lastdata).
+{
+    float *tmpswap;
+    SWAP(reader->current_clean, reader->last_clean);
+}
+
+
+int read_clean_rawblock(rawblock_reader * reader, struct spectra_info *s,
+                        int *maskchans, int *nummasked, mask * obsmask,
+                        int *padding)
+// Read one raw spectra block from disk and clean it (mask/clip/
+// ignorechans/transpose) into reader->current_clean, in channel-major
+// order.  This is the DM-independent half of read_subbands(); the caller
+// then de-disperses reader->current_clean (with reader->last_clean
+// supplying samples that wrap back across the block boundary) to each
+// candidate's subbands via dedisp_subbands(), and calls
+// rawblock_reader_advance() once all candidates have consumed the pair.
+//
+// Returns s->spectra_per_subint on a foldable block.  Returns 0 on the
+// first-time prime (which only fills the "last" slot, exactly like
+// read_subbands()'s first-time path) and on EOF.
+{
+    *nummasked = 0;
+    if (reader->firsttime) {
+        // Prime: read and clean the first block, then roll it into the
+        // "last" slot so the next (real) block can be dedispersed against
+        // it.  No foldable data is produced yet.
+        if (!s->get_rawblock(reader->frawdata, s, padding)) {
+            perror("Error: problem reading the raw data file in read_clean_rawblock()");
+            exit(-1);
+        }
+        clean_rawblock(reader->current_clean, reader->frawdata, s,
+                       reader->currentspectra, reader->tplan1, reader->mask,
+                       maskchans, nummasked, obsmask);
+        rawblock_reader_advance(reader);
+        reader->firsttime = 0;
+        return 0;
+    }
+    if (!s->get_rawblock(reader->frawdata, s, padding))
+        return 0;
+    clean_rawblock(reader->current_clean, reader->frawdata, s,
+                   reader->currentspectra, reader->tplan1, reader->mask,
+                   maskchans, nummasked, obsmask);
+    // Increment AFTER cleaning, matching read_subbands(): the first real
+    // block is cleaned with currentspectra still at its primed value.
+    reader->currentspectra += s->spectra_per_subint;
+    return s->spectra_per_subint;
+}
+
+
+void free_rawblock_reader(rawblock_reader * reader)
+// Free a raw-block reader context and its buffers/plan.
+{
+    if (reader == NULL)
+        return;
+    fftwf_destroy_plan(reader->tplan1);
+    vect_free(reader->frawdata);
+    vect_free(reader->rawdata1);
+    vect_free(reader->rawdata2);
+    free(reader);
+}
+
+
+int rawblock_dispersion_fits(int delay0, int spectra_per_subint)
+// Returns 1 if the largest channel dispersion delay fits within a single
+// block, 0 otherwise.  Mirrors the guard in read_subbands(): there must
+// not be more dispersion across a subband than there is time in a block.
+// With arbitrary per-candidate DMs this must be checked for each
+// candidate's delays (delays[0] is the largest, lowest-freq, delay).
+{
+    return (delay0 <= spectra_per_subint);
+}
+
+
 void flip_band(float *fdata, struct spectra_info *s)
 // Flip the bandpass
 {

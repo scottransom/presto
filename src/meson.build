@@ -118,6 +118,13 @@ executable('prepsubband',
     dependencies: [glib, fftw, gsl, libm, fits],
     include_directories: inc, link_with: libpresto, install: true)
 
+# Stage 3 unit check: factored reader vs original read_subbands (not installed)
+executable('reader_equiv_check',
+    sources: [files('../prepfold_tests/reader_equiv_check.c')] + INSTRUMENTOBJS,
+    dependencies: [glib, fftw, gsl, libm, fits],
+    include_directories: inc, link_with: libpresto,
+    build_by_default: false, install: false)
+
 executable('psrorbit',
     sources: ['psrorbit.c'] + PLOT2DOBJS,
     dependencies: [glib, fftw, gsl, libm, pgplot, cpgplot, x11, png],

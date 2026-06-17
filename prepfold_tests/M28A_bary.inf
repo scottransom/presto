@@ -1,0 +1,19 @@
+ Data file name without suffix          =  M28_bary
+ Telescope used                         =  Chandra
+ Instrument used                        =  HRC-S
+ Object being observed                  =  M28A
+ J2000 Right Ascension (hh:mm:ss.ssss)  =  18:24:32.0077
+ J2000 Declination     (dd:mm:ss.ssss)  =  -24:52:10.771
+ Data observed by                       =  Chandra Staff
+ Epoch of observation (MJD)             =  52586.24269631531
+ Barycentered?           (1=yes, 0=no)  =  1
+ Number of bins in the time series      =  6700000000
+ Width of each time series bin (sec)    =  0.0005
+ Any breaks in the data? (1=yes, 0=no)  =  0
+ Type of observation (EM band)          =  X-ray
+ Field-of-view diameter (arcsec)        =  3.000000
+ Central energy (kev)                   =  1.000000
+ Energy bandpass (kev)                  =  5.000000
+ Data analyzed by                       =  Scott Ransom
+ Any additional notes:
+    Quick and dirty analysis.
