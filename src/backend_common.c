@@ -23,6 +23,7 @@ extern short transpose_float(float *a, int nx, int ny, unsigned char *move,
 extern double DATEOBS_to_MJD(char *dateobs, int *mjd_day, double *mjd_fracday);
 extern void read_filterbank_files(struct spectra_info *s);
 extern void read_PSRFITS_files(struct spectra_info *s);
+extern void free_PSRFITS_files(struct spectra_info *s);
 extern fftwf_plan plan_transpose(int rows, int cols, float *in, float *out);
 extern int *ranges_to_ivect(char *str, int minval, int maxval, int *numvals);
 
@@ -66,6 +67,7 @@ void close_rawfiles(struct spectra_info *s)
         for (ii = 0; ii < s->num_files; ii++)
             fits_close_file(s->fitsfiles[ii], &status);
         free(s->fitsfiles);
+        free_PSRFITS_files(s);
     } else {
         for (ii = 0; ii < s->num_files; ii++)
             fclose(s->files[ii]);

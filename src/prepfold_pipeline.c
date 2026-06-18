@@ -56,6 +56,7 @@ void identify_and_open_input(Cmdline *cmd, struct spectra_info *s, infodata *ida
             if ((cmd->startT != 0.0) || (cmd->endT != 1.0)) {
                 rootnm = (char *) calloc(strlen(tmprootnm) + 11, sizeof(char));
                 sprintf(rootnm, "%s_%4.2f-%4.2f", tmprootnm, cmd->startT, cmd->endT);
+                free(tmprootnm);   /* contents copied into rootnm above */
             } else {
                 rootnm = tmprootnm;
             }

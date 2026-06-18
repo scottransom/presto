@@ -215,6 +215,7 @@ int main(int argc, char *argv[])
     /* Free our memory  */
     free_foldcand(&fc, cmd, &idata);
     cleanup_fold(cmd, &obsmask, insubs, data, rootnm, barytimes, topotimes);
+    free(events);               /* event list (NULL unless -events was used) */
 
     printf("Done.\n\n");
     return (0);
