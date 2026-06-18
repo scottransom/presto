@@ -42,9 +42,6 @@ static void print_percent_complete(int current, int number, char *what, int rese
 
 int main(int argc, char *argv[])
 {
-	struct timespec start, end;
-	clock_gettime(CLOCK_MONOTONIC, &start);
-
     int ii, rstep;
     double ttim, utim, stim, tott;
     struct tms runtimes;
@@ -312,11 +309,6 @@ int main(int argc, char *argv[])
     free_accelobs(&obs);
     g_slist_foreach(cands, free_accelcand, NULL);
     g_slist_free(cands);
-	
-	clock_gettime(CLOCK_MONOTONIC, &end);
-	long long tot = 0;
-	tot = (end.tv_sec - start.tv_sec) * 1000000000LL - (end.tv_nsec - start.tv_nsec);
-	printf("Total Time: %lld\n", tot);
     
     return (0);
 }
