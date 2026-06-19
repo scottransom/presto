@@ -27,6 +27,7 @@ tests/prepfold/*ACCEL*
 tests/prepfold/*.dat
 tests/prepfold/*.fits
 tests/prepfold/output.txt
+tests/prepfold/multi_output.txt
 tests/prepfold/__pycache__
 agent_instructions/
 AGENTS.md
