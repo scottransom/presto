@@ -120,7 +120,7 @@ executable('prepsubband',
 
 # Stage 3 unit check: factored reader vs original read_subbands (not installed)
 executable('reader_equiv_check',
-    sources: [files('../prepfold_tests/reader_equiv_check.c')] + INSTRUMENTOBJS,
+    sources: [files('../tests/prepfold/reader_equiv_check.c')] + INSTRUMENTOBJS,
     dependencies: [glib, fftw, gsl, libm, fits],
     include_directories: inc, link_with: libpresto,
     build_by_default: false, install: false)

@@ -88,7 +88,7 @@ check_fold M28A_bary_PSR_1824-2452A.pfd.bestprof
 reader_check_bin=""
 for cand in \
     "${PRESTO}/build/src/reader_equiv_check" \
-    "${_SCRIPT_DIR}/../build/src/reader_equiv_check" \
+    "${_SCRIPT_DIR}/../../build/src/reader_equiv_check" \
     "$(command -v reader_equiv_check 2>/dev/null)"; do
     [ -n "$cand" ] && [ -x "$cand" ] && { reader_check_bin="$cand"; break; }
 done
