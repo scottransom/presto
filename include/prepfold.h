@@ -247,6 +247,13 @@ void identify_and_open_input(Cmdline *cmd, struct spectra_info *s, infodata *ida
 
 void resolve_output_names(Cmdline *cmd, foldcand *fc, char *rootnm);
 
+/* Shared explicit-spin / output-name / epoch helpers, single-sourced so that  */
+/* prepfold and prepfold_multi cannot drift.                                    */
+char *make_autogen_candnm(int is_period, double x0);
+void build_output_filenames(foldcand *fc, char *rootnm);
+void resolve_default_proflen(Cmdline *cmd, prepfoldinfo *search);
+double bary_epoch_to_infinite_freq(infodata *idata, double bepoch, double dm);
+
 void compute_obs_timing(Cmdline *cmd, struct spectra_info *s, infodata *idata,
                         foldcand *fc, mask *obsmask, int insubs,
                         int useshorts, int ptsperrec, char *obs, char *ephem,
@@ -275,6 +282,17 @@ void compute_bary_corrections(Cmdline *cmd, foldcand *fc, double T,
                               char *ephem, int *numbarypts_out,
                               double **barytimes_out, double **topotimes_out);
 
+/* compute_bary_corrections split into a candidate-INDEPENDENT table builder    */
+/* (one TEMPO barycenter() call) and a per-candidate fold-frequency correction. */
+/* prepfold calls them via the compute_bary_corrections wrapper; prepfold_multi */
+/* calls compute_bary_table once and apply_bary_fold_correction per candidate.  */
+void compute_bary_table(double tepoch, double T, char *rastring, char *decstring,
+                        char *obs, char *ephem, int *numbarypts_out,
+                        double **barytimes_out, double **topotimes_out,
+                        double *avgvoverc_out);
+void apply_bary_fold_correction(foldcand *fc, int numbarypts,
+                                double *barytimes, double *topotimes);
+
 void compute_dispersion_delays(Cmdline *cmd, infodata *idata, foldcand *fc,
                                int numchan, int insubs);
 
@@ -286,6 +304,15 @@ void fold_timeseries(Cmdline *cmd, struct spectra_info *s, infodata *idata,
                      char *ephem, char *rastring, char *decstring, float **data_out,
                      int *numbarypts_out, double **barytimes_out,
                      double **topotimes_out);
+
+void fold_subband_block(Cmdline *cmd, foldcand *fc, float *data, long worklen,
+                        long numread, long partnum, double fold_time0,
+                        double foldf, double foldfd, double foldfdd,
+                        double *buffers, double *phasesadded);
+/* Fold one cleaned+dedispersed raw block (fc->nsub subbands, each `worklen`  */
+/* points in `data`) into this candidate's rawfolds/stats for sub-integration */
+/* `partnum`.  Shared by fold_timeseries (single-candidate) and prepfold_multi */
+/* (read-once/dedisperse-many) so the fold math lives in exactly one place.   */
 
 void optimize_candidate(Cmdline *cmd, infodata *idata, foldcand *fc,
                         plotflags *pflags, double T);
