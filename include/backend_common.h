@@ -1,6 +1,7 @@
 #include "fitsio.h"
 #include "mask.h"
 #include "makeinf.h"
+#include "fftw3.h"
 
 
 typedef enum {
@@ -105,6 +106,33 @@ int read_psrdata(float *fdata, int numspect, struct spectra_info *s, int *delays
 void get_channel(float chandat[], int channum, int numsubints, float rawdata[], struct spectra_info *s);
 int prep_subbands(float *fdata, float *rawdata, int *delays, int numsubbands, struct spectra_info *s, int transpose, int *maskchans, int *nummasked, mask *obsmask);
 int read_subbands(float *fdata, int *delays, int numsubbands, struct spectra_info *s, int transpose, int *padding, int *maskchans, int *nummasked, mask *obsmask);
+
+/* Multi-candidate raw reader (read once, dedisperse to many DMs).         */
+/* This holds the per-stream state that the file-scope statics in          */
+/* read_subbands()/prep_subbands() hold for the single-candidate path, so  */
+/* a raw block can be read and cleaned (mask/clip/ignorechans/transpose)   */
+/* exactly once and then dedispersed to many candidates -- each at its own */
+/* DM -- via dedisp_subbands().  The single-candidate path is unchanged.   */
+typedef struct rawblock_reader {
+    float *frawdata;          /* 2*num_channels*spectra_per_subint raw read buffer */
+    float *rawdata1;          /* cleaned channel-major block A                      */
+    float *rawdata2;          /* cleaned channel-major block B                      */
+    float *current_clean;     /* newest cleaned block (rawdata1 or rawdata2)        */
+    float *last_clean;        /* previous cleaned block (supplies cross-block samples) */
+    fftwf_plan tplan1;        /* transpose plan (spectra_per_subint x num_channels) */
+    long long currentspectra; /* per-reader spectra count (for masking start time) */
+    int firsttime;            /* 1 until the priming block has been read           */
+    int mask;                 /* whether obsmask has channels to apply             */
+    int num_channels;         /* cached for allocation/teardown                    */
+    int spectra_per_subint;   /* cached for allocation/teardown                    */
+} rawblock_reader;
+
+rawblock_reader *rawblock_reader_init(struct spectra_info *s, mask *obsmask);
+int read_clean_rawblock(rawblock_reader *reader, struct spectra_info *s, int *maskchans, int *nummasked, mask *obsmask, int *padding);
+void rawblock_reader_advance(rawblock_reader *reader);
+void free_rawblock_reader(rawblock_reader *reader);
+int rawblock_dispersion_fits(int delay0, int spectra_per_subint);
+
 void flip_band(float *fdata, struct spectra_info *s);
 int *get_ignorechans(char *ignorechans_str, int minchan, int maxchan, int *num_ignorechans, char **filestr);
 

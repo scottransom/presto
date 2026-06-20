@@ -109,7 +109,7 @@ executable('prepdata',
     include_directories: inc, link_with: libpresto, install: true)
 
 executable('prepfold',
-    sources: ['prepfold.c', 'prepfold_cmd.c', 'prepfold_utils.c', 'prepfold_plot.c', 'polycos.c', 'least_squares.f'] + INSTRUMENTOBJS + PLOT2DOBJS,
+    sources: ['prepfold.c', 'prepfold_pipeline.c', 'prepfold_cmd.c', 'prepfold_utils.c', 'prepfold_plot.c', 'polycos.c', 'least_squares.f'] + INSTRUMENTOBJS + PLOT2DOBJS,
     dependencies: [glib, fftw, gsl, libm, fits, pgplot, cpgplot, x11, png, omp],
     include_directories: inc, link_with: libpresto, install: true)
 
@@ -117,6 +117,13 @@ executable('prepsubband',
     sources: ['prepsubband.c', 'prepsubband_cmd.c'] + INSTRUMENTOBJS,
     dependencies: [glib, fftw, gsl, libm, fits],
     include_directories: inc, link_with: libpresto, install: true)
+
+# Stage 3 unit check: factored reader vs original read_subbands (not installed)
+executable('reader_equiv_check',
+    sources: [files('../tests/prepfold/reader_equiv_check.c')] + INSTRUMENTOBJS,
+    dependencies: [glib, fftw, gsl, libm, fits],
+    include_directories: inc, link_with: libpresto,
+    build_by_default: false, install: false)
 
 executable('psrorbit',
     sources: ['psrorbit.c'] + PLOT2DOBJS,

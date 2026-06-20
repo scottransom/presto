@@ -19,3 +19,14 @@ dist/
 .vscode/
 build/
 examplescripts/ppdot_*.png
+tests/prepfold/*pfd*
+tests/prepfold/Ter5*inf
+tests/prepfold/*.sub*
+tests/prepfold/*rfifind*
+tests/prepfold/*ACCEL*
+tests/prepfold/*.dat
+tests/prepfold/*.fits
+tests/prepfold/output.txt
+tests/prepfold/__pycache__
+agent_instructions/
+AGENTS.md

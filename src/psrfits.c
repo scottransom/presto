@@ -679,6 +679,28 @@ void read_PSRFITS_files(struct spectra_info *s)
 }
 
 
+void free_PSRFITS_files(struct spectra_info *s)
+// Free the buffers allocated by read_PSRFITS_files().  The FITS file
+// handles and the s->fitsfiles array itself are closed/freed separately
+// by close_rawfiles().
+{
+    // Per-file bookkeeping vectors (allocated at the top of the reader)
+    vect_free(s->start_subint);
+    vect_free(s->num_subint);
+    free(s->start_spec);
+    free(s->num_spec);
+    free(s->num_pad);
+    free(s->start_MJD);
+    // Padding values and the static spectra ring buffers
+    vect_free(s->padvals);
+    vect_free(cdatabuffer);
+    vect_free(fdatabuffer);
+    vect_free(offsets);
+    vect_free(scales);
+    vect_free(weights);
+}
+
+
 long long offset_to_PSRFITS_spectra(long long specnum, struct spectra_info *s)
 // This routine offsets into the PSRFITS files to the spectra
 // 'specnum'.  It returns the current spectra number.
