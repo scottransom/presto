@@ -89,7 +89,7 @@ String -ignorechan ignorechanstr {Comma separated string (no spaces!) of channel
 # one candidate's name, DM, and spin (p/pd/pdd or f/fd/fdd).  Appended to the
 # struct AFTER full_cmd_line to preserve the shared s_Cmdline layout (see top).
 
-String -candfile candfile {Text file listing candidates to fold (one per line; header line starts with #)}
+String -candfile candfile {Text file listing candidates to fold (one per row; '#' header names the columns -- see prepfold_multi(1))}
 
 # Rest of command line:
 

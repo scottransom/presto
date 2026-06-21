@@ -269,7 +269,7 @@ typedef struct s_Cmdline {
   /*@null*/char **argv;
   /***** the whole command line concatenated */
   char *full_cmd_line;
-  /***** -candfile: Text file listing candidates to fold (one per line; header line starts with #) */
+  /***** -candfile: Text file listing candidates to fold (one per row; '#' header names the columns -- see prepfold_multi(1)) */
   char candfileP;
   char* candfile;
   int candfileC;

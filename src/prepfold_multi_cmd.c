@@ -47,6 +47,7 @@ void usage(void)
 "    Example:\n"
 "      # name        DM      p            pd     pdd\n"
 "      J1748-2446A   242.30  0.0057360919 0.0    0.0\n"
+"    See the prepfold_multi(1) man page for the full candidate-file format.\n"
 "\n"
 "  Options (shared with prepfold):\n"
 "    -candfile FILE  Candidate list described above (required)\n"
