@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
     unsigned long filelen;
     double numsearched = 0.0, numtosearch = 0.0, trial_time, avg_time;
     fcomplex *data = NULL, *corrdata = NULL;
-    orbitparams trialorb, orb, bestorb;
+    orbitparams trialorb, orb, bestorb = {0};
     infodata idata;
     makedata mdata;
     psrparams psr;
@@ -162,7 +162,7 @@ int main(int argc, char *argv[])
         phiorb = TWOPI * trialorb.x / ppsr;
         rorb = T / trialorb.p;
         ro = T / ppsr;
-        if (strcmp("PSR B        ", psr.bname) == 0)
+        if (strncmp("PSR B        ", psr.bname, sizeof(psr.bname) - 1) == 0)
             printf("Using parameters from pulsar %s\n\n", psr.jname);
         else
             printf("Using parameters from pulsar %s\n\n", psr.bname);

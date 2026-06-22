@@ -368,7 +368,7 @@ int main(int argc, char *argv[])
 
     notes = malloc(sizeof(char) * newncand * 18 + 1);
     for (ii = 0; ii < newncand; ii++)
-        strncpy(notes + ii * 18, "                     ", 18);
+        memset(notes + ii * 18, ' ', 18);
 
     /* Check the database for possible known PSR detections */
 

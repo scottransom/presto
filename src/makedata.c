@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
     setsd(s1, s2);
 
     /* Initialization strings */
-    char datafilenm[200], infofilenm[200];
+    char datafilenm[205], infofilenm[205];
     FILE *datfile;
 
     /* For binary orbit integration */

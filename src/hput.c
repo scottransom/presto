@@ -138,18 +138,18 @@ int hputnr8(char *hstring,  /* FITS header string */
             double dval)    /* double number */
 {
     char value[30];
-    char format[8];
+    char format[16];
     unsigned int i;
 
     /* Translate value from binary to ASCII */
     if (ndec < 0) {
-        sprintf(format, "%%.%dg", -ndec);
+        snprintf(format, sizeof(format), "%%.%dg", -ndec);
         sprintf(value, format, dval);
         for (i = 0; i < strlen(value); i++)
             if (value[i] == 'e')
                 value[i] = 'E';
     } else {
-        sprintf(format, "%%.%df", ndec);
+        snprintf(format, sizeof(format), "%%.%df", ndec);
         sprintf(value, format, dval);
     }
 
@@ -310,7 +310,7 @@ int hputs(char *hstring,  /* FITS header */
 
     /* Put single quote at start of string */
     value[0] = squot;
-    strncpy(&value[1], cval, lcval);
+    memcpy(&value[1], cval, lcval);
 
     /* If string is less than eight characters, pad it with spaces */
     if (lcval < 8) {
@@ -451,7 +451,7 @@ int hputc(char *hstring,
         *vp = ' ';
 
     /*  Copy keyword to new entry */
-    strncpy(v1, keyword, lkeyword);
+    memcpy(v1, keyword, lkeyword);
 
     /*  Add parameter value in the appropriate place */
     vp = v1 + 8;
@@ -460,14 +460,14 @@ int hputc(char *hstring,
     *vp = ' ';
     vp = vp + 1;
     if (*value == squot) {
-        strncpy(vp, value, lval);
+        memcpy(vp, value, lval);
         if (lval + 12 > 31)
             lc = lval + 12;
         else
             lc = 30;
     } else {
         vp = v1 + 30 - lval;
-        strncpy(vp, value, lval);
+        memcpy(vp, value, lval);
         lc = 30;
     }
 
@@ -478,7 +478,7 @@ int hputc(char *hstring,
         vp = v1 + lc + 2;       /* Jul 16 1997: was vp = v1 + lc * 2 */
         *vp = '/';
         vp = vp + 1;
-        strncpy(vp, newcom, lcom);
+        memcpy(vp, newcom, lcom);
         for (v = vp + lcom; v < v2; v++)
             *v = ' ';
     }
@@ -565,7 +565,7 @@ int hputcom(char *hstring,
         /* If comment will not fit, do not add it */
         if (c0 - v1 > 77)
             return (-1);
-        strncpy(c0, "/ ", 2);
+        memcpy(c0, "/ ", 2);
     }
 
     /* Create new entry */
@@ -573,7 +573,7 @@ int hputcom(char *hstring,
         c1 = c0 + 2;
         if (c1 + lcom > v2)
             lcom = v2 - c1 - 2;
-        strncpy(c1, comment, lcom);
+        memcpy(c1, comment, lcom);
         lblank = v2 - c1 - lcom;
         c1 = c1 + lcom;
         for (i = 0; i < lblank; i++)
@@ -652,7 +652,7 @@ int hadd(char *hplace,  /* FITS header position for new keyword */
 
     /* Cover former first line with new keyword */
     lkey = strlen(keyword);
-    strncpy(hplace, keyword, lkey);
+    memcpy(hplace, keyword, lkey);
     if (lkey < 8) {
         for (i = lkey; i < 8; i++)
             hplace[i] = ' ';
@@ -973,7 +973,7 @@ void deg2str(char *string,  /* Character string (returned) */
              double deg,    /* Angle in degrees */
              int ndec)      /* Number of decimal places in degree string */
 {
-    char degform[8];
+    char degform[32];
     int field;
     char tstring[64];
     double deg1;
@@ -994,10 +994,10 @@ void deg2str(char *string,  /* Character string (returned) */
     /* Write angle to string, adding 4 digits to number of decimal places */
     field = ndec + 4;
     if (ndec > 0) {
-        sprintf(degform, "%%%d.%df", field, ndec);
+        snprintf(degform, sizeof(degform), "%%%d.%df", field, ndec);
         sprintf(tstring, degform, deg1);
     } else {
-        sprintf(degform, "%%%4d", field);
+        snprintf(degform, sizeof(degform), "%%%4d", field);
         sprintf(tstring, degform, (int) deg1);
     }
 
@@ -1019,19 +1019,19 @@ void num2str(char *string,  /* Character string (returned) */
              int field,     /* Number of characters in output field (0=any) */
              int ndec)      /* Number of decimal places in degree string */
 {
-    char numform[8];
+    char numform[32];
 
     if (field > 0) {
         if (ndec > 0) {
-            sprintf(numform, "%%%d.%df", field, ndec);
+            snprintf(numform, sizeof(numform), "%%%d.%df", field, ndec);
             sprintf(string, numform, num);
         } else {
-            sprintf(numform, "%%%dd", field);
+            snprintf(numform, sizeof(numform), "%%%dd", field);
             sprintf(string, numform, (int) num);
         }
     } else {
         if (ndec > 0) {
-            sprintf(numform, "%%.%df", ndec);
+            snprintf(numform, sizeof(numform), "%%.%df", ndec);
             sprintf(string, numform, num);
         } else {
             sprintf(string, "%d", (int) num);

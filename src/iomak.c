@@ -213,7 +213,7 @@ void read_mak_file(char basefilenm[], makedata * mdata)
 /* Read the data for makedata from the makefile. */
 {
     FILE *makefile;
-    char makefilenm[200], tmp[50];
+    char makefilenm[205], tmp[50];
     double tmponoff[40];
     int i;
 
@@ -376,7 +376,7 @@ void write_mak_file(makedata * mdata)
 /* Write the data for makedata to the makefile.  */
 {
     FILE *makefile;
-    char makefilenm[200];
+    char makefilenm[205];
     int i;
 
     sprintf(makefilenm, "%s.mak", mdata->basefilenm);

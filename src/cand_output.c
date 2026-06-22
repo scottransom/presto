@@ -13,7 +13,7 @@ void file_reg_candidates(fourierprops cand[], char *notes, int numcands,
     double T, pownph, pownpherr;
     int i, j, k = 0;
     int nlines = 77, pages, extralines, nwrit, linestoprint;
-    char output[40], infonm[100], command[200], tmp[] = "";
+    char output[40], infonm[100], command[300], tmp[] = "";
     rzwerrs rzws;
 
     sprintf(infonm, "%s.inf", name);
@@ -130,7 +130,7 @@ void file_bin_candidates(binaryprops cand[], char *notes, int numcands, char nam
     FILE *fname;
     int i, j, k = 0, wide;
     int nlines = 77, pages, extralines, nwrit, linestoprint;
-    char output[40], filenm[100], infonm[100], command[200], tmp[] = "";
+    char output[40], filenm[100], infonm[100], command[300], tmp[] = "";
 
     sprintf(filenm, "%s_bin", name);
     sprintf(infonm, "%s.inf", name);

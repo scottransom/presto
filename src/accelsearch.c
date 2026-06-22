@@ -309,5 +309,6 @@ int main(int argc, char *argv[])
     free_accelobs(&obs);
     g_slist_foreach(cands, free_accelcand, NULL);
     g_slist_free(cands);
+    
     return (0);
 }

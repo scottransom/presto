@@ -20,7 +20,7 @@ int split_root_suffix(char *input, char **root, char **suffix)
     sptr = strrchr(input, '.');
     if (sptr == NULL) {
         *root = (char *) calloc(len + 1, sizeof(char));
-        strncpy(*root, input, len);
+        strncpy(*root, input, len + 1);
         return 0;
     } else {
         rootlen = sptr - input;

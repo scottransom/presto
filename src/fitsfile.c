@@ -358,7 +358,7 @@ char *fitsrhead(char *filename,  /* Name of FITS image file */
         extname[0] = 0;
         hgets(header, "XTENSION", 32, extname);
         if (!strcmp(extname, "IMAGE")) {
-            strncpy(header, "SIMPLE  ", 8);
+            memcpy(header, "SIMPLE  ", 8);
             hputl(header, "SIMPLE", 1);
         }
         hputs(header, "COMMENT", "-------------------------------------------");
@@ -747,7 +747,7 @@ int fitsrthead(char *header,        /* Header for FITS tables file to read */
     int nfields;
     int ifield, ik, ln, i;
     char *h0, *h1, *tf1, *tf2;
-    char tname[12];
+    char tname[16];
     char temp[16];
     char tform[16];
     int tverb;
@@ -806,7 +806,7 @@ int fitsrthead(char *header,        /* Header for FITS tables file to read */
         /* First column of field */
         for (i = 0; i < 12; i++)
             tname[i] = 0;
-        sprintf(tname, "TBCOL%d", ifield + 1);
+        snprintf(tname, sizeof(tname), "TBCOL%d", ifield + 1);
         h1 = ksearch(h0, tname);
         pw[ifield].kf = 0;
         hgeti4(h0, tname, &pw[ifield].kf);
@@ -814,7 +814,7 @@ int fitsrthead(char *header,        /* Header for FITS tables file to read */
         /* Length of field */
         for (i = 0; i < 12; i++)
             tname[i] = 0;
-        sprintf(tname, "TFORM%d", ifield + 1);;
+        snprintf(tname, sizeof(tname), "TFORM%d", ifield + 1);
         tform[0] = 0;
         hgets(h0, tname, 16, tform);
         tf1 = tform + 1;
@@ -826,7 +826,7 @@ int fitsrthead(char *header,        /* Header for FITS tables file to read */
         /* Name of field */
         for (i = 0; i < 12; i++)
             tname[i] = 0;
-        sprintf(tname, "TTYPE%d", ifield + 1);;
+        snprintf(tname, sizeof(tname), "TTYPE%d", ifield + 1);
         temp[0] = 0;
         hgets(h0, tname, 16, temp);
         strcpy(pw[ifield].kname, temp);
