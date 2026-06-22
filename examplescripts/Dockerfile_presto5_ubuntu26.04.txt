@@ -1,5 +1,5 @@
 # Build with:
-# docker build --no-cache -t "alex88ridolfi/presto5:latest" - < Dockerfile_presto5_ubuntu24.04.txt
+# docker build --no-cache -t "alex88ridolfi/presto5:latest" - < Dockerfile_presto5_ubuntu26.04.txt
 
 FROM ubuntu:26.04
 
