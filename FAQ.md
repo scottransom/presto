@@ -112,18 +112,21 @@ with no additional options, it gives you a brief usage statement.
 
 ### **Does PRESTO use GPUs to speed up any of the routines?**
 
-There are currently two different versions of GPU-accelerated `accelsearch`,
-although to my knowledge, neither of them do jerk searches.
+There are currently *three* different versions of GPU-accelerated `accelsearch`,
+although to my knowledge, only the first one below does jerk searches.
 
-I believe that they can both be used as drop-in replacements for the regular
+I believe that they can all be used as drop-in replacements for the regular
 `accelsearch`, but with everything else coming from the current, standard
 PRESTO.
+
+From Mao Kuang and company (**recommended!**): https://github.com/zhejianglab/PrestoZL
+(Note: see their [paper!](https://iopscience.iop.org/article/10.3847/1538-4365/adf4e5)) 
 
 From Jintao Luo: https://github.com/jintaoluo/presto_on_gpu
 
 From Chris Laidler: https://github.com/ChrisLaidler/presto
 
-And slightly further afield, there is a new GPU implementation of the Fourier
+And slightly further afield, there is a different GPU implementation of the Fourier
 Domain Acceleration Search here:
 https://github.com/AstroAccelerateOrg/astro-accelerate
 
@@ -155,7 +158,7 @@ which can be enabled using the `-ncpus` option on the command line. However, the
 speed-ups are not huge, but they are there! I recommend that you give it a try,
 especially if you are doing jerk searches.
 
-Over the past few months, UVA undergraduate Erum Vohra has been working with me
+Over the past few months, previous UVA undergraduate Erum Vohra has worked with me
 to enable OpenMP speed-ups in other programs, and as of version 5.3.0, `rfifind`
 gets quite nice speed-ups via OpenMP using the `-ncpus` option. We are currently
 working to get some similar (but probably not as good) speed-ups in dedispersion
