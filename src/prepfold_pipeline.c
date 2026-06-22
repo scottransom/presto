@@ -569,7 +569,8 @@ void resolve_fold_params(Cmdline *cmd, infodata *idata, foldcand *fc,
         (idata->bary && cmd->barypolycosP)) {
         char *polycofilenm;
         polycofilenm = (char *) calloc(strlen(fc->outfilenm) + 9, sizeof(char));
-        sprintf(polycofilenm, "%s.polycos", fc->outfilenm);
+        strcpy(polycofilenm, fc->outfilenm);
+        strcat(polycofilenm, ".polycos");
         cmd->psrnameP = 1;
         if (cmd->timingP)
             cmd->psrname = make_polycos(cmd->timing, idata, polycofilenm, cmd->debugP);
