@@ -133,7 +133,7 @@ CLIG = clig
 PRESTOOBJS = amoeba.o atwood.o barycenter.o birdzap.o cand_output.o\
 	characteristics.o cldj.o chkio.o corr_prep.o corr_routines.o\
 	correlations.o database.o dispersion.o\
-	fastffts.o fftcalls.o fminbr.o fold.o fresnl.o ioinf.o\
+	fastffts.o fftcalls.o fold.o fresnl.o ioinf.o\
 	get_candidates.o iomak.o maximize_r.o maximize_rz.o\
 	maximize_rzw.o median.o minifft.o misc_utils.o clipping.o\
 	orbint.o output.o read_fft.o readpar.o responses.o\

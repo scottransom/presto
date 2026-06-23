@@ -146,6 +146,20 @@ assert round(pz[nn // 2] - 0.227675, 6) == 0
 assert round(pw[nn // 2] - 0.019462, 6) == 0
 print("success")
 
+print("Testing Fourier 1-D response maximization...", end=" ")
+N = 4096
+f = 1023.564
+data = 0.1 * np.random.standard_normal(4096) + np.cos(
+    2 * np.pi * f * np.linspace(0.0, 1.0, N, endpoint=False)
+)
+ft = presto.rfft(data, -1)
+derivs = presto.rderivs()
+rmax, maxpow = presto.max_r_arr(ft, 1023.3, derivs)
+predpow = N**2 / 4
+assert 0.9 * predpow < maxpow < 1.1 * predpow
+assert f - 0.03 < rmax < f + 0.03
+print("success")
+
 print("Testing angle functions...", end=" ")
 dd1 = 15.25
 dd2 = presto.dms2rad(*presto.deg2dms(dd1)) * presto.RADTODEG
