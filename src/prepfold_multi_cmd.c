@@ -51,6 +51,9 @@ void usage(void)
 "\n"
 "  Options (shared with prepfold):\n"
 "    -candfile FILE  Candidate list described above (required)\n"
+"    -ncpus N        Number of OpenMP threads (CPUs) used to fold candidates.\n"
+"                    Default: min(host CPU count, number of candidates).\n"
+"                    Must be >= 1; values above the host CPU count are capped.\n"
 "    -o ROOT         Root of the output file names\n"
 "    -filterbank     Raw data in SIGPROC filterbank format\n"
 "    -psrfits        Raw data in PSRFITS format\n"
@@ -151,7 +154,10 @@ Cmdline *parseCmdline(int argc, char **argv)
 
     /* Defaults (matching the clig -d values prepfold uses) */
     memset(&cmd, 0, sizeof(cmd));
-    cmd.ncpus = 1;      cmd.ncpusP = 1;     cmd.ncpusC = 1;
+    /* ncpusP intentionally left 0 here: it means "user gave -ncpus".  When it
+     * stays 0, main() picks the default thread count = min(host CPUs, #cands).
+     * cmd.ncpus = 1 is only a fallback if OpenMP is unavailable. */
+    cmd.ncpus = 1;
     cmd.clip = 6.0;
     cmd.npart = 64;
     cmd.pstep = 2;      cmd.pdstep = 4;     cmd.dmstep = 2;
@@ -270,6 +276,8 @@ Cmdline *parseCmdline(int argc, char **argv)
     /* ---- Validation ---- */
     if (!cmd.candfileP)
         cmdline_error("a candidate file is required (-candfile FILE)", NULL);
+    if (cmd.ncpusP && cmd.ncpus < 1)
+        cmdline_error("-ncpus must be >= 1", NULL);
     if (numfiles < 1)
         cmdline_error("at least one input data file is required", NULL);
     if (cmd.nsubP && (cmd.nsub < 1 || cmd.nsub > 4096))

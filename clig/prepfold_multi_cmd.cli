@@ -28,7 +28,7 @@ Commandline full_cmd_line
 
 # Options (in order you want them to appear)
 
-Int -ncpus   ncpus      {Number of processors to use with OpenMP} \
+Int -ncpus   ncpus      {Number of OpenMP threads (CPUs) used to fold candidates (default: min(host CPU count, number of candidates))} \
 	-r 1 oo  -d 1
 String -o       outfile {Root of the output file names}
 Flag   -filterbank  filterbank  {Raw data in SIGPROC filterbank format}
