@@ -411,19 +411,26 @@ int main(int argc, char *argv[])
     s.apply_scale = (cmd->noscalesP) ? 0 : -1;
     s.apply_offset = (cmd->nooffsetsP) ? 0 : -1;
     s.remove_zerodm = (cmd->zerodmP) ? 1 : 0;
-    if (cmd->ncpus > 1) {
 #ifdef _OPENMP
+    {
+        /* prepfold_multi parallelizes the per-candidate loop, so more threads   */
+        /* than candidates would simply idle.  Without an explicit -ncpus,       */
+        /* default to min(host CPU count, number of candidates).  An explicit    */
+        /* -ncpus is honored but still capped at the host CPU count.             */
         int maxcpus = omp_get_num_procs();
-        int openmp_numthreads = (cmd->ncpus <= maxcpus) ? cmd->ncpus : maxcpus;
+        int openmp_numthreads;
+        if (cmd->ncpusP)
+            openmp_numthreads = (cmd->ncpus <= maxcpus) ? cmd->ncpus : maxcpus;
+        else
+            openmp_numthreads = (maxcpus <= ncand) ? maxcpus : ncand;
+        if (openmp_numthreads < 1)
+            openmp_numthreads = 1;
         omp_set_dynamic(0);
         omp_set_num_threads(openmp_numthreads);
-        printf("Using %d threads with OpenMP\n\n", openmp_numthreads);
-#endif
-    } else {
-#ifdef _OPENMP
-        omp_set_num_threads(1);
-#endif
+        if (openmp_numthreads > 1)
+            printf("Using %d threads with OpenMP\n\n", openmp_numthreads);
     }
+#endif
     if (cmd->noclipP) {
         cmd->clip = 0.0;
         s.clip_sigma = 0.0;

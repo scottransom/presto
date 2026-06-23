@@ -72,11 +72,11 @@ infile ...
 .\" cligPart OPTIONS
 .SH OPTIONS
 .IP -ncpus
-Number of processors to use with OpenMP,
+Number of OpenMP threads (CPUs) used to fold candidates,
 .br
 1 Int value between 1 and oo.
 .br
-Default: `1'
+Default: the smaller of the host CPU count and the number of candidates.
 .IP -o
 Root of the output file names,
 .br
@@ -260,7 +260,8 @@ run field for field.
 The per-candidate loop (folding, optimizing, and writing each
 candidate's output) is parallelized with OpenMP; use
 .B -ncpus
-to set the number of threads.  Per-candidate results are bit-identical
+to set the number of threads (the default is the smaller of the host
+CPU count and the number of candidates).  Per-candidate results are bit-identical
 regardless of how many threads are used -- -ncpus only changes how many
 candidates are processed concurrently, never the arithmetic performed
 for any one of them.
