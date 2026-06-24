@@ -182,6 +182,7 @@ class stack:
             The block length for linear detrending of the powers (if detrending is needed)
         """
         ft = fftfile(ff)
+        print("XXX", ft.N)
         ft.detrended = True if detrended else ft.detrended
         fname = str(ft.ff)
         print(f"Adding '{fname}' to stack.")
@@ -193,9 +194,9 @@ class stack:
             self.filenms.append(fname)
             self.stack = np.zeros(ft.N // 2)
         else:
-            assert np.isclose(
-                self.df, ft.df
-            ), f"{fname} has freq spacing {ft.df:.12g} rather than {self.df:.12g}"
+            assert np.isclose(self.df, ft.df), (
+                f"{fname} has freq spacing {ft.df:.12g} rather than {self.df:.12g}"
+            )
         if self.N == ft.N:
             self.stack += ft.powers if ft.detrended else ft.rednoise_normalize()
         elif self.N < ft.N:  # truncate
@@ -207,8 +208,12 @@ class stack:
             )
         else:  # pad
             print(f"{fname} is longer than current stack. Padding.")
-            self.stack[: ft.N] += ft.powers if ft.detrended else ft.rednoise_normalize()
-            self.stack[ft.N :] += 1.0
+            self.stack[: ft.N // 2] += (
+                ft.powers[: ft.N // 2]
+                if ft.detrended
+                else ft.rednoise_normalize()[: ft.N // 2]
+            )
+            self.stack[ft.N // 2 :] += 1.0
         self.nstacked += 1
 
     def expected_stack_stats(self, hstack=False) -> tuple[float, float, float]:
@@ -319,7 +324,7 @@ class candidate:
         self.sigma = pp.candidate_sigma(power, nharm * nstack, 1)
 
     def __str__(self):
-        return f" {self.sigma:7.2f} {self.freq:15.8f} {1e3/self.freq:15.8f} {self.bin:13.3f} {self.power:8.2f} {self.nharm:5d}"
+        return f" {self.sigma:7.2f} {self.freq:15.8f} {1e3 / self.freq:15.8f} {self.bin:13.3f} {self.power:8.2f} {self.nharm:5d}"
 
     def __eq__(self, other):
         return self.sigma == other.sigma
@@ -433,7 +438,7 @@ class stackcands:
         out.write(
             f"# {'Sigma':^7} {'Freq (Hz)':^15} {'Period (ms)':^15} {'Fourier Bin':^13} {'Power':^8} {'#Harm':^5}\n"
         )
-        out.write(f"#{'-'*(7+15+15+13+8+5+6)}\n")
+        out.write(f"#{'-' * (7 + 15 + 15 + 13 + 8 + 5 + 6)}\n")
         for ii, cand in enumerate(self.cands):
             if ii > maxncands:
                 break
@@ -506,7 +511,7 @@ If no output candidate file name is given, the results will be written to stdout
     ss = stack(args.fftfiles)
     lobin = int(max(args.lobin, args.lofreq * ss.T))
     print(
-        f"\nLowest bin to use for searches or stats is {lobin} ({lobin/ss.T:.4f} Hz)\n"
+        f"\nLowest bin to use for searches or stats is {lobin} ({lobin / ss.T:.4f} Hz)\n"
     )
     ss.show_stats(lobin=lobin, hstack=False)
     args.nharms = min(pp.next2_to_n(args.nharms), 64)
