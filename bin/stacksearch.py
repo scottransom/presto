@@ -182,7 +182,6 @@ class stack:
             The block length for linear detrending of the powers (if detrending is needed)
         """
         ft = fftfile(ff)
-        print("XXX", ft.N)
         ft.detrended = True if detrended else ft.detrended
         fname = str(ft.ff)
         print(f"Adding '{fname}' to stack.")
