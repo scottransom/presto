@@ -201,9 +201,9 @@ class stack:
         elif self.N < ft.N:  # truncate
             print(f"{fname} is shorter than current stack. Truncating.")
             self.stack += (
-                ft.powers[: self.N]
+                ft.powers[: self.N // 2]
                 if ft.detrended
-                else ft.rednoise_normalize()[: self.N]
+                else ft.rednoise_normalize()[: self.N // 2]
             )
         else:  # pad
             print(f"{fname} is longer than current stack. Padding.")
