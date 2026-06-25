@@ -118,6 +118,11 @@ executable('prepsubband',
     dependencies: [glib, fftw, gsl, libm, fits],
     include_directories: inc, link_with: libpresto, install: true)
 
+executable('prepfold_multi',
+    sources: ['prepfold_multi.c', 'prepfold_multi_cmd.c', 'prepfold_pipeline.c', 'prepfold_utils.c', 'prepfold_plot.c', 'polycos.c', 'least_squares.f'] + INSTRUMENTOBJS + PLOT2DOBJS,
+    dependencies: [glib, fftw, gsl, libm, fits, pgplot, cpgplot, x11, png, omp],
+    include_directories: inc, link_with: libpresto, install: true)
+
 # Stage 3 unit check: factored reader vs original read_subbands (not installed)
 executable('reader_equiv_check',
     sources: [files('../tests/prepfold/reader_equiv_check.c')] + INSTRUMENTOBJS,
