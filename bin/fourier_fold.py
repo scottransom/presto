@@ -260,21 +260,12 @@ if __name__ == "__main__":
             DMs.append(idata.DM)
             if len(args) > 1:
                 var = estimate_profile_variance(fft, rr, Nbins=None, Ntrials=10)
-<<<<<<< Updated upstream
                 chis.append(
                     pp.compute_chi2(
                         profs[-1], np.float64(np.median(profs[-1])), np.float64(var)
                     )
                     / (len(profs[-1]) - 1.0)
                 )
-||||||| Stash base
-                chis.append(pp.compute_chi2(profs[-1], np.median(profs[-1]), var) / (len(profs[-1]) - 1.0))
-=======
-                chis.append(
-                    pp.compute_chi2(profs[-1], np.median(profs[-1]), var)
-                    / (len(profs[-1]) - 1.0)
-                )
->>>>>>> Stashed changes
 
         if len(args) == 1:
             # Now plot it
