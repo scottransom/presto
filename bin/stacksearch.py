@@ -23,7 +23,7 @@ class fftfile:
             The PRESTO .fft file to open
         """
         self.ff: os.PathLike = ff if isinstance(ff, os.PathLike) else Path(ff)
-        self.amps = np.memmap(self.ff, dtype=np.complex64)
+        self.amps = np.memmap(self.ff, dtype=np.complex64, mode="r")
         self.inf = pi.infodata(f"{str(self.ff)[:-4]}.inf")
         self.N: int = self.inf.N
         self.T: float = self.N * self.inf.dt
