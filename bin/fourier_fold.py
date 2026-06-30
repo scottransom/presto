@@ -92,7 +92,9 @@ def optimize_freq(fft, rr, var, Nbins=None, dr=0.01, maxoff=1.0):
     chis = np.zeros(len(rs))
     for ii, r in enumerate(rs):
         prof = get_fourier_prof(fft, r, 0.0, Nbins)
-        chis[ii] = pp.compute_chi2(prof, np.median(prof), var) / (len(prof) - 1.0)
+        chis[ii] = pp.compute_chi2(
+            prof, np.float64(np.median(prof)), np.float64(var)
+        ) / (len(prof) - 1.0)
     return chis, rs[chis.argmax()]
 
 
@@ -258,12 +260,21 @@ if __name__ == "__main__":
             DMs.append(idata.DM)
             if len(args) > 1:
                 var = estimate_profile_variance(fft, rr, Nbins=None, Ntrials=10)
+<<<<<<< Updated upstream
                 chis.append(
                     pp.compute_chi2(
                         profs[-1], np.float64(np.median(profs[-1])), np.float64(var)
                     )
                     / (len(profs[-1]) - 1.0)
                 )
+||||||| Stash base
+                chis.append(pp.compute_chi2(profs[-1], np.median(profs[-1]), var) / (len(profs[-1]) - 1.0))
+=======
+                chis.append(
+                    pp.compute_chi2(profs[-1], np.median(profs[-1]), var)
+                    / (len(profs[-1]) - 1.0)
+                )
+>>>>>>> Stashed changes
 
         if len(args) == 1:
             # Now plot it
