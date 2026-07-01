@@ -112,6 +112,13 @@ else
     echo "SKIP: reader_equiv_check (build it with 'meson compile -C build reader_equiv_check')"
 fi
 
+# Source-level guard: prepfold_multi_cmd.h must stay layout-compatible with
+# prepfold_cmd.h (the shared s_Cmdline trick that lets prepfold_multi reuse
+# prepfold_pipeline.c).  Pure header check -- no build or test data required.
+if ! sh "${_SCRIPT_DIR}/check_cmd_layout.sh"; then
+    FAILED=1
+fi
+
 echo "Finished"
 [ "${FAILED}" -eq 0 ] && echo "All tests PASSED." || { echo "One or more tests FAILED."; exit 1; }
 
