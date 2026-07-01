@@ -66,7 +66,7 @@ USEPROFILE = false
 
 # Very recent Intel CPUs might see a few percent speedup using -mavx
 CFLAGS = -I$(PRESTO)/include $(GLIBINC) $(CFITSIOINC) $(PGPLOTINC) $(FFTINC) \
-	-g -Wall -W -fPIC -O3 -ffast-math \
+	-g -Wall -W -fPIC -O3 \
 	-DUSEMMAP -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 CLINKFLAGS = $(CFLAGS) -Wl,-rpath,$(PRESTO)/lib
 
@@ -120,15 +120,16 @@ endif
 # Add to the search path for the executables
 VPATH = ../lib:../bin
 
-# When modifying the CLIG files, the is the location of the clig binary
-CLIG = clig
+# When modifying the CLIG files, the is the location of the pyclig binary
+# You can get pyCLIG here: https://github.com/scottransom/pyCLIG
+CLIG = pyclig
 
 # Rules for CLIG generated files
 %_cmd.c : ../clig/%_cmd.cli
-	cd ../clig ; $(CLIG) -o $*_cmd -d $<
+	cd ../clig ; $(CLIG) --style kr -t C,man -o $*_cmd -d $<
 	mv ../clig/$*_cmd.h ../include/
 	mv ../clig/$*_cmd.c .
-	cp ../clig/$*.1 ../docs/
+	mv ../clig/$*_cmd.1 ../docs/$*.1
 
 PRESTOOBJS = amoeba.o atwood.o barycenter.o birdzap.o cand_output.o\
 	characteristics.o cldj.o chkio.o corr_prep.o corr_routines.o\
@@ -242,7 +243,7 @@ prepsubband: prepsubband_cmd.c prepsubband_cmd.o prepsubband.o $(INSTRUMENTOBJS)
 	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ prepsubband.o prepsubband_cmd.o $(INSTRUMENTOBJS) $(PRESTOLINK) -lcfitsio -lm
 
 prepfold: prepfold_cmd.c prepfold_cmd.o prepfold.o prepfold_utils.o prepfold_pipeline.o prepfold_plot.o least_squares.o polycos.o readpar.o $(INSTRUMENTOBJS) $(PLOT2DOBJS) libpresto
-	$(FC) $(FLINKFLAGS) -o $(PRESTO)/bin/$@ prepfold.o prepfold_utils.o prepfold_plot.o prepfold_cmd.o least_squares.o polycos.o readpar.o $(PLOT2DOBJS) $(INSTRUMENTOBJS) $(LAPACKLINK) $(PRESTOLINK) $(PGPLOTLINK) -lcfitsio -lm
+	$(FC) $(FLINKFLAGS) -o $(PRESTO)/bin/$@ prepfold.o prepfold_utils.o prepfold_pipeline.o prepfold_plot.o prepfold_cmd.o least_squares.o polycos.o readpar.o $(PLOT2DOBJS) $(INSTRUMENTOBJS) $(LAPACKLINK) $(PRESTOLINK) $(PGPLOTLINK) -lcfitsio -lm
 
 show_pfd: show_pfd_cmd.c show_pfd.o show_pfd_cmd.o prepfold_utils.o prepfold_plot.o least_squares.o $(PLOT2DOBJS) libpresto
 	$(FC) $(FLINKFLAGS) -o $(PRESTO)/bin/$@ show_pfd.o show_pfd_cmd.o prepfold_utils.o prepfold_plot.o least_squares.o $(PLOT2DOBJS) $(LAPACKLINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
