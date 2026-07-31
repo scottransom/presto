@@ -385,7 +385,11 @@ int main(int argc, char *argv[])
                                           tmprfi_arr, tmpnumrfivect_arr, tmpnumrfi_arr)
 #endif
             {
+#ifdef _OPENMP
                 int t = omp_get_thread_num();
+#else
+                int t = 0;
+#endif
 
                 float *l_chandata = NULL, powavg, powstd, powmax;
                 l_chandata = gen_fvect(ptsperint);
