@@ -6,6 +6,12 @@ PRESTO is a large suite of pulsar search and analysis software developed primari
 
 **PRESTO has discovered well over 1500 pulsars, including ~500 recycled and/or binary pulsars!**
 
+## Version 6.0.1:
+ * `get_TOAs.py` now supports **CHIME** (telescope code `y`, observatory name `chime`).
+ * The conda-forge recipe moved to the v1 (rattler-build) `recipe.yaml` format, and now uses
+   `astropy-base` and `gsl >=2.8` (the latter so the package is co-installable with tempo2
+   while conda-forge's gsl 2.8 migration is in progress).
+
 ## Version 6.0.0:
  * **PRESTO is now on conda-forge!** Install the whole suite (C tools + Python package) with
    `conda install -c conda-forge presto-pulsar` (or `pixi add presto-pulsar`).  (The conda

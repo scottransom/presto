@@ -1,4 +1,20 @@
-## Development (unreleased, since v6.0.0):
+## Development (unreleased, since v6.0.1):
+
+## Version 6.0.1:
+ * A small release cut mainly so that the first conda-forge package ships the CHIME support in
+   `get_TOAs.py`, plus the conda-forge recipe updates requested during the staged-recipes review.
+ * `get_TOAs.py` now knows about **CHIME** (telescope code `y` for TEMPO-style TOAs, observatory
+   name `chime` for tempo2/Princeton-style output), so TOAs can be generated from CHIME folds
+   without hand-editing the telescope tables.  The script was also re-formatted with ruff.
+ * Converted the conda-forge recipe to the **v1 (rattler-build / CEP-13) recipe format**, at the
+   request of the `conda-forge/staged-recipes` reviewer: `conda-recipe/meta.yaml` is now
+   `conda-recipe/recipe.yaml` (`${{ }}` jinja, a `context:` block, `if:`/`then:` selectors, and a
+   `tests:` list).  Also switched the `astropy` run dependency to `astropy-base` (PRESTO only uses
+   core astropy), as the conda-forge linter suggested.
+ * conda-recipe: request `gsl >=2.8` explicitly.  conda-forge's global pin is still gsl 2.7 while
+   the gsl 2.8 migration is in flight, but tempo2 has already been rebuilt against 2.8, so a
+   build against 2.7 produced a package that could not be co-installed with tempo2.  Remove the
+   constraint once the global pin moves.
 
 ## Version 6.0.0:
  * **First conda-forge release, and a major dependency cleanup.** PRESTO v6 no longer
