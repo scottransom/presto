@@ -14,7 +14,7 @@
 schema_version: 1
 
 context:
-  version: "6.0.0"
+  version: "6.0.1"
   erfa_version: "2.0.1"
 
 package:
@@ -27,7 +27,7 @@ package:
 
 source:
   - url: https://github.com/scottransom/presto/archive/refs/tags/v${{ version }}.tar.gz
-    sha256: 352fc5967ef69ab37d235368a99ab18bf267cff9e34ad876368f15486d6de5aa
+    sha256: 953f4f709091f1d86c71ff4838e6469781e8a98984e2c5bca11e029bbeb9e407
   # Vendored ERFA (no conda-forge feedstock).  Staged in a dedicated directory;
   # build.sh normalizes it into subprojects/erfa-${{ erfa_version }}/ where
   # subprojects/erfa.wrap expects it.  Keep this hash in sync with erfa.wrap.
