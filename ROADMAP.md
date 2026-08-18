@@ -264,7 +264,7 @@ version) into the three files it keeps in sync.
 When that is complete (and integration into conda-forge is imminent), we will tag v6.
 
 **[IN PROGRESS]** v6.0.0 is stamped/tagged, and a conda-forge recipe is kept in-repo under
-`conda-recipe/` (`meta.yaml` + `build.sh`). It builds both halves (meson for `libpresto`/tools,
+`conda-recipe/` (`recipe.yaml` + `build.sh`). It builds both halves (meson for `libpresto`/tools,
 then `pip` for the Python package), vendoring the ERFA release tarball into
 `subprojects/erfa-2.0.1/` since ERFA has no conda-forge feedstock. First submission targets
 `linux-64` + `osx-64`; `osx-arm64` waits on a conda-forge `tempo2`. Remaining: get the

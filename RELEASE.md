@@ -45,8 +45,9 @@ curl -sL https://github.com/scottransom/presto/archive/refs/tags/vX.Y.Z.tar.gz |
 
 - **First release (bootstrapping the feedstock):** submit a recipe to
   [`conda-forge/staged-recipes`](https://github.com/conda-forge/staged-recipes) under
-  `recipes/presto/` (`meta.yaml` + `build.sh`). A copy of the recipe is kept in this repo
-  under `conda-recipe/` for reference. Notes:
+  `recipes/presto-pulsar/` (`recipe.yaml` + `build.sh`, in the v1/rattler-build recipe
+  format). A copy of the recipe is kept in this repo under `conda-recipe/` for reference.
+  Notes:
   - ERFA has no conda-forge feedstock, so the recipe vendors the ERFA release tarball as a
     second `source:` unpacked into `subprojects/erfa-2.0.1/` (meson builds it with no
     network); its BSD-3 `LICENSE` is bundled alongside PRESTO's `COPYING`.
@@ -57,7 +58,7 @@ curl -sL https://github.com/scottransom/presto/archive/refs/tags/vX.Y.Z.tar.gz |
 - **Subsequent releases:** once `presto-pulsar-feedstock` exists, conda-forge's
   **regro-cf-autotick-bot** usually opens the version-bump PR automatically within a day of
   the GitHub release. Just review/merge it (bump `build: number: 0`, re-pin deps if needed).
-  To do it manually, edit `recipe/meta.yaml`'s `version` + `sha256` in the feedstock and
+  To do it manually, edit `recipe/recipe.yaml`'s `version` + `sha256` in the feedstock and
   open a PR.
 
 ## Notes
