@@ -1,4 +1,21 @@
 ## Development (unreleased, since v6.0.1):
+ * conda-recipe: a round of packaging improvements from the conda-forge staged-recipes review
+   (thanks to @eunos-1128, who packaged both of the new dependencies below):
+   - **ERFA is no longer vendored.** A `liberfa` feedstock now exists on conda-forge, so the
+     recipe just lists `liberfa` in `requirements.host` instead of fetching and building the
+     ERFA tarball as a second source.  `--wrap-mode=nodownload` makes a missing `erfa.pc` a
+     loud configure-time error rather than a silent fallback to the vendoring path.  PRESTO's
+     `subprojects/erfa.wrap` is unchanged and still covers source builds with no system ERFA.
+     The package is now plain GPL-2.0-only (no bundled BSD-3 ERFA license).
+   - **`osx-arm64` builds are enabled**, now that `tempo2` is available for that platform;
+     only Windows is skipped.
+   - `meson setup` uses conda-forge's `${MESON_ARGS}`, which supplies the cross file needed
+     for cross-compiled targets like `osx-arm64`, and `meson compile` builds in parallel with
+     `-j ${CPU_COUNT}`.
+   - Dropped the Fortran compiler from the build requirements: PRESTO's compiled code has been
+     Fortran-free since v6.0.0, and PGPLOT supplies its own `libgfortran` runtime.
+   - Added a `package_contents` test that checks the installed tools, `libpresto`, `presto.pc`,
+     and the runtime data files.
 
 ## Version 6.0.1:
  * A small release cut mainly so that the first conda-forge package ships the CHIME support in

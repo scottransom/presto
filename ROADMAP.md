@@ -10,16 +10,15 @@ Package all of PRESTO — compiled code **and** Python modules — for conda-for
 installed trivially with `conda`/`pixi`. Most of the items below are prerequisites or
 simplifications that make clean packaging possible.
 
-**ERFA packaging wrinkle:** conda-forge has **no C-library ERFA package** (verified 2026-07:
-no `erfa`/`liberfa` feedstock exists, and `pyerfa` only ships a private Python extension — no
-`erfa.h` or `liberfa.so` to link against; Meson WrapDB has no erfa entry either). PRESTO
-handles this generally via `subprojects/erfa.wrap`: meson uses system ERFA when present and
-otherwise downloads/builds the release tarball automatically (offline: pre-place the tarball
-in `subprojects/packagecache/`). Since conda-forge builds have no network access, the PRESTO
-recipe should either (a) list the ERFA tarball as an extra source unpacked into
-`subprojects/packagecache/` (works today, but statically vendors it), or (b) — cleaner —
-submit a trivial `liberfa` feedstock to conda-forge first (autotools or meson build, ~30-line
-recipe) and depend on it. Prefer (b).
+**ERFA packaging wrinkle — [RESOLVED 2026-08-19].** conda-forge originally had no C-library
+ERFA package (verified 2026-07: no `erfa`/`liberfa` feedstock, and `pyerfa` only ships a
+private Python extension — no `erfa.h` or `liberfa.so` to link against). The recipe worked
+around this by vendoring the ERFA release tarball as a second `source:`. During the
+staged-recipes review, @eunos-1128 submitted and now maintains a **`liberfa` feedstock**, so
+the recipe simply lists `liberfa` in `requirements.host` — the preferred option (b) above.
+PRESTO's `subprojects/erfa.wrap` fallback is untouched and still serves source builds where
+no system ERFA is present; the recipe passes `--wrap-mode=nodownload` so a missing `erfa.pc`
+fails loudly instead of silently re-vendoring.
 
 ### Remove environment-variable requirements
 
@@ -263,14 +262,20 @@ version) into the three files it keeps in sync.
 
 When that is complete (and integration into conda-forge is imminent), we will tag v6.
 
-**[IN PROGRESS]** v6.0.0 is stamped/tagged, and a conda-forge recipe is kept in-repo under
-`conda-recipe/` (`recipe.yaml` + `build.sh`). It builds both halves (meson for `libpresto`/tools,
-then `pip` for the Python package), vendoring the ERFA release tarball into
-`subprojects/erfa-2.0.1/` since ERFA has no conda-forge feedstock. First submission targets
-`linux-64` + `osx-64`; `osx-arm64` waits on a conda-forge `tempo2`. Remaining: get the
+**[IN PROGRESS]** v6.0.1 is stamped/tagged, and a conda-forge recipe is kept in-repo under
+`conda-recipe/` (`recipe.yaml` + `build.sh`, in the v1/rattler-build format). It builds both
+halves (meson for `libpresto`/tools, then `pip` for the Python package) and takes ERFA from
+conda-forge's `liberfa`. Builds target `linux-64`, `osx-64`, and `osx-arm64` (the last became
+possible once `tempo2` was enabled for arm64 during the review). Remaining: get the
 `conda-forge/staged-recipes` PR reviewed and merged (creates `presto-pulsar-feedstock`; the
 plain `presto` name is taken on bioconda by an unrelated tool), after which
 the autotick bot handles version bumps.
+
+Deferred: `libpresto` currently installs as an unversioned `.so` with **no headers** (only
+`presto.pc`), so nothing can link against it from the package and the recipe declares no
+`run_exports`. To open that up later, install the headers under `include/presto/` (the names
+— `mask.h`, `median.h`, `vectors.h`, … — are too generic for a shared `include/`), give the
+library a `soversion:`, and only then add `run_exports` in the feedstock.
 
 ## Nice-to-haves
 

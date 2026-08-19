@@ -48,11 +48,10 @@ curl -sL https://github.com/scottransom/presto/archive/refs/tags/vX.Y.Z.tar.gz |
   `recipes/presto-pulsar/` (`recipe.yaml` + `build.sh`, in the v1/rattler-build recipe
   format). A copy of the recipe is kept in this repo under `conda-recipe/` for reference.
   Notes:
-  - ERFA has no conda-forge feedstock, so the recipe vendors the ERFA release tarball as a
-    second `source:` unpacked into `subprojects/erfa-2.0.1/` (meson builds it with no
-    network); its BSD-3 `LICENSE` is bundled alongside PRESTO's `COPYING`.
-  - First release targets `linux-64` + `osx-64`; `osx-arm64` is skipped until `tempo2` is
-    packaged for it (tempo2 is only needed at runtime for `prepfold -timing` polycos).
+  - ERFA comes from conda-forge's `liberfa` (in `requirements.host`); `--wrap-mode=nodownload`
+    makes a missing `erfa.pc` a loud configure-time failure rather than a silent fallback to
+    the `subprojects/erfa.wrap` vendoring path.
+  - Builds target `linux-64`, `osx-64`, and `osx-arm64` (only Windows is skipped).
   - Test the recipe offline with staged-recipes' `python build-locally.py` before opening
     the PR.
 - **Subsequent releases:** once `presto-pulsar-feedstock` exists, conda-forge's
@@ -63,7 +62,8 @@ curl -sL https://github.com/scottransom/presto/archive/refs/tags/vX.Y.Z.tar.gz |
 
 ## Notes
 
-- The ERFA tarball version tracked by the recipe is whatever `subprojects/erfa.wrap`
-  pins; keep the two in sync when bumping ERFA.
+- The recipe takes ERFA from conda-forge's `liberfa`, so it no longer has to track the
+  version pinned by `subprojects/erfa.wrap` (that wrap still serves source builds without a
+  system ERFA).
 - Version numbers live in exactly the three files `determine_version.py` rewrites &mdash;
   don't edit them by hand.

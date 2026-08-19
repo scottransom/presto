@@ -4,8 +4,7 @@ This directory holds a reference copy of PRESTO's conda-forge recipe. It is **no
 the normal meson/pixi build; it documents how PRESTO is packaged for conda-forge.
 
 - `recipe.yaml` / `build.sh` — the recipe. It builds `libpresto` + the C tools with meson,
-  then the Python package with pip, and vendors ERFA (which has no conda-forge feedstock) as
-  a second source.
+  then the Python package with pip, taking ERFA from conda-forge's `liberfa` package.
 
 The recipe uses the **v1 (rattler-build) recipe format** defined by
 [CEP-13](https://rattler.build/latest/reference/recipe_file/) — `recipe.yaml`, not the older
@@ -27,4 +26,4 @@ checklist.
 
 Once `presto-pulsar-feedstock` is created, its `recipe/recipe.yaml` becomes authoritative and
 conda-forge's autotick bot proposes version bumps automatically. Keep this copy roughly in
-sync when the packaging itself changes (deps, build steps, vendored ERFA version).
+sync when the packaging itself changes (deps, build steps).

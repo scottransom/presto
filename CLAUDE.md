@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## What PRESTO is
 
 PRESTO (PulsaR Exploration and Search TOolkit) is a suite of pulsar search and analysis
-software. The performance-critical core is ANSI C (with some Fortran); higher-level
+software. The performance-critical core is ANSI C (Fortran-free since v6.0.0); higher-level
 analysis, plotting, and orchestration are Python. The C code builds into a shared library
 (`libpresto`) plus a set of standalone command-line executables. The Python package
 (`presto`) wraps the same C routines via a SWIG extension and adds many pure-Python modules.
@@ -27,7 +27,7 @@ conda-forge's tempo2 sets it automatically). Note: `$PRESTO/bin` and
 `$PRESTO/lib` should **not** be on `PATH`/`LD_LIBRARY_PATH`/`PYTHONPATH` (unlike older versions).
 
 ```sh
-# 1. C / Fortran code and libpresto
+# 1. C code and libpresto
 meson setup build --prefix=$CONDA_PREFIX   # or $VIRTUAL_ENV, or $HOME, or omit for /usr/local
 python check_meson_build.py                # sanity-checks env vars vs. the meson config
 meson compile -C build
@@ -117,7 +117,8 @@ overwrite hand-edits when regenerating `prepfold_multi_cmd.[ch]`.
   `psrfits`, `prepfold`, `polycos`, `parfile`, `residuals`, `sifting`, `psr_utils`,
   `binary_psr`, plotting via `Pgplot`, and the `singlepulse` subpackage. Data files like
   `cosine_rand.json` are installed alongside the code.
-- `fftfit_src/` — Fortran FFTFIT routines wrapped via f2py.
+- `fftfit_src/` — FFTFIT, now pure Python (NumPy/SciPy); holds its tests and a reference
+  dataset. The old Fortran/f2py implementation was removed in v6.0.0.
 - `ppgplot_src/` — Python PGPLOT bindings.
 
 `wrappers/` contains older SWIG interface files (`.i`) and is largely legacy relative to the
