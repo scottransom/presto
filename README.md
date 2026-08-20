@@ -65,7 +65,7 @@ The software is composed of numerous routines designed to handle three main area
 2. Searching: Fourier-domain acceleration and jerk (`accelsearch`), single-pulse (`single_pulse_search.py`), and phase-modulation or sideband searches (`search_bin`).
 3. Folding: Candidate optimization (`prepfold` and `fourier_fold.py`) and Time-of-Arrival (TOA) generation (`get_TOAs.py`).
 4. Misc: Data exploration (`readfile`, `exploredat`, `explorefft`), de-dispersion planning (`DDplan.py`), date conversion (`mjd2cal`, `cal2mjd`), tons of python pulsar/astro libraries, average pulse creation and flux density estimation (`sum_profiles.py`), and more...
-5. Post Single Pulse Searching Tools: Grouping algorithm (`rrattrap.py`), Production and of single pulse diagnostic plots (`make_spd.py`, `plot_spd.py`, and `waterfaller.py`).
+5. Post Single Pulse Searching Tools: Single pulse plotting (`waterfaller.py`).
 
 Many additional utilities are provided for various tasks that are often required when working with pulsar data such as time conversions, Fourier transforms, time series and FFT exploration, byte-swapping, etc.
 

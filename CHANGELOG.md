@@ -8,6 +8,15 @@
    The `if/elif` copies knew about only 4-5 telescopes each and used `EB` for Effelsberg where
    the C code uses `EF`; the shared table covers all 22 names that PRESTO knows about.  Note that
    these are *not* the one-character TEMPO ids or tempo2 site names that `polycos.py` uses.
+ * **Removed the `presto.singlepulse` subpackage** and the three scripts that depended on it
+   (`make_spd.py`, `plot_spd.py`, `rrattrap.py`).  It turns out the subpackage was never
+   actually installed (`python/presto/meson.build` listed individual files and never picked up
+   the subdirectory), so those scripts have been dying with `ModuleNotFoundError` for some
+   time, and the code behind them had bit-rotted further than that: stale `psr_utils` constant
+   references and an out-of-date `barycenter()` call signature.  Rather than resurrect code
+   that nobody appears to have been able to run, it is removed; if you want it back, please
+   open an issue and it can be restored and fixed up.  Single-pulse *searching*
+   (`single_pulse_search.py`) and plotting (`waterfaller.py`) are unaffected.
  * `presto.presto.bary_to_topo()` no longer passes a stale array-length argument to
    `barycenter()` (it still needs a rewrite for its `numpy.linalg.old` import).
  * `INSTALL.md` and the top-level `meson.build` comments now document what the build flags

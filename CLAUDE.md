@@ -125,7 +125,7 @@ overwrite hand-edits when regenerating `prepfold_multi_cmd.[ch]`.
 active `presto_src/` binding.
 
 Python entry-point scripts live in `bin/` (e.g. `DDplan.py`, `single_pulse_search.py`,
-`get_TOAs.py`, `waterfaller.py`, `rrattrap.py`); `bin/meson.build` installs them.
+`get_TOAs.py`, `waterfaller.py`, `simple_zapbirds.py`); `bin/meson.build` installs them.
 
 ## Conventions
 
