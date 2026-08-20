@@ -1,4 +1,15 @@
 ## Development (unreleased, since v6.0.1):
+ * New module **`presto.observatories`**, holding the telescope-name to two-character ITOA
+   observatory code table that `barycenter()` needs, plus `telescope_to_tempocode()` and
+   `obscode()` lookups.  It mirrors `telescope_to_tempocode()` in `misc_utils.c` (which is not
+   wrapped for python) and replaces three separate hand-maintained copies of that mapping: the
+   `scopes` dict in `simple_zapbirds.py` and the `if/elif` chain in
+   `presto.presto.bary_to_topo()` (a third copy went away with `presto.singlepulse`, below).
+   The `if/elif` copies knew about only 4-5 telescopes each and used `EB` for Effelsberg where
+   the C code uses `EF`; the shared table covers all 22 names that PRESTO knows about.  Note that
+   these are *not* the one-character TEMPO ids or tempo2 site names that `polycos.py` uses.
+ * `presto.presto.bary_to_topo()` no longer passes a stale array-length argument to
+   `barycenter()` (it still needs a rewrite for its `numpy.linalg.old` import).
  * `INSTALL.md` and the top-level `meson.build` comments now document what the build flags
    actually buy: `buildtype=release` (`-O3`) is no faster than the default `debugoptimized`
    and loses the debug symbols, while `-Dc_args=-march=native` makes `accelsearch` roughly

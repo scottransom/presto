@@ -115,8 +115,8 @@ overwrite hand-edits when regenerating `prepfold_multi_cmd.[ch]`.
   as `presto.presto` (import via `from presto import presto`).
 - `presto/` — the pure-Python package: analysis and I/O modules such as `infodata`, `sigproc`,
   `psrfits`, `prepfold`, `polycos`, `parfile`, `residuals`, `sifting`, `psr_utils`,
-  `binary_psr`, plotting via `Pgplot`, and the `singlepulse` subpackage. Data files like
-  `cosine_rand.json` are installed alongside the code.
+  `binary_psr`, `observatories` (telescope name to observatory code), and plotting via
+  `Pgplot`. Data files like `cosine_rand.json` are installed alongside the code.
 - `fftfit_src/` — FFTFIT, now pure Python (NumPy/SciPy); holds its tests and a reference
   dataset. The old Fortran/f2py implementation was removed in v6.0.0.
 - `ppgplot_src/` — Python PGPLOT bindings.

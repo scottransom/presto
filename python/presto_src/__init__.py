@@ -7,6 +7,7 @@ import numpy as np
 from .prestoswig import *  # noqa: F401,F403  (SWIG-generated C symbols)
 from presto import Pgplot
 from presto import psr_utils
+from presto.observatories import obscode
 
 
 def val_with_err(
@@ -993,8 +994,8 @@ def bary_to_topo(pb, pbd, pbdd, infofilenm, ephem="DE200"):
     Warnings
     --------
     This routine is stale: it imports ``numpy.linalg.old`` (removed from
-    NumPy long ago) and calls ``barycenter()`` with an outdated argument
-    list, so it does not currently run. It is kept pending a rewrite.
+    NumPy long ago), so it does not currently run. It is kept pending a
+    rewrite.
     """
     from numpy.linalg.old import linear_least_squares
 
@@ -1010,18 +1011,12 @@ def bary_to_topo(pb, pbd, pbdd, infofilenm, ephem="DE200"):
     vel = np.zeros(nn, "d")
     ra = psr_utils.coord_to_string(obs.ra_h, obs.ra_m, obs.ra_s)
     dec = psr_utils.coord_to_string(obs.dec_d, obs.dec_m, obs.dec_s)
-    if obs.telescope == "Parkes":
-        tel = "PK"
-    elif obs.telescope == "Effelsberg":
-        tel = "EB"
-    elif obs.telescope == "Arecibo":
-        tel = "AO"
-    elif obs.telescope == "MMT":
-        tel = "MT"
-    else:
+    try:
+        tel = obscode(obs.telescope)
+    except KeyError:
         print("Telescope not recognized.")
         return 0
-    barycenter(tts, bts, vel, nn, ra, dec, tel, ephem)
+    barycenter(tts, bts, vel, ra, dec, tel, ephem)
     print("Topocentric start time = %17.11f" % tts[0])
     print("Barycentric start time = %17.11f" % bts[0])
     avgvel = np.add.reduce(vel) / nn
