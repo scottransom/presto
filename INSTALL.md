@@ -86,6 +86,28 @@ Another good test is to see if you can run and fit the default profile in `pygau
 
 If you want slightly faster FFT calls, just run the installed `makewisdom`. By default it uses `FFTW_MEASURE` and skips the largest FFT sizes, so it finishes in a few seconds; add `-patient` to instead use `FFTW_PATIENT` over the full set of sizes for higher-quality (but much slower, ~10-20 min) wisdom. It writes `fftw_wisdom.txt` straight into `{prefix}/share/presto` (or `$PRESTO/lib` if you have `PRESTO` set), which is where PRESTO looks for it at runtime — no manual copying needed. You can pass an explicit output path as an argument to override the destination.
 
+**Optimization flags:** the default `buildtype=debugoptimized` (`-O2` plus `-g`) is a good
+choice, and switching to `buildtype=release` (`-O3`, no `-g`) is *not* worth it — it makes no
+measurable difference to run times, and the debug symbols cost nothing at runtime while making
+any crash report far more useful.
+
+What *does* help is letting the compiler use your CPU's vector instructions:
+
+    meson setup build --prefix=$CONDA_PREFIX -Dc_args=-march=native
+
+On a modern x86-64 machine (i.e. one with AVX2 and FMA) that makes `accelsearch` roughly
+1.5-2x faster. Three caveats:
+  * **Only use this for builds you will run on the machine that compiled them.** A binary built
+    with `-march=native` will die with an illegal-instruction error on an older CPU, so don't do
+    this for a shared cluster install, a container, or a package you distribute.
+  * It only helps the compute-bound tools. I/O-bound ones like `prepsubband` see no change at
+    all (their output is bit-identical).
+  * It changes results at the roundoff level, since the compiler may then contract multiplies
+    and adds into FMA instructions. In an `accelsearch` test this meant identical candidates
+    with identical sigmas, and powers/frequencies differing in the last digit or two — well
+    inside the quoted uncertainties — but a `-march` build will not reproduce an earlier run
+    bit-for-bit.
+
 Note that you can uninstall everything via:
 
     cd $PRESTO/build

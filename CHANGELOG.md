@@ -1,4 +1,9 @@
 ## Development (unreleased, since v6.0.1):
+ * `INSTALL.md` and the top-level `meson.build` comments now document what the build flags
+   actually buy: `buildtype=release` (`-O3`) is no faster than the default `debugoptimized`
+   and loses the debug symbols, while `-Dc_args=-march=native` makes `accelsearch` roughly
+   1.5-2x faster on a CPU with AVX2/FMA -- for local builds only, since such binaries will
+   not run on older machines and their results differ at the roundoff level.
  * **Red noise removal is now a `libpresto` routine** rather than code living inside the
    `rednoise` program.  `deredden()` (in-core) and `deredden_file()` (streaming, and able to
    work in place) are declared in `misc_utils.h`.  The near-duplicate `deredden()` that lived

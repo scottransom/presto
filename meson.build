@@ -7,9 +7,16 @@ project('PRESTO', 'c',
   ],
 )
 # Other buildtype possibilities:
-#    'buildtype=release',
-#    'buildtype=debugoptimized',
+#    'buildtype=release',        # -O3 with no -g.  Measurably no faster than
+#                                #   the default, so we keep the debug symbols.
+#    'buildtype=debugoptimized', # -O2 plus -g  (the default, above)
 #    'buildtype=debug',
+# The optimization level is not the interesting knob:  what actually speeds up
+# the compute-bound tools is letting the compiler use the vector instructions
+# of the machine you are on.  Adding '-Dc_args=-march=native' to 'meson setup'
+# makes accelsearch roughly 1.5-2x faster on a modern x86-64 CPU (AVX2+FMA).
+# Only do that for builds you will run on that same machine, though -- see the
+# notes in INSTALL.md.
 # Can also set install prefix as option via e.g. 'prefix=/home/sransom'
 #    'prefix=/home/sransom'
 
