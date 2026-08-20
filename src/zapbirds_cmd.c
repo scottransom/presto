@@ -39,6 +39,8 @@ static Cmdline cmd = {
     /* baryvP = */ 1,
     /* baryv = */ 0.0,
     /* baryvC = */ 1,
+    /***** -constamp: Replace zapped bins with a constant amplitude, as PRESTO 6.0.1 and earlier did, instead of with noise */
+    /* constampP = */ 0,
     /***** uninterpreted rest of command line */
     /* argc = */ 0,
     /* argv = */ NULL,
@@ -222,6 +224,13 @@ void showOptionValues(void)
         }
     }
 
+    /***** -constamp: Replace zapped bins with a constant amplitude, as PRESTO 6.0.1 and earlier did, instead of with noise */
+    if (!cmd.constampP) {
+        printf("-constamp not found.\n");
+    } else {
+        printf("-constamp found:\n");
+    }
+
     if (!cmd.argc) {
         printf("no remaining parameters in argv\n");
     } else {
@@ -236,21 +245,22 @@ void showOptionValues(void)
 
 void usage(void)
 {
-    fputs("   [-zap] [-zapfile zapfile] [-in inzapfile] [-out outzapfile] [-baryv baryv] [--] infile ...\n", stderr);
+    fputs("   [-zap] [-zapfile zapfile] [-in inzapfile] [-out outzapfile] [-baryv baryv] [-constamp] [--] infile ...\n", stderr);
     fputs("      Allows you to interactively or automatically zap interference from an FFT.\n", stderr);
-    fputs("        -zap: Zap the birds in the FFT from 'zapfile' (write to the FFT file)\n", stderr);
-    fputs("    -zapfile: A file of freqs and widths to zap from the FFT (when using '-zap')\n", stderr);
-    fputs("              1 char* value\n", stderr);
-    fputs("         -in: A file containing a list of freqs (Hz) and the # of harmonics to zap\n", stderr);
-    fputs("              1 char* value\n", stderr);
-    fputs("        -out: A file to write that will contain the freqs and widths (Hz) zapped\n", stderr);
-    fputs("              1 char* value\n", stderr);
-    fputs("      -baryv: The radial velocity component (v/c) towards the target during the obs\n", stderr);
-    fputs("              1 double value between -0.1 and 0.1\n", stderr);
-    fputs("              default: `0.0'\n", stderr);
-    fputs("      infile: Input file name (no suffix) of floating point fft data.  A '.inf' file of the same name must also exist\n", stderr);
-    fputs("              1...16384 values\n", stderr);
-    fputs("  CLI code generated: 03Jul26\n", stderr);
+    fputs("         -zap: Zap the birds in the FFT from 'zapfile' (write to the FFT file)\n", stderr);
+    fputs("     -zapfile: A file of freqs and widths to zap from the FFT (when using '-zap')\n", stderr);
+    fputs("               1 char* value\n", stderr);
+    fputs("          -in: A file containing a list of freqs (Hz) and the # of harmonics to zap\n", stderr);
+    fputs("               1 char* value\n", stderr);
+    fputs("         -out: A file to write that will contain the freqs and widths (Hz) zapped\n", stderr);
+    fputs("               1 char* value\n", stderr);
+    fputs("       -baryv: The radial velocity component (v/c) towards the target during the obs\n", stderr);
+    fputs("               1 double value between -0.1 and 0.1\n", stderr);
+    fputs("               default: `0.0'\n", stderr);
+    fputs("    -constamp: Replace zapped bins with a constant amplitude, as PRESTO 6.0.1 and earlier did, instead of with noise\n", stderr);
+    fputs("       infile: Input file name (no suffix) of floating point fft data.  A '.inf' file of the same name must also exist\n", stderr);
+    fputs("               1...16384 values\n", stderr);
+    fputs("  CLI code generated: 20Aug26\n", stderr);
     fputs("  ", stderr);
     exit(EXIT_FAILURE);
 }
@@ -307,6 +317,11 @@ Cmdline *parseCmdline(int argc, char **argv)
             cmd.baryvC = i - keep;
             checkDoubleLower("-baryv", &cmd.baryv, cmd.baryvC, 0.1);
             checkDoubleHigher("-baryv", &cmd.baryv, cmd.baryvC, -0.1);
+            continue;
+        }
+
+        if (0 == strcmp("-constamp", argv[i])) {
+            cmd.constampP = 1;
             continue;
         }
 

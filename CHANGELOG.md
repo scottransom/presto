@@ -1,4 +1,27 @@
 ## Development (unreleased, since v6.0.1):
+ * **Changed default: zapped Fourier bins are now filled with noise, not a constant.**
+   `zapbirds`, `simple_zapbirds.py`, and `accelsearch -zaplist` used to replace every bin of a
+   zapped region with the same amplitude (the square root of the local mean power).  That gives
+   the region *zero* scatter, which badly distorts the local power statistics that everything
+   reading the FFT afterwards normalizes against -- harmful whenever the zapped region is not
+   very small.  The zapped bins are now replaced by powers drawn from a chi-squared distribution
+   with 2 degrees of freedom (what pure noise powers follow), scaled so their mean matches the
+   local mean power, with uniformly random phases, leaving the region statistically
+   indistinguishable from its surroundings.  **This changes search results on any data whose FFT
+   is zapped.**  The replacement noise is drawn from a fixed seed, so zapping a given file with
+   a given birdie list is still repeatable, but results will not match those from PRESTO 6.0.1
+   or earlier.  Pass `-constamp` (`zapbirds`) or `--constamp` (`simple_zapbirds.py`) to get the
+   old constant-amplitude behavior back.
+ * `zapbirds` measures the local power level only *outside* the zapped region now.  Its
+   high-side window used to start 100 bins *below* the top of the region, so up to half of it
+   was contaminated by the very birdie being zapped.  Both windows now sit 100 bins clear of the
+   region, and whichever side(s) fall inside the file are used.
+ * `zapbirds` bug fix: birdies within ~300 bins of DC were silently not zapped at all (the
+   routine gave up when it could not measure a power level *below* the region).  Such birdies
+   are now zapped using the level measured above them.
+ * `zapbirds` bug fix: `get_rawbins()` was declared as taking an `int *` in `zapbirds.c` but
+   defined as taking a `long *`, so it wrote 8 bytes into a 4-byte stack variable on every call
+   in the interactive mode.
  * New module **`presto.observatories`**, holding the telescope-name to two-character ITOA
    observatory code table that `barycenter()` needs, plus `telescope_to_tempocode()` and
    `obscode()` lookups.  It mirrors `telescope_to_tempocode()` in `misc_utils.c` (which is not
@@ -19,6 +42,10 @@
    (`single_pulse_search.py`) and plotting (`waterfaller.py`) are unaffected.
  * `presto.presto.bary_to_topo()` no longer passes a stale array-length argument to
    `barycenter()` (it still needs a rewrite for its `numpy.linalg.old` import).
+ * `simple_zapbirds.py` now parses its command line with `argparse` (hence `--constamp` and a
+   real `-h`); its positional arguments are unchanged.  The file was also `ruff format`ted and
+   its py2 `builtins` imports dropped; its `scopes` table is kept as a readable grid (and is
+   noted as a duplicate of `telescope_to_tempocode()` in `misc_utils.c`).
  * `INSTALL.md` and the top-level `meson.build` comments now document what the build flags
    actually buy: `buildtype=release` (`-O3`) is no faster than the default `debugoptimized`
    and loses the debug symbols, while `-Dc_args=-march=native` makes `accelsearch` roughly

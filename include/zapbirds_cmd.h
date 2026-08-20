@@ -28,6 +28,8 @@ typedef struct s_Cmdline {
   int baryvP;
   double baryv;
   int baryvC;
+  /***** -constamp: Replace zapped bins with a constant amplitude, as PRESTO 6.0.1 and earlier did, instead of with noise */
+  int constampP;
   /***** uninterpreted command line parameters */
   int argc;
   char **argv;

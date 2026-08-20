@@ -25,8 +25,9 @@ static double T, dr;
 
 extern float calc_median_powers(fcomplex * amplitudes, int numamps);
 extern fcomplex *get_rawbins(FILE * fftfile, double bin,
-                             int numtoget, float *med, int *lobin);
-extern void zapbirds(double lobin, double hibin, FILE * fftfile, fcomplex * fft);
+                             int numtoget, float *med, long *lobin);
+extern void zapbirds(double lobin, double hibin, long numbins, FILE * fftfile,
+                     fcomplex * fft, int constamp);
 
 static birdie *birdie_create(double lofreq, double hifreq, double baryv)
 /* If baryv corrects barycentric freqs to topocentric */
@@ -71,7 +72,8 @@ static void birdie_print(gpointer data, gpointer user_data)
 static void process_bird(double basebin, int harm, double *lofreq, double *hifreq)
 {
     int ii, plotnumpts = 1000, not_done_yet = 1, plotoffset;
-    int lodatabin, firstcorrbin, numgoodpts, replot = 1;
+    int firstcorrbin, numgoodpts, replot = 1;
+    long lodatabin;
     char inchar;
     float med, xx[2], yy[2], inx, iny;
     float powargr, powargi, pwr, maxpow = 0.0, maxbin = 0.0;
@@ -89,8 +91,8 @@ static void process_bird(double basebin, int harm, double *lofreq, double *hifre
     xx[0] = xx[1] = pred_freq;
     data = get_rawbins(fftfile, truebin, BINSTOGET, &med, &lodatabin);
     if (lodatabin <= 0) {
-        data[abs(lodatabin)].r = 1.0;
-        data[abs(lodatabin)].i = 1.0;
+        data[labs(lodatabin)].r = 1.0;
+        data[labs(lodatabin)].i = 1.0;
     }
     firstcorrbin = (int) truebin - MAXBINSTOSHOW / 2;
     average = med / -log(0.5);
@@ -296,7 +298,8 @@ int main(int argc, char *argv[])
                 break;
             if (bird_hibins[ii] >= hibin)
                 bird_hibins[ii] = hibin - 1;
-            zapbirds(bird_lobins[ii], bird_hibins[ii], fftfile, NULL);
+            zapbirds(bird_lobins[ii], bird_hibins[ii], (long) hibin, fftfile,
+                     NULL, cmd->constampP);
         }
 
         vect_free(bird_lobins);

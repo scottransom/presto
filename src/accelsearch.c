@@ -17,7 +17,8 @@ extern void set_openmp_numthreads(int numthreads);
 #endif
 
 extern float calc_median_powers(fcomplex * amplitudes, int numamps);
-extern void zapbirds(double lobin, double hibin, FILE * fftfile, fcomplex * fft);
+extern void zapbirds(double lobin, double hibin, long numbins, FILE * fftfile,
+                     fcomplex * fft, int constamp);
 
 static void print_percent_complete(int current, int number, char *what, int reset)
 {
@@ -101,7 +102,7 @@ int main(int argc, char *argv[])
                 break;
             if (bird_hibins[ii] >= hibin)
                 bird_hibins[ii] = hibin - 1;
-            zapbirds(bird_lobins[ii], bird_hibins[ii], NULL, obs.fft);
+            zapbirds(bird_lobins[ii], bird_hibins[ii], obs.numbins, NULL, obs.fft, 0);
         }
 
         vect_free(bird_lobins);

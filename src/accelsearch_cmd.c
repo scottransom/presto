@@ -615,7 +615,7 @@ void usage(void)
     fputs("    -noharmremove: Do not remove harmonically related candidates (never removed for numharm = 1)\n", stderr);
     fputs("           infile: Input file name(s) of the floating point .fft or .[s]dat file(s).  '.inf' file(s) of the same name must also exist\n", stderr);
     fputs("                   1...16384 values\n", stderr);
-    fputs("  CLI code generated: 03Jul26\n", stderr);
+    fputs("  CLI code generated: 20Aug26\n", stderr);
     fputs("  ", stderr);
     exit(EXIT_FAILURE);
 }

@@ -21,6 +21,8 @@ String  -out        outzapfile \
 Double  -baryv      baryv \
 	{The radial velocity component (v/c) towards the target during the obs} \
 	-r -0.1 0.1  -d 0.0
+Flag    -constamp   constamp \
+	{Replace zapped bins with a constant amplitude, as PRESTO 6.0.1 and earlier did, instead of with noise}
 
 # Rest of command line:
 
@@ -63,7 +65,7 @@ plus
 .BR -zapfile )
 reads a "zapfile" of frequency/width pairs (one per line, in Hz) --
 typically a standard birdie list built up over time for a given
-instrument/site -- and zeroes each corresponding range of Fourier
+instrument/site -- and replaces each corresponding range of Fourier
 bins in the
 .I .fft
 file directly.
@@ -71,6 +73,28 @@ file directly.
 should be given if the data (and hence the FFT) were barycentered, so
 that birdie frequencies known in the topocentric (observatory) frame
 are shifted correctly before zapping.
+.PP
+The replacement amplitudes are noise that matches the local spectrum:
+powers drawn from a chi-squared distribution with 2 degrees of freedom
+(the distribution that pure noise powers follow), scaled so that their
+mean matches the mean power measured just outside the zapped region,
+with uniformly random phases.  The measurement skips 100 bins on either
+side of the region, since the bins closest to a birdie are contaminated
+by its spectral leakage, and it uses whichever side (or both) of the
+region lies inside the file.
+.PP
+This matters because a zapped region is not ignored by the tools that
+read the FFT afterwards -- they normalize using the local power
+statistics, so a region whose amplitudes are all identical (which is
+what
+.B -constamp
+does, and what zapbirds did through PRESTO 6.0.1) has no scatter at all
+and can badly distort those statistics wherever the zapped region is
+not very small.  Filling with correctly distributed noise instead
+leaves the region statistically indistinguishable from its
+surroundings.  Note that this makes zapping non-deterministic in
+principle; in practice the noise is drawn from a fixed seed, so zapping
+a given FFT with a given zaplist is repeatable.
 .PP
 Interactive mode
 .RB ( -in

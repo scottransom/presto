@@ -1,20 +1,18 @@
 #!/usr/bin/env python
 
-from builtins import str
-from builtins import range
-from builtins import object
+from __future__ import annotations
+
+import argparse
 import sys
 import os
 import numpy as np
 import presto.infodata as pi
 import presto.presto as pp
+from presto.observatories import obscode
 
-scopes = {"gbt": "GB", "arecibo": "AO", "vla": "VL", "parkes": "PK",
-    "jodrell": "JB", "gb43m": "G1", "gb 140ft": "G1", "nrao20": "G1",
-    "nancay": "NC", "effelsberg": "EF", "srt": "SR", "fast": "FA",
-    "wsrt": "WT", "gmrt": "GM", "chime": "CH", "lofar": "LF",
-    "lwa": "LW", "mwa": "MW", "meerkat": "MK", "ata": "AT",
-    "k7": "K7", "geocenter": "0 "}
+# The replacement noise is drawn from a fixed seed so that zapping the same
+# files with the same birds always gives the same result.
+ZAPSEED = 1
 
 
 def mod_get_baryv(ra, dec, mjd, T, obs="PK", bary=True):
@@ -30,8 +28,7 @@ def mod_get_baryv(ra, dec, mjd, T, obs="PK", bary=True):
     if bary:
         tts = np.linspace(mjd, mjd + T / 86400.0, 200)
     else:
-        tts = np.linspace(mjd - 500.0 /86400.0,
-                          mjd + (T + 500) / 86400.0, 200)
+        tts = np.linspace(mjd - 500.0 / 86400.0, mjd + (T + 500) / 86400.0, 200)
     nn = len(tts)
     bts = np.zeros(nn, dtype=np.float64)
     vel = np.zeros(nn, dtype=np.float64)
@@ -59,7 +56,7 @@ def group_infiles(infilenms):
     """
     # Make sure that all the files are ".fft" files
     for infilenm in infilenms:
-        assert(infilenm.endswith(".fft"))
+        assert infilenm.endswith(".fft")
     # Sort the filenames
     names = sorted(infilenms)
     basenames = []
@@ -70,7 +67,7 @@ def group_infiles(infilenms):
             if name[:ind] not in basenames:
                 basenames.append(name[:ind])
             try:
-                dm = float(name[ind+3:-4])
+                dm = float(name[ind + 3 : -4])
             except ValueError:
                 dm = None
         except ValueError:
@@ -78,9 +75,9 @@ def group_infiles(infilenms):
                 basenames.append(name[:-4])
                 dm = None
         DMs.append(dm)
-    if len(basenames)==1:
+    if len(basenames) == 1:
         print(f"All files have the same basename '{basenames[0]}'")
-    if len(DMs)>1 and None in DMs:
+    if len(DMs) > 1 and None in DMs:
         print("Not all input file names have DM values")
     # Now sort via basename first, then DM, then anything else
     outnames = []
@@ -93,12 +90,12 @@ def group_infiles(infilenms):
                     tmp.append((DMs[ii], name))
                 else:
                     nodms.append(name)
-        tmp = sorted(tmp) # This sorts by DM, numerically
-        for fn in tmp: # These are the files with DMs
+        tmp = sorted(tmp)  # This sorts by DM, numerically
+        for fn in tmp:  # These are the files with DMs
             outnames.append(fn[1])
-        for fn in nodms: # These are the files without DMs
+        for fn in nodms:  # These are the files without DMs
             outnames.append(fn)
-    assert(len(outnames)==len(names))
+    assert len(outnames) == len(names)
     return basenames, outnames
 
 
@@ -120,64 +117,80 @@ def process_birds(birdlines, T, baryv, info):
         bary = 0
         baryfact = 1.0
         line = line[:-1]
-        if (len(line)<=3 or line[0]=='#'):
+        if len(line) <= 3 or line[0] == "#":
             continue
-        elif (line[0]=='P'):
+        elif line[0] == "P":
             (tmp, psrname, numharm) = line.split()
             numharm = int(numharm)
             psr = pp.psrepoch(psrname, info.epoch)
-            if (psr.orb.p):
+            if psr.orb.p:
                 (minv, maxv) = pp.binary_velocity(T, psr.orb)
             psrs += 1
-            for harm in range(1, numharm+1):
-                if (psr.orb.p):
+            for harm in range(1, numharm + 1):
+                if psr.orb.p:
                     midv = 0.5 * (maxv + minv)
                     midf = (1.0 + midv) * psr.f * harm
                     width = (maxv - minv) * psr.f * harm
-                    if (0.1 * width < min_psr_width):
+                    if 0.1 * width < min_psr_width:
                         width = width + min_psr_width
                     else:
                         width = width * 1.1
                 else:
                     midf = psr.f * harm
                     width = min_psr_width
-                if info.bary==0:
-                    midf /= (1.0 + baryv)
+                if info.bary == 0:
+                    midf /= 1.0 + baryv
                 birds.append((midf, width))
         else:
             words = line.split()
             increase_width = 0
             bary = 0
-            if (len(words) >= 3):
+            if len(words) >= 3:
                 freq = float(words[0])
                 width = float(words[1])
                 numharm = int(words[2])
-                if (len(words) >= 4):
+                if len(words) >= 4:
                     increase_width = int(words[3])
-                    if (len(words) >= 5):
+                    if len(words) >= 5:
                         bary = int(words[4])
                         if info.bary:
                             baryfact = 1.0 if bary else (1.0 + baryv)
                         else:
                             baryfact = (1.0 + baryv) if bary else 1.0
                 trains += 1
-                if (increase_width):
-                    for harm in range(1, numharm+1):
+                if increase_width:
+                    for harm in range(1, numharm + 1):
                         birds.append((freq * harm * baryfact, width * harm))
                 else:
-                    for harm in range(1, numharm+1):
+                    for harm in range(1, numharm + 1):
                         birds.append((freq * harm * baryfact, width))
             else:
                 freqs += 1
                 birds.append((float(words[0]), float(words[1])))
-    print("  Read %d freqs, %d pulsars, and %d harmonic series." % \
-          (freqs, psrs, trains))
-    print("  Total number of birdies = %d" % (len(birds))) 
+    print(
+        "  Read %d freqs, %d pulsars, and %d harmonic series." % (freqs, psrs, trains)
+    )
+    print("  Total number of birdies = %d" % (len(birds)))
     return sorted(birds)
 
 
-def zapfile(fftfile, zaplist, info):
+def zapfile(
+    fftfile,
+    zaplist,
+    info,
+    constamp: bool = False,
+    rng: np.random.Generator | None = None,
+) -> None:
     """Zap the frequencies and widths in zaplist from fftfile
+
+    The zapped bins are replaced by noise that matches the local spectrum:
+    powers drawn from a chi^2 distribution with 2 degrees of freedom (which
+    is what pure noise powers follow), scaled so that their mean matches the
+    mean power measured just outside the zapped region, and with uniformly
+    random phases.  That leaves the zapped region statistically
+    indistinguishable from its surroundings, which matters because the tools
+    that read the .fft file afterwards normalize using the local power
+    statistics.
 
     Parameters
     ----------
@@ -187,55 +200,72 @@ def zapfile(fftfile, zaplist, info):
         List of (freq, width)s (in Hz) to zap
     info : infodata object
         From the .inf file describing the .fft file
+    constamp : bool, optional
+        If True, set every zapped bin to a constant amplitude (the square
+        root of the local mean power) and leave its phase alone, which is
+        what this routine did through PRESTO 6.0.1.
+    rng : numpy.random.Generator, optional
+        The generator used to draw the replacement noise.  Defaults to one
+        seeded with ZAPSEED, so that repeated runs give identical results.
     """
+    if rng is None:
+        rng = np.random.default_rng(ZAPSEED)
     # Use memory-mapping
-    ft = np.memmap(fftfile, mode='r+', dtype='complex64')
+    ft = np.memmap(fftfile, mode="r+", dtype="complex64")
     T = info.dt * info.N
-    for (f, w) in zaplist:
+    for f, w in zaplist:
         lor = int(np.round((f - 0.5 * w) * T))
-        if lor < 1: lor = 1
-        if lor > len(ft): break
+        if lor < 1:
+            lor = 1
+        if lor > len(ft):
+            break
         hir = int(np.round((f + 0.5 * w) * T)) + 1
-        if hir > len(ft): hir = len(ft)
+        if hir > len(ft):
+            hir = len(ft)
         # print(lor, hir, lor/T, hir/T)
-        # To zap, so that median normalization works, and the Fourier
-        # phases are still correct, get the median level just outside
-        # the window, and use that as the target level within the
-        # zap window.  Remember that median != mean in power spectra
+        # Measure the local power level just outside the zap window, since
+        # the window itself is contaminated (that is why we are zapping it).
+        # Remember that median != mean in power spectra.
         winlol = int(np.round((f - 2 * w) * T))
-        if winlol < 1: winlol = 1
+        if winlol < 1:
+            winlol = 1
         winhir = int(np.round((f + 2 * w) * T))
-        if winhir > len(ft): winhir = len(ft)
+        if winhir > len(ft):
+            winhir = len(ft)
         win = np.abs(np.concatenate((ft[winlol:lor], ft[hir:winhir])))
-        tgt = np.sqrt(np.median(win**2) / np.log(2)) # sqrt(window mean power)
-        # the following sets each zap region aplitude to tgt
-        ft[lor:hir] *= tgt / np.abs(ft[lor:hir])
+        if win.size == 0:
+            print(
+                f"\n  Warning:  no bins available to measure the power "
+                f"level around {f} Hz.  Not zapping it."
+            )
+            continue
+        meanpow = np.median(win**2) / np.log(2)  # the local mean power
+        if constamp:
+            # The old behavior:  set each zapped amplitude to the same value
+            ft[lor:hir] *= np.sqrt(meanpow) / np.abs(ft[lor:hir])
+        else:
+            amps = np.sqrt(rng.exponential(meanpow, hir - lor))
+            phases = rng.uniform(0.0, 2 * np.pi, hir - lor)
+            ft[lor:hir] = amps * np.exp(1j * phases)
     ft.flush()
     fftfile.close()
 
-if __name__ == '__main__':
-    if len(sys.argv)==1:
-        print(
-    """\nusage:  simple_zapbirds.py .birdsfile .fftfile(s)
 
-  This routine does what makezaplist.py and zapbirds do, but all in 
-  one command, and over multiple .fft files.  It also auto-determines
-  the barycentric velocity.
-  
-  The format of the .birds file is a simple text file as shown below.
-  Lines starting with '#' are comments and with 'P' are assumed to name a
-  pulsar in the ATNF catalog.  The only columns that are required are the 
-  first (which specifies a freq, in Hz) and the second, which specifies 
-  the width (or, if a pulsar, the number of harmonics zapped).  All others
-  are optional.
+BIRDS_FORMAT = """
+The format of the .birds file is a simple text file as shown below.
+Lines starting with '#' are comments and with 'P' are assumed to name a
+pulsar in the ATNF catalog.  The only columns that are required are the
+first (which specifies a freq, in Hz) and the second, which specifies
+the width (or, if a pulsar, the number of harmonics zapped).  All others
+are optional.
 
-  The 'grow' flag specifies if the width for each harmonic increases in size.
-  That is sometimes useful for some types of RFI or for binary pulsars.
-  
-  The 'bary' column tells whether the specified freq is barycentric
-  or not (i.e. topocentric, like pure, local, RFI tones).
-  
-  Example .birds file:
+The 'grow' flag specifies if the width for each harmonic increases in size.
+That is sometimes useful for some types of RFI or for binary pulsars.
+
+The 'bary' column tells whether the specified freq is barycentric
+or not (i.e. topocentric, like pure, local, RFI tones).
+
+Example .birds file:
 #-------------------------------------
 # Freq   Width #harm  grow?  bary?
 #-------------------------------------
@@ -245,36 +275,70 @@ if __name__ == '__main__':
 PSR J1643-1224 10
 # Zap 100 Hz with a width of 0.2 Hz
 100.0    0.2
-""")
-    else:
-        birds = read_birds(sys.argv[1])
-        bases, infilenms = group_infiles(sys.argv[2:])
-        lastsize = 0
-        lastT = 0
-        lastbase = bases[0]
-        baryv = 0
-        for infilenm in infilenms:
-            currsize = os.stat(infilenm).st_size
-            with open(infilenm, "rb+") as infile:
-                currbase = [x for x in bases if infilenm.startswith(x)][-1]
-                if (currsize != lastsize) or (currbase != lastbase):
-                    fn, ext = os.path.splitext(infilenm)
-                    print(f"Reading file info from '{fn}.inf'")
-                    info = pi.infodata(fn+".inf")
-                    currT = info.dt * info.N
-                    # Only re-compute baryv if we need to
-                    if baryv==0 or (currbase != lastbase):
-                        baryv = mod_get_baryv(info.RA, info.DEC, info.epoch, currT, 
-                                              obs=scopes[info.telescope.lower()],
-                                              bary=info.bary)
-                    # Only re-compute freqs to zap if the times are also different
-                    if (currT != lastT):
-                        zaplist = process_birds(birds, currT, baryv, info)
-                        # print(zaplist)
-                # Now actually do the zapping
-                print(f"Zapping '{infilenm}' ... ", end='')
-                zapfile(infile, zaplist, info)
-                print("done.")
-                lastsize = currsize
-                lastbase = currbase
-                lastT = currT
+"""
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Zap birdies from one or more .fft files.  This routine "
+        "does what makezaplist.py and zapbirds do, but all in one "
+        "command, and over multiple .fft files.  It also "
+        "auto-determines the barycentric velocity.",
+        epilog=BIRDS_FORMAT,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument("birdsfile", help="The .birds file listing what to zap")
+    parser.add_argument("fftfiles", nargs="+", help="The .fft file(s) to zap")
+    parser.add_argument(
+        "--constamp",
+        action="store_true",
+        help="Replace zapped bins with a constant amplitude, "
+        "as PRESTO 6.0.1 and earlier did, instead of "
+        "with noise that matches the local spectrum",
+    )
+    if len(sys.argv) == 1:
+        parser.print_help()
+        sys.exit(0)
+    args = parser.parse_args()
+
+    birds = read_birds(args.birdsfile)
+    bases, infilenms = group_infiles(args.fftfiles)
+    rng = np.random.default_rng(ZAPSEED)
+    lastsize = 0
+    lastT = 0
+    lastbase = bases[0]
+    baryv = 0
+    for infilenm in infilenms:
+        currsize = os.stat(infilenm).st_size
+        with open(infilenm, "rb+") as infile:
+            currbase = [x for x in bases if infilenm.startswith(x)][-1]
+            if (currsize != lastsize) or (currbase != lastbase):
+                fn, ext = os.path.splitext(infilenm)
+                print(f"Reading file info from '{fn}.inf'")
+                info = pi.infodata(fn + ".inf")
+                currT = info.dt * info.N
+                # Only re-compute baryv if we need to
+                if baryv == 0 or (currbase != lastbase):
+                    baryv = mod_get_baryv(
+                        info.RA,
+                        info.DEC,
+                        info.epoch,
+                        currT,
+                        obs=obscode(info.telescope),
+                        bary=info.bary,
+                    )
+                # Only re-compute freqs to zap if the times are also different
+                if currT != lastT:
+                    zaplist = process_birds(birds, currT, baryv, info)
+                    # print(zaplist)
+            # Now actually do the zapping
+            print(f"Zapping '{infilenm}' ... ", end="")
+            zapfile(infile, zaplist, info, constamp=args.constamp, rng=rng)
+            print("done.")
+            lastsize = currsize
+            lastbase = currbase
+            lastT = currT
+
+
+if __name__ == "__main__":
+    main()

@@ -114,7 +114,10 @@ pass; in that case (and only in that case)
 .B -baryv
 should be given if the time series was barycentered, so that the
 zapped birdie frequencies (known in the topocentric frame) are
-shifted correctly before zapping.
+shifted correctly before zapping.  The zapped bins are replaced the
+same way
+.BR zapbirds (1)
+replaces them, with noise drawn to match the local power level.
 .PP
 .B -ncpus
 sets the number of OpenMP threads used to parallelize the search.
