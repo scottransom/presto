@@ -1452,82 +1452,6 @@ GSList *search_ffdotpows(ffdotpows *ffdot, int numharm, accelobs *obs, GSList *c
 }
 
 
-void deredden(fcomplex *fft, int numamps)
-/* Attempt to remove rednoise from a time series by using   */
-/* a median-filter of logarithmically increasing width.     */
-/* Thanks to Jason Hessels and Maggie Livingstone for the   */
-/* initial implementation (in rednoise.c)                   */
-{
-    int ii, ind, initialbuflen = 6, buflen, lastbuflen, maxbuflen = 200;
-    int binnum = 1, numwrote = 1;
-    float *powbuf, mean_old, mean_new, dslope = 1.0, norm;
-    float powargr, powargi;
-
-    /* Takes care of the DC term */
-    fft[0].r = 1.0;
-    fft[0].i = 0.0;
-
-    /* Step through the input FFT and create powers */
-    powbuf = gen_fvect(numamps);
-    for (ii = 0; ii < numamps; ii++)
-        powbuf[ii] = POWER(fft[ii].r, fft[ii].i);
-
-    /* Calculate initial values */
-    buflen = initialbuflen;
-    mean_old = median(powbuf + binnum, buflen) / log(2.0);
-
-    // Write the first half of the normalized block
-    // Note that this does *not* include a slope, but since it
-    // is only a few bins, that is probably OK.
-    norm = invsqrtf(mean_old);
-    for (ind = numwrote; ind < binnum + buflen / 2; ind++) {
-        fft[ind].r *= norm;
-        fft[ind].i *= norm;
-    }
-    numwrote += buflen / 2;
-    binnum += buflen;
-    lastbuflen = buflen;
-    buflen = initialbuflen * log(binnum);
-    if (buflen > maxbuflen)
-        buflen = maxbuflen;
-
-    while (binnum + buflen < numamps) {
-        // Calculate the next mean
-        mean_new = median(powbuf + binnum, buflen) / log(2.0);
-        // The slope between the last block median and the current median
-        dslope = (mean_new - mean_old) / (0.5 * (lastbuflen + buflen));
-        //printf("\n%d %.5g %.5g %.5g\n", buflen, mean_old, mean_new, dslope);
-
-        // Correct the last-half of the old block...
-        for (ii = 0, ind = numwrote; ind < binnum + buflen / 2; ii++, ind++) {
-            norm = invsqrtf(mean_old + dslope * ii);
-            fft[ind].r *= norm;
-            fft[ind].i *= norm;
-            //printf("  %10ld %4d %.5g\n", ii+numwrote, ii, 1.0/(norm*norm));
-        }
-        numwrote += ii;
-
-        /* Update our values */
-        binnum += buflen;
-        lastbuflen = buflen;
-        mean_old = mean_new;
-        buflen = initialbuflen * log(binnum);
-        if (buflen > maxbuflen)
-            buflen = maxbuflen;
-    }
-
-    // Deal with the last chunk (assume same slope as before)
-    for (ii = 0, ind = numwrote; ind < numamps; ii++, ind++) {
-        norm = invsqrtf(mean_old + dslope * ii);
-        fft[ind].r *= norm;
-        fft[ind].i *= norm;
-    }
-
-    /* Free the powers */
-    vect_free(powbuf);
-}
-
-
 void create_accelobs(accelobs *obs, infodata *idata, Cmdline *cmd, int usemmap)
 {
     int ii, rootlen, input_shorts = 0;
@@ -1631,9 +1555,11 @@ void create_accelobs(accelobs *obs, infodata *idata, Cmdline *cmd, int usemmap)
         obs->numbins = filelen / 2;
         printf("done.\n");
 
-        /* De-redden it */
+        /* De-redden it.  Let the median window grow logarithmically all */
+        /* the way to Nyquist, as this code always has.                   */
         printf("Removing red-noise...");
-        deredden(obs->fft, obs->numbins);
+        deredden(obs->fft, obs->numbins, 6, 200, 0.5 / idata->dt,
+                 idata->dt * filelen);
         printf("done.\n\n");
     }
 

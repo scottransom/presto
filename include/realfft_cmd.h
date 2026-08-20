@@ -20,6 +20,20 @@ typedef struct s_Cmdline {
   int diskfftP;
   /***** -mem: Force the use of the in-core memory FFT */
   int memfftP;
+  /***** -rednoise: Remove red noise from the FFT as it is computed, writing '_red.fft' and '_red.inf' files */
+  int rednoiseP;
+  /***** -startwidth: The initial windowing size for the red noise removal */
+  int startwidthP;
+  int startwidth;
+  int startwidthC;
+  /***** -endwidth: The final windowing size for the red noise removal */
+  int endwidthP;
+  int endwidth;
+  int endwidthC;
+  /***** -endfreq: The highest frequency where the red noise windowing increases */
+  int endfreqP;
+  double endfreq;
+  int endfreqC;
   /***** -tmpdir: Scratch directory for temp file(s) in out-of-core FFT */
   int tmpdirP;
   char *tmpdir;

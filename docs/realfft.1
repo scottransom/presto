@@ -8,7 +8,7 @@
 .\" Remove a pair to hand-edit that section instead.
 .\"
 .\" cligPart TITLE
-.TH "realfft" 1 "03Jul26" "pyCLIG-manuals" "Programmer's Manual"
+.TH "realfft" 1 "20Aug26" "pyCLIG-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -24,6 +24,10 @@ realfft \- Perform a single-precision FFT of real data or its inverse
 [-del]
 [-disk]
 [-mem]
+[-rednoise]
+[-startwidth startwidth]
+[-endwidth endwidth]
+[-endfreq endfreq]
 [-tmpdir tmpdir]
 [-outdir outdir]
 [--] infiles ...
@@ -41,6 +45,26 @@ Delete the original file(s) when performing the FFT.
 Force the use of the out-of-core memory FFT.
 .IP -mem
 Force the use of the in-core memory FFT.
+.IP -rednoise
+Remove red noise from the FFT as it is computed, writing '_red.fft' and '_red.inf' files.
+.IP -startwidth
+The initial windowing size for the red noise removal,
+.br
+1 Int value between 2 and 50.
+.br
+Default: `6'
+.IP -endwidth
+The final windowing size for the red noise removal,
+.br
+1 Int value between 50 and 500.
+.br
+Default: `100'
+.IP -endfreq
+The highest frequency where the red noise windowing increases,
+.br
+1 Double value between 0.1 and 10.
+.br
+Default: `6'
 .IP -tmpdir
 Scratch directory for temp file(s) in out-of-core FFT,
 .br
@@ -90,7 +114,35 @@ transformed; smaller files use a faster in-core FFT.
 .B -disk
 and
 .B -mem
-force one strategy or the other regardless of file size.  Output
+force one strategy or the other regardless of file size.
+.PP
+.B -rednoise
+removes red noise from the spectrum as part of the same pass, which is
+equivalent to running
+.BR rednoise (1)
+on the result but avoids writing, and then re-reading, the un-whitened
+.IR .fft .
+The output is named
+.I <root>_red.fft
+(with a matching
+.IR .inf ),
+exactly as
+.BR rednoise (1)
+would name it, and the un-whitened
+.I .fft
+is never created.  The
+.BR -startwidth ,
+.B -endwidth
+and
+.B -endfreq
+options control the running-median window exactly as they do in
+.BR rednoise (1),
+and an input
+.I .inf
+file must be present since the observation length is needed.  Red noise
+removal only makes sense for a forward transform.
+.PP
+Output
 file(s) are written next to the input by default, or into
 .B -outdir
 if given; add

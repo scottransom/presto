@@ -22,6 +22,8 @@ typedef struct s_Cmdline {
   int endfreqP;
   double endfreq;
   int endfreqC;
+  /***** -inplace: Deredden the input file in place, renaming it, rather than writing a second copy */
+  int inplaceP;
   /***** uninterpreted command line parameters */
   int argc;
   char **argv;

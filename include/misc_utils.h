@@ -18,6 +18,22 @@ long long choose_good_N(long long orig_N);
 float invsqrtf(float x);
 // See http://en.wikipedia.org/wiki/Fast_inverse_square_root
 
+long deredden(fcomplex *fft, long numbins, int startwidth, int endwidth,
+              double endfreq, double T);
+/* Remove red noise, in place, from an in-core array of numbins complex     */
+/* Fourier amplitudes.  The running-median window grows logarithmically     */
+/* with frequency, from startwidth bins near DC to endwidth bins by endfreq */
+/* Hz.  T is the length of the original time series in seconds (i.e. N*dt). */
+/* Returns the number of bins processed, or -1 on error.                    */
+
+long deredden_file(FILE *infile, FILE *outfile, long numbins, int startwidth,
+                   int endwidth, double endfreq, double T);
+/* The same as deredden(), but streaming numbins complex amplitudes from    */
+/* infile to outfile so that files larger than memory can be processed.     */
+/* The two may be the same FILE * (opened for update, i.e. "rb+"), in which */
+/* case the amplitudes are dereddened in place -- the algorithm never       */
+/* writes a bin that it has not already read.                              */
+
 float beam_halfwidth(float freq, float dish_diam);
 // Return the beam halfwidth in arcsec when freq
 // is in MHz and dish_diam is in meters

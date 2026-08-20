@@ -19,6 +19,8 @@ Int     -endwidth endwidth  {The final windowing size.} \
 Double  -endfreq endfreq  {The highest frequency where the windowing increases.} \
 			-r 0.1 10 -d 6
 
+Flag    -inplace inplace {Deredden the input file in place, renaming it, rather than writing a second copy}
+
 # Rest of command line:
 
 Rest 		file 	{Input '.fft' file.} \
@@ -49,6 +51,15 @@ flattens out at higher ones.  Running rednoise before
 on data with significant red noise improves the effective sensitivity
 of the search by preventing the red-noise power from dominating the
 local normalization used to find candidates.
+.PP
+With
+.BR -inplace ,
+the amplitudes are whitened in place and the input file is then renamed
+to
+.IR <root>_red.fft .
+That halves both the disk space and the amount of I/O required, at the
+cost of destroying the original
+.IR .fft .
 .PP
 Inverting the whitened spectrum back to the time domain (i.e.
 .BR "realfft -inv" " on the"

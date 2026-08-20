@@ -824,3 +824,263 @@ double sphere_ang_diff(double ra1, double dec1, double ra2, double dec2)
 {
     return eraSeps(ra1, dec1, ra2, dec2);
 }
+
+
+/* Red noise removal.  The routines below implement the algorithm that  */
+/* used to live inside the rednoise program.  They are shared by        */
+/* rednoise and by realfft's "-rednoise" option.                        */
+
+/* From median.c (also declared in presto.h, which we cannot include here) */
+float median(float arr[], int n);
+
+/* The engine below reads and writes Fourier amplitudes through a pair of */
+/* tiny adapters so that the same code can deredden an in-core array or   */
+/* stream through a file (possibly in place).                             */
+
+typedef long (*dered_read_fn) (void *ctx, fcomplex * buf, long nbins);
+typedef void (*dered_write_fn) (void *ctx, fcomplex * buf, long nbins);
+
+typedef struct {
+    fcomplex *fft;              /* the array of amplitudes            */
+    long numbins;               /* its length in complex bins         */
+    long rpos, wpos;            /* current read and write positions   */
+} dered_mem_ctx;
+
+typedef struct {
+    FILE *infile, *outfile;     /* may be the same file (in-place)    */
+    long numbins;               /* number of complex bins to process  */
+    long rpos, wpos;            /* current read and write positions   */
+} dered_file_ctx;
+
+static long dered_mem_read(void *ctx, fcomplex * buf, long nbins)
+{
+    dered_mem_ctx *m = (dered_mem_ctx *) ctx;
+    long numtoread = m->numbins - m->rpos;
+
+    if (numtoread > nbins)
+        numtoread = nbins;
+    if (numtoread <= 0)
+        return 0;
+    memcpy(buf, m->fft + m->rpos, numtoread * sizeof(fcomplex));
+    m->rpos += numtoread;
+    return numtoread;
+}
+
+static void dered_mem_write(void *ctx, fcomplex * buf, long nbins)
+{
+    dered_mem_ctx *m = (dered_mem_ctx *) ctx;
+
+    if (nbins <= 0)
+        return;
+    memcpy(m->fft + m->wpos, buf, nbins * sizeof(fcomplex));
+    m->wpos += nbins;
+}
+
+static long dered_file_read(void *ctx, fcomplex * buf, long nbins)
+{
+    dered_file_ctx *f = (dered_file_ctx *) ctx;
+    long numtoread = f->numbins - f->rpos;
+
+    if (numtoread > nbins)
+        numtoread = nbins;
+    if (numtoread <= 0)
+        return 0;
+    /* The seeks are required (not just for in-place operation:  ANSI C */
+    /* demands a positioning call between reads and writes on a stream  */
+    /* opened for update).                                             */
+    fseeko(f->infile, (off_t) f->rpos * sizeof(fcomplex), SEEK_SET);
+    numtoread = fread(buf, sizeof(fcomplex), numtoread, f->infile);
+    f->rpos += numtoread;
+    return numtoread;
+}
+
+static void dered_file_write(void *ctx, fcomplex * buf, long nbins)
+{
+    dered_file_ctx *f = (dered_file_ctx *) ctx;
+
+    if (nbins <= 0)
+        return;
+    fseeko(f->outfile, (off_t) f->wpos * sizeof(fcomplex), SEEK_SET);
+    if (fwrite(buf, sizeof(fcomplex), nbins, f->outfile) != (size_t) nbins) {
+        perror("\nError writing amplitudes in deredden_file()");
+        printf("\n");
+        exit(-1);
+    }
+    f->wpos += nbins;
+}
+
+static long dered_engine(void *ctx, dered_read_fn readbins, dered_write_fn writebins,
+                         int startwidth, int endwidth, double endfreq, double T)
+/* Do the actual red noise removal.  Amplitudes are pulled in and pushed */
+/* back out through the adapters, in blocks whose length grows           */
+/* logarithmically with frequency (from startwidth bins near DC up to    */
+/* endwidth bins by endfreq Hz).  Each block is divided by the square    */
+/* root of a running median of the local power, linearly interpolated    */
+/* between the midpoints of neighboring blocks.  Returns the number of   */
+/* bins written, or -1 on error.                                        */
+{
+    long binnum = 1, numwrote = 0;
+    int bufflen, nblk_old, nblk_new, mid_old, mid_new;
+    int ii, ind;
+    float mean_old, mean_new, dslope = 1.0, norm, powr, powi;
+    /* The window growth used to be stopped using a single-precision T, */
+    /* so keep doing that in order to pick the same transition bin.     */
+    const float Tf = (float) T;
+    float *powbuf;
+    fcomplex *newbuf, *oldbuf, *inbuf1, *inbuf2, *outbuf, *tmpbuf;
+
+    inbuf1 = gen_cvect(endwidth);
+    inbuf2 = gen_cvect(endwidth);
+    outbuf = gen_cvect(endwidth);
+    powbuf = gen_fvect(endwidth);
+    oldbuf = inbuf1;
+    newbuf = inbuf2;
+
+    /* Takes care of the DC offset and Nyquist */
+    if (readbins(ctx, oldbuf, 1) != 1) {
+        printf("\nError in deredden():  could not read the first bin.\n\n");
+        goto error;
+    }
+    oldbuf[0].r = 1.0;
+    oldbuf[0].i = 0.0;
+    writebins(ctx, oldbuf, 1);
+    numwrote += 1;
+
+    // Calculates the first mean
+    bufflen = startwidth;
+    nblk_old = readbins(ctx, oldbuf, bufflen);
+    if (nblk_old != bufflen) {
+        printf("\nError in deredden():  number read (%d) != bufflen (%d)\n\n",
+               nblk_old, bufflen);
+        goto error;
+    }
+    // Buffer bin of the ~midpoint of the current block
+    mid_old = nblk_old / 2;
+
+    // Compute the powers
+    for (ii = 0; ii < nblk_old; ii++) {
+        powr = oldbuf[ii].r;
+        powi = oldbuf[ii].i;
+        powbuf[ii] = powr * powr + powi * powi;
+    }
+    mean_old = median(powbuf, nblk_old) / log(2.0);
+
+    // Write out the first half of the normalized block
+    // Note that this does *not* include a slope, but since it
+    // is only a few bins, that is probably OK.
+    norm = invsqrtf(mean_old);
+    for (ii = 0; ii < mid_old; ii++) {
+        outbuf[ii].r = oldbuf[ii].r * norm;
+        outbuf[ii].i = oldbuf[ii].i * norm;
+    }
+    writebins(ctx, outbuf, mid_old);
+    numwrote += mid_old;
+
+    // This is the Fourier bin index for the next read
+    binnum += nblk_old;
+    // This updates the length of the median block logarithmically
+    bufflen = startwidth * log(binnum);
+    if (bufflen > endwidth)
+        bufflen = endwidth;
+
+    while ((nblk_new = readbins(ctx, newbuf, bufflen))) {
+        mid_new = nblk_new / 2;
+        for (ii = 0; ii < nblk_new; ii++) {
+            powr = newbuf[ii].r;
+            powi = newbuf[ii].i;
+            powbuf[ii] = powr * powr + powi * powi;
+        }
+        mean_new = median(powbuf, nblk_new) / log(2.0);
+
+        // The slope between the last block median and the current median
+        dslope = (mean_new - mean_old) / (0.5 * (nblk_old + nblk_new));
+
+        // Correct the last-half of the old block...
+        for (ii = 0, ind = mid_old; ind < nblk_old; ii++, ind++) {
+            norm = invsqrtf(mean_old + dslope * ii);
+            outbuf[ii].r = oldbuf[ind].r * norm;
+            outbuf[ii].i = oldbuf[ind].i * norm;
+        }
+        // ...and the first-half of the new block
+        for (ind = 0; ind < mid_new; ii++, ind++) {
+            norm = invsqrtf(mean_old + dslope * ii);
+            outbuf[ii].r = newbuf[ind].r * norm;
+            outbuf[ii].i = newbuf[ind].i * norm;
+        }
+        // Write the normalized amplitudes
+        writebins(ctx, outbuf, ii);
+        numwrote += ii;
+
+        // Update the variables and pointers
+
+        binnum += nblk_new;
+        if ((float) binnum / Tf < endfreq) {
+            bufflen = startwidth * log(binnum);
+            if (bufflen > endwidth)
+                bufflen = endwidth;
+        } else {
+            bufflen = endwidth;
+        }
+        tmpbuf = oldbuf;
+        oldbuf = newbuf;
+        newbuf = tmpbuf;
+        nblk_old = nblk_new;
+        mean_old = mean_new;
+        mid_old = mid_new;
+    }
+    // Deal with the last chunk (assume same slope as before)
+    for (ii = 0, ind = mid_old; ind < nblk_old; ii++, ind++) {
+        norm = invsqrtf(mean_old + dslope * ii);
+        outbuf[ii].r = oldbuf[ind].r * norm;
+        outbuf[ii].i = oldbuf[ind].i * norm;
+    }
+    writebins(ctx, outbuf, nblk_old - mid_old);
+    numwrote += nblk_old - mid_old;
+
+    vect_free(inbuf1);
+    vect_free(inbuf2);
+    vect_free(outbuf);
+    vect_free(powbuf);
+    return numwrote;
+
+  error:
+    vect_free(inbuf1);
+    vect_free(inbuf2);
+    vect_free(outbuf);
+    vect_free(powbuf);
+    return -1;
+}
+
+long deredden(fcomplex * fft, long numbins, int startwidth, int endwidth,
+              double endfreq, double T)
+/* Remove red noise, in place, from an in-core array of numbins complex */
+/* Fourier amplitudes.  T is the length of the original time series in  */
+/* seconds (i.e. N*dt).  Returns the number of bins processed, or -1.   */
+{
+    dered_mem_ctx ctx;
+
+    ctx.fft = fft;
+    ctx.numbins = numbins;
+    ctx.rpos = ctx.wpos = 0;
+    return dered_engine(&ctx, dered_mem_read, dered_mem_write,
+                        startwidth, endwidth, endfreq, T);
+}
+
+long deredden_file(FILE * infile, FILE * outfile, long numbins, int startwidth,
+                   int endwidth, double endfreq, double T)
+/* Remove red noise from numbins complex Fourier amplitudes, streaming    */
+/* them from infile to outfile.  The two may be the same FILE * (opened   */
+/* for update, i.e. "rb+"), in which case the amplitudes are dereddened   */
+/* in place -- the algorithm never writes a bin it has not already read.  */
+/* T is the length of the original time series in seconds (i.e. N*dt).    */
+/* Returns the number of bins processed, or -1.                          */
+{
+    dered_file_ctx ctx;
+
+    ctx.infile = infile;
+    ctx.outfile = outfile;
+    ctx.numbins = numbins;
+    ctx.rpos = ctx.wpos = 0;
+    return dered_engine(&ctx, dered_file_read, dered_file_write,
+                        startwidth, endwidth, endfreq, T);
+}

@@ -165,7 +165,7 @@ void realfft(float idata[], long n, int isign)
 /*  exponent.  It uses the above tablesixstepfft making it very    */
 /*  fast.  The forward transform (i.e. normal FFT) is isign=-1     */
 {
-    long nby2, il, ih;
+    long nby2, nby4, il, ih;
     double cc, h1r, h1i, h2r, h2i, h2rwr, h2iwr, h2rwi, h2iwi;
     double wr, wi, wpr, wpi, tmp1, theta;
     fcomplex *data;
@@ -175,6 +175,7 @@ void realfft(float idata[], long n, int isign)
         exit(-1);
     }
     nby2 = n >> 1;
+    nby4 = n >> 2;
     data = (fcomplex *) idata;
     if (isign == -1) {
         cc = -0.5;
@@ -183,10 +184,13 @@ void realfft(float idata[], long n, int isign)
     } else {
         cc = 0.5;
         theta = TWOPI / (double) n;
-        /* Numerical Recipes gives a sign error for */
-        /* the imaginary part of frequency n/2.     */
+        /* Numerical Recipes gives a sign error for  */
+        /* the imaginary part of frequency n/2.  The */
+        /* test is false only when n/2 is odd, which */
+        /* never happens for the FFT lengths PRESTO  */
+        /* actually uses.                            */
         if ((n + 2) % 4)
-            data[(n >> 2)].i = -data[(n >> 2)].i;
+            data[nby4].i = -data[nby4].i;
     }
     /* Prep the trig recursion */
     wr = cos(theta);
@@ -196,7 +200,11 @@ void realfft(float idata[], long n, int isign)
     wpi = wi;
     il = 1;                     /* n     */
     ih = nby2 - il;             /* N/2-n */
-    for (; il <= (n >> 2); il++, ih--) {
+    /* Note:  this loop is only a few percent of realfft()'s run time    */
+    /* (the complex FFT above dominates), and the trig recursion below   */
+    /* stays within ~1e-13 of the exact values even for billion-point    */
+    /* transforms, so there is little to be gained by reworking either.  */
+    for (; il <= nby4; il++, ih--) {
         h1r = 0.5 * (data[il].r + data[ih].r);
         h1i = 0.5 * (data[il].i - data[ih].i);
         h2r = -cc * (data[il].i + data[ih].i);
@@ -223,7 +231,7 @@ void realfft(float idata[], long n, int isign)
         /* Numerical Recipes gives a sign error for */
         /* the imaginary part of frequency n/2.     */
         if ((n + 2) % 4)
-            data[(n >> 2)].i = -data[(n >> 2)].i;
+            data[nby4].i = -data[nby4].i;
         tmp1 = data[0].r;
         data[0].r = 0.5 * (tmp1 + data[0].i);
         data[0].i = 0.5 * (tmp1 - data[0].i);

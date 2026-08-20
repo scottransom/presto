@@ -33,6 +33,8 @@ static Cmdline cmd = {
     /* endfreqP = */ 1,
     /* endfreq = */ 6,
     /* endfreqC = */ 1,
+    /***** -inplace: Deredden the input file in place, renaming it, rather than writing a second copy */
+    /* inplaceP = */ 0,
     /***** uninterpreted rest of command line */
     /* argc = */ 0,
     /* argv = */ NULL,
@@ -246,6 +248,13 @@ void showOptionValues(void)
         }
     }
 
+    /***** -inplace: Deredden the input file in place, renaming it, rather than writing a second copy */
+    if (!cmd.inplaceP) {
+        printf("-inplace not found.\n");
+    } else {
+        printf("-inplace found:\n");
+    }
+
     if (!cmd.argc) {
         printf("no remaining parameters in argv\n");
     } else {
@@ -260,7 +269,7 @@ void showOptionValues(void)
 
 void usage(void)
 {
-    fputs("   [-startwidth startwidth] [-endwidth endwidth] [-endfreq endfreq] [--] file\n", stderr);
+    fputs("   [-startwidth startwidth] [-endwidth endwidth] [-endfreq endfreq] [-inplace] [--] file\n", stderr);
     fputs("      Rednoise extraction routine.\n", stderr);
     fputs("    -startwidth: The initial windowing size.\n", stderr);
     fputs("                 1 int value between 2 and 50\n", stderr);
@@ -271,9 +280,10 @@ void usage(void)
     fputs("       -endfreq: The highest frequency where the windowing increases.\n", stderr);
     fputs("                 1 double value between 0.1 and 10\n", stderr);
     fputs("                 default: `6'\n", stderr);
+    fputs("       -inplace: Deredden the input file in place, renaming it, rather than writing a second copy\n", stderr);
     fputs("           file: Input '.fft' file.\n", stderr);
     fputs("                 1 value\n", stderr);
-    fputs("  CLI code generated: 03Jul26\n", stderr);
+    fputs("  CLI code generated: 20Aug26\n", stderr);
     fputs("  ", stderr);
     exit(EXIT_FAILURE);
 }
@@ -321,6 +331,11 @@ Cmdline *parseCmdline(int argc, char **argv)
             cmd.endfreqC = i - keep;
             checkDoubleLower("-endfreq", &cmd.endfreq, cmd.endfreqC, 10);
             checkDoubleHigher("-endfreq", &cmd.endfreq, cmd.endfreqC, 0.1);
+            continue;
+        }
+
+        if (0 == strcmp("-inplace", argv[i])) {
+            cmd.inplaceP = 1;
             continue;
         }
 

@@ -1,4 +1,25 @@
 ## Development (unreleased, since v6.0.1):
+ * **Red noise removal is now a `libpresto` routine** rather than code living inside the
+   `rednoise` program.  `deredden()` (in-core) and `deredden_file()` (streaming, and able to
+   work in place) are declared in `misc_utils.h`.  The near-duplicate `deredden()` that lived
+   in `accel_utils.c` was removed in favor of the shared one; `accelsearch` results on `.dat`
+   input are unchanged.
+ * `rednoise` gained **`-inplace`**, which whitens the input `.fft` in place and then renames
+   it to `<root>_red.fft` (writing the usual `<root>_red.inf`).  That halves both the disk
+   space and the I/O the operation needs, at the cost of destroying the original `.fft`.
+ * `realfft` gained **`-rednoise`** (plus `-startwidth`, `-endwidth` and `-endfreq`), which
+   removes red noise as part of the transform and writes `<root>_red.fft` and
+   `<root>_red.inf` directly.  The un-whitened `.fft` is never written, so this saves a
+   file-sized write and read compared to running `realfft` and then `rednoise`.  The results
+   are bit-identical to running the two programs in sequence.  An input `.inf` file is
+   required (the observation length is needed), and the option only applies to forward
+   transforms.
+ * `rednoise` bug fix: it opened `argv[1]` rather than the parsed filename, so any command
+   line that put an option before the filename (e.g. `rednoise -startwidth 8 foo.fft`)
+   tried to open the option instead.  Its output files now always land next to the input
+   file, rather than in the current directory when the `.inf`'s recorded name has no path.
+ * `realfft` now warns that `-outdir` is not honored for out-of-core (very large) transforms,
+   which has always been the case.
  * conda-recipe: a round of packaging improvements from the conda-forge staged-recipes review
    (thanks to @eunos-1128, who packaged both of the new dependencies below):
    - **ERFA is no longer vendored.** A `liberfa` feedstock now exists on conda-forge, so the

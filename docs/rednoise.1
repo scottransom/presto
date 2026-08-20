@@ -8,7 +8,7 @@
 .\" Remove a pair to hand-edit that section instead.
 .\"
 .\" cligPart TITLE
-.TH "rednoise" 1 "03Jul26" "pyCLIG-manuals" "Programmer's Manual"
+.TH "rednoise" 1 "20Aug26" "pyCLIG-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -22,6 +22,7 @@ rednoise \- Rednoise extraction routine.
 [-startwidth startwidth]
 [-endwidth endwidth]
 [-endfreq endfreq]
+[-inplace]
 [--] file
 .\" cligPart SYNOPSIS end
 
@@ -45,6 +46,8 @@ The highest frequency where the windowing increases.,
 1 Double value between 0.1 and 10.
 .br
 Default: `6'
+.IP -inplace
+Deredden the input file in place, renaming it, rather than writing a second copy.
 .IP file
 Input '.fft' file..
 .\" cligPart OPTIONS end
@@ -76,6 +79,15 @@ flattens out at higher ones.  Running rednoise before
 on data with significant red noise improves the effective sensitivity
 of the search by preventing the red-noise power from dominating the
 local normalization used to find candidates.
+.PP
+With
+.BR -inplace ,
+the amplitudes are whitened in place and the input file is then renamed
+to
+.IR <root>_red.fft .
+That halves both the disk space and the amount of I/O required, at the
+cost of destroying the original
+.IR .fft .
 .PP
 Inverting the whitened spectrum back to the time domain (i.e.
 .BR "realfft -inv" " on the"

@@ -31,6 +31,20 @@ static Cmdline cmd = {
     /* diskfftP = */ 0,
     /***** -mem: Force the use of the in-core memory FFT */
     /* memfftP = */ 0,
+    /***** -rednoise: Remove red noise from the FFT as it is computed, writing '_red.fft' and '_red.inf' files */
+    /* rednoiseP = */ 0,
+    /***** -startwidth: The initial windowing size for the red noise removal */
+    /* startwidthP = */ 1,
+    /* startwidth = */ 6,
+    /* startwidthC = */ 1,
+    /***** -endwidth: The final windowing size for the red noise removal */
+    /* endwidthP = */ 1,
+    /* endwidth = */ 100,
+    /* endwidthC = */ 1,
+    /***** -endfreq: The highest frequency where the red noise windowing increases */
+    /* endfreqP = */ 1,
+    /* endfreq = */ 6,
+    /* endfreqC = */ 1,
     /***** -tmpdir: Scratch directory for temp file(s) in out-of-core FFT */
     /* tmpdirP = */ 0,
     /* tmpdir = */ NULL,
@@ -45,6 +59,82 @@ static Cmdline cmd = {
     /***** the original command line concatenated */
     /* full_cmd_line = */ NULL
 };
+
+/*********************************************************************/
+
+int getIntOpt(int argc, char **argv, int i, int *value, int force)
+{
+    char *end;
+    long v;
+
+    if (++i >= argc)
+        goto nothingFound;
+
+    errno = 0;
+    v = strtol(argv[i], &end, 0);
+
+    if (end == argv[i])
+        goto nothingFound;
+
+    while (isspace((unsigned char) *end))
+        end++;
+    if (*end)
+        goto nothingFound;
+
+    if (errno == ERANGE || v > (long) INT_MAX || v < (long) INT_MIN) {
+        fprintf(stderr,
+                "%s: parameter `%s' of option `%s' too large to represent\n",
+                Program, argv[i], argv[i - 1]);
+        exit(EXIT_FAILURE);
+    }
+    *value = (int) v;
+    return i;
+
+  nothingFound:
+    if (!force)
+        return i - 1;
+    fprintf(stderr,
+            "%s: missing or malformed integer value after option `%s'\n",
+            Program, argv[i - 1]);
+    exit(EXIT_FAILURE);
+}
+
+/*********************************************************************/
+
+int getDoubleOpt(int argc, char **argv, int i, double *value, int force)
+{
+    char *end;
+
+    if (++i >= argc)
+        goto nothingFound;
+
+    errno = 0;
+    *value = strtod(argv[i], &end);
+
+    if (end == argv[i])
+        goto nothingFound;
+
+    while (isspace((unsigned char) *end))
+        end++;
+    if (*end)
+        goto nothingFound;
+
+    if (errno == ERANGE) {
+        fprintf(stderr,
+                "%s: parameter `%s' of option `%s' too %s to represent\n",
+                Program, argv[i], argv[i - 1], (*value == 0.0 ? "small" : "large"));
+        exit(EXIT_FAILURE);
+    }
+    return i;
+
+  nothingFound:
+    if (!force)
+        return i - 1;
+    fprintf(stderr,
+            "%s: missing or malformed value after option `%s'\n",
+            Program, argv[i - 1]);
+    exit(EXIT_FAILURE);
+}
 
 /*********************************************************************/
 
@@ -64,6 +154,66 @@ int getStringOpt(int argc, char **argv, int i, char **value, int force)
         return i - 1;
     *value = argv[i];
     return i;
+}
+
+/*********************************************************************/
+
+void checkIntLower(const char *opt, int *values, int count, int max)
+{
+    int i;
+    for (i = 0; i < count; i++) {
+        if (values[i] <= max)
+            continue;
+        fprintf(stderr,
+                "%s: parameter %d of option `%s' greater than max=%d\n",
+                Program, i + 1, opt, max);
+        exit(EXIT_FAILURE);
+    }
+}
+
+/*********************************************************************/
+
+void checkIntHigher(const char *opt, int *values, int count, int min)
+{
+    int i;
+    for (i = 0; i < count; i++) {
+        if (values[i] >= min)
+            continue;
+        fprintf(stderr,
+                "%s: parameter %d of option `%s' smaller than min=%d\n",
+                Program, i + 1, opt, min);
+        exit(EXIT_FAILURE);
+    }
+}
+
+/*********************************************************************/
+
+void checkDoubleLower(const char *opt, double *values, int count, double max)
+{
+    int i;
+    for (i = 0; i < count; i++) {
+        if (values[i] <= max)
+            continue;
+        fprintf(stderr,
+                "%s: parameter %d of option `%s' greater than max=%f\n",
+                Program, i + 1, opt, max);
+        exit(EXIT_FAILURE);
+    }
+}
+
+/*********************************************************************/
+
+void checkDoubleHigher(const char *opt, double *values, int count, double min)
+{
+    int i;
+    for (i = 0; i < count; i++) {
+        if (values[i] >= min)
+            continue;
+        fprintf(stderr,
+                "%s: parameter %d of option `%s' smaller than min=%f\n",
+                Program, i + 1, opt, min);
+        exit(EXIT_FAILURE);
+    }
 }
 
 /*********************************************************************/
@@ -135,6 +285,49 @@ void showOptionValues(void)
         printf("-mem found:\n");
     }
 
+    /***** -rednoise: Remove red noise from the FFT as it is computed, writing '_red.fft' and '_red.inf' files */
+    if (!cmd.rednoiseP) {
+        printf("-rednoise not found.\n");
+    } else {
+        printf("-rednoise found:\n");
+    }
+
+    /***** -startwidth: The initial windowing size for the red noise removal */
+    if (!cmd.startwidthP) {
+        printf("-startwidth not found.\n");
+    } else {
+        printf("-startwidth found:\n");
+        if (!cmd.startwidthC) {
+            printf("  no values\n");
+        } else {
+            printf("  value = `%d'\n", cmd.startwidth);
+        }
+    }
+
+    /***** -endwidth: The final windowing size for the red noise removal */
+    if (!cmd.endwidthP) {
+        printf("-endwidth not found.\n");
+    } else {
+        printf("-endwidth found:\n");
+        if (!cmd.endwidthC) {
+            printf("  no values\n");
+        } else {
+            printf("  value = `%d'\n", cmd.endwidth);
+        }
+    }
+
+    /***** -endfreq: The highest frequency where the red noise windowing increases */
+    if (!cmd.endfreqP) {
+        printf("-endfreq not found.\n");
+    } else {
+        printf("-endfreq found:\n");
+        if (!cmd.endfreqC) {
+            printf("  no values\n");
+        } else {
+            printf("  value = `%.40g'\n", cmd.endfreq);
+        }
+    }
+
     /***** -tmpdir: Scratch directory for temp file(s) in out-of-core FFT */
     if (!cmd.tmpdirP) {
         printf("-tmpdir not found.\n");
@@ -173,20 +366,30 @@ void showOptionValues(void)
 
 void usage(void)
 {
-    fputs("   [-fwd] [-inv] [-del] [-disk] [-mem] [-tmpdir tmpdir] [-outdir outdir] [--] infiles ...\n", stderr);
+    fputs("   [-fwd] [-inv] [-del] [-disk] [-mem] [-rednoise] [-startwidth startwidth] [-endwidth endwidth] [-endfreq endfreq] [-tmpdir tmpdir] [-outdir outdir] [--] infiles ...\n", stderr);
     fputs("      Perform a single-precision FFT of real data or its inverse\n", stderr);
-    fputs("       -fwd: Force an forward FFT (sign=-1) to be performed\n", stderr);
-    fputs("       -inv: Force an inverse FFT (sign=+1) to be performed\n", stderr);
-    fputs("       -del: Delete the original file(s) when performing the FFT\n", stderr);
-    fputs("      -disk: Force the use of the out-of-core memory FFT\n", stderr);
-    fputs("       -mem: Force the use of the in-core memory FFT\n", stderr);
-    fputs("    -tmpdir: Scratch directory for temp file(s) in out-of-core FFT\n", stderr);
-    fputs("             1 char* value\n", stderr);
-    fputs("    -outdir: Directory where result file(s) will reside\n", stderr);
-    fputs("             1 char* value\n", stderr);
-    fputs("    infiles: Input data file(s)\n", stderr);
-    fputs("             1...16384 values\n", stderr);
-    fputs("  CLI code generated: 03Jul26\n", stderr);
+    fputs("           -fwd: Force an forward FFT (sign=-1) to be performed\n", stderr);
+    fputs("           -inv: Force an inverse FFT (sign=+1) to be performed\n", stderr);
+    fputs("           -del: Delete the original file(s) when performing the FFT\n", stderr);
+    fputs("          -disk: Force the use of the out-of-core memory FFT\n", stderr);
+    fputs("           -mem: Force the use of the in-core memory FFT\n", stderr);
+    fputs("      -rednoise: Remove red noise from the FFT as it is computed, writing '_red.fft' and '_red.inf' files\n", stderr);
+    fputs("    -startwidth: The initial windowing size for the red noise removal\n", stderr);
+    fputs("                 1 int value between 2 and 50\n", stderr);
+    fputs("                 default: `6'\n", stderr);
+    fputs("      -endwidth: The final windowing size for the red noise removal\n", stderr);
+    fputs("                 1 int value between 50 and 500\n", stderr);
+    fputs("                 default: `100'\n", stderr);
+    fputs("       -endfreq: The highest frequency where the red noise windowing increases\n", stderr);
+    fputs("                 1 double value between 0.1 and 10\n", stderr);
+    fputs("                 default: `6'\n", stderr);
+    fputs("        -tmpdir: Scratch directory for temp file(s) in out-of-core FFT\n", stderr);
+    fputs("                 1 char* value\n", stderr);
+    fputs("        -outdir: Directory where result file(s) will reside\n", stderr);
+    fputs("                 1 char* value\n", stderr);
+    fputs("        infiles: Input data file(s)\n", stderr);
+    fputs("                 1...16384 values\n", stderr);
+    fputs("  CLI code generated: 20Aug26\n", stderr);
     fputs("  ", stderr);
     exit(EXIT_FAILURE);
 }
@@ -229,6 +432,41 @@ Cmdline *parseCmdline(int argc, char **argv)
 
         if (0 == strcmp("-mem", argv[i])) {
             cmd.memfftP = 1;
+            continue;
+        }
+
+        if (0 == strcmp("-rednoise", argv[i])) {
+            cmd.rednoiseP = 1;
+            continue;
+        }
+
+        if (0 == strcmp("-startwidth", argv[i])) {
+            int keep = i;
+            cmd.startwidthP = 1;
+            i = getIntOpt(argc, argv, i, &cmd.startwidth, 1);
+            cmd.startwidthC = i - keep;
+            checkIntLower("-startwidth", &cmd.startwidth, cmd.startwidthC, 50);
+            checkIntHigher("-startwidth", &cmd.startwidth, cmd.startwidthC, 2);
+            continue;
+        }
+
+        if (0 == strcmp("-endwidth", argv[i])) {
+            int keep = i;
+            cmd.endwidthP = 1;
+            i = getIntOpt(argc, argv, i, &cmd.endwidth, 1);
+            cmd.endwidthC = i - keep;
+            checkIntLower("-endwidth", &cmd.endwidth, cmd.endwidthC, 500);
+            checkIntHigher("-endwidth", &cmd.endwidth, cmd.endwidthC, 50);
+            continue;
+        }
+
+        if (0 == strcmp("-endfreq", argv[i])) {
+            int keep = i;
+            cmd.endfreqP = 1;
+            i = getDoubleOpt(argc, argv, i, &cmd.endfreq, 1);
+            cmd.endfreqC = i - keep;
+            checkDoubleLower("-endfreq", &cmd.endfreq, cmd.endfreqC, 10);
+            checkDoubleHigher("-endfreq", &cmd.endfreq, cmd.endfreqC, 0.1);
             continue;
         }
 

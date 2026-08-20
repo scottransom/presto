@@ -11,6 +11,13 @@ Flag -inv  inverse  {Force an inverse FFT (sign=+1) to be performed}
 Flag -del  delete   {Delete the original file(s) when performing the FFT}
 Flag -disk diskfft  {Force the use of the out-of-core memory FFT}
 Flag -mem  memfft   {Force the use of the in-core memory FFT}
+Flag -rednoise rednoise {Remove red noise from the FFT as it is computed, writing '_red.fft' and '_red.inf' files}
+Int -startwidth startwidth {The initial windowing size for the red noise removal} \
+	-r 2 50 -d 6
+Int -endwidth endwidth {The final windowing size for the red noise removal} \
+	-r 50 500 -d 100
+Double -endfreq endfreq {The highest frequency where the red noise windowing increases} \
+	-r 0.1 10 -d 6
 String -tmpdir tmpdir {Scratch directory for temp file(s) in out-of-core FFT}
 String -outdir outdir {Directory where result file(s) will reside}
 Rest infiles {Input data file(s)} \
@@ -51,7 +58,35 @@ transformed; smaller files use a faster in-core FFT.
 .B -disk
 and
 .B -mem
-force one strategy or the other regardless of file size.  Output
+force one strategy or the other regardless of file size.
+.PP
+.B -rednoise
+removes red noise from the spectrum as part of the same pass, which is
+equivalent to running
+.BR rednoise (1)
+on the result but avoids writing, and then re-reading, the un-whitened
+.IR .fft .
+The output is named
+.I <root>_red.fft
+(with a matching
+.IR .inf ),
+exactly as
+.BR rednoise (1)
+would name it, and the un-whitened
+.I .fft
+is never created.  The
+.BR -startwidth ,
+.B -endwidth
+and
+.B -endfreq
+options control the running-median window exactly as they do in
+.BR rednoise (1),
+and an input
+.I .inf
+file must be present since the observation length is needed.  Red noise
+removal only makes sense for a forward transform.
+.PP
+Output
 file(s) are written next to the input by default, or into
 .B -outdir
 if given; add

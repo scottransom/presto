@@ -137,7 +137,6 @@ void create_accelobs(accelobs *obs, infodata *idata,
 		     Cmdline *cmd, int usemmap);
 GSList *sort_accelcands(GSList *list);
 GSList *eliminate_harmonics(GSList *cands, int *numcands);
-void deredden(fcomplex *fft, int numamps);
 void optimize_accelcand(accelcand *cand, accelobs *obs);
 void output_fundamentals(fourierprops *props, GSList *list, 
 			 accelobs *obs, infodata *idata);
