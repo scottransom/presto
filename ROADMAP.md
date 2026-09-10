@@ -301,6 +301,30 @@ are packed multiple-per-byte) plus `get_dtype`/`check_nbits` updates; the framin
 (`bytes_per_spectrum = nchans*nbits // 8`) is already correct for packed low-bit data. Verify
 against `readfile` output on a known file.
 
+### Raise the minimum Python version
+
+`python/pyproject.toml` declares `requires-python = '>=3.9'` (and `INSTALL.md` still says
+">=3.8" in one place, which contradicts it). Both are older than anything PRESTO is actually
+tested or shipped against, and older than what its dependencies support.
+
+conda-forge already dropped **3.10** on its own: the rerender for v6.1.0 moved the build
+matrix from 3.10-3.13 to 3.11-3.14, so the 6.1.0 packages start at 3.11 regardless of what
+we declare. Dropping 3.11 as well is a decision for us to make, and there is a defensible
+basis for it: NumPy, SciPy, astropy and matplotlib all follow
+[SPEC 0](https://scientific-python.org/specs/spec-0000/), which retires a Python version
+three years after release. On that schedule 3.11 (October 2022) is already past due and 3.12
+(October 2023) drops in October 2026 — so a floor of **3.12** would put PRESTO in step with
+the scientific stack it depends on, whereas plain upstream EOL for 3.11 is not until October
+2027.
+
+To actually do it, for the next release:
+  * set `requires-python` in `python/pyproject.toml` to the chosen floor,
+  * fix the stale ">=3.8" line in `INSTALL.md` (and check for others),
+  * add a matching `python >=X.Y` constraint to `requirements/host` and `requirements/run` in
+    the conda recipe — a bare `python` builds for whatever conda-forge's global pinning
+    offers, so the recipe, not `requires-python`, is what narrows the feedstock matrix,
+  * and confirm nothing in the package still guards on older versions.
+
 ### `prepfold_multi` generated command-line files
 
 `prepfold_multi` currently requires **manual** edits to its auto-generated
