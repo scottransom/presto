@@ -1,10 +1,64 @@
-# New and improved steps to install PRESTO!
+# Installing PRESTO
 
-## Easiest route: build with [pixi](https://pixi.sh)
+There are two ways to get PRESTO, and for most people the first one is the right choice:
 
-If you use pixi, the repo now has a `pixi.toml` workspace that provides the
-entire toolchain and all build dependencies from conda-forge and drives the
-full build:
+1. **[Install the pre-built package from conda-forge](#recommended-install-from-conda-forge)** &mdash;
+   one command, nothing to compile.
+2. **[Build it from source](#building-from-source)** &mdash; if you want to modify PRESTO, need
+   MPI, or want a build tuned to your own CPU.
+
+## Recommended: install from conda-forge
+
+Since v6.0.0, PRESTO is packaged on [conda-forge](https://conda-forge.org) as
+**`presto-pulsar`**, and that is the easiest and most reliable way to get it. The package
+contains *everything*: `libpresto`, all of the command-line tools, the man pages, the runtime
+data files, and the `presto` Python package and its bindings. Nothing needs to be compiled and
+no environment variables need to be set.
+
+With [conda](https://docs.conda.io/) (or mamba/micromamba):
+
+    conda install -c conda-forge presto-pulsar
+
+or, if you use [pixi](https://pixi.sh):
+
+    pixi add presto-pulsar
+
+or, to get a throw-away environment with PRESTO in it and nothing else:
+
+    pixi exec -s presto-pulsar prepfold
+
+That's it &mdash; `prepfold`, `accelsearch`, `rfifind`, `DDplan.py`, `from presto import presto`,
+and everything else should just work.
+
+A few notes:
+
+  * The conda package is called **`presto-pulsar`**, not `presto`, because the plain `presto`
+    name was already taken on bioconda by an unrelated tool (and conda-forge and bioconda share
+    a namespace). The Python import is still `import presto`, and the command-line tool names
+    are unchanged.
+  * Builds are provided for **linux-64, osx-64, and osx-arm64**. There is no Windows build (use
+    WSL there, or a container).
+  * [tempo2](https://bitbucket.org/psrsoft/tempo2) (used by `prepfold -timing` to generate
+    polycos) and ghostscript (used to convert `prepfold` plots to `.png`) come along as
+    dependencies. TEMPO is not needed at all anymore.
+  * The `PRESTO` environment variable is **not** needed. The tools find their runtime data in
+    `{prefix}/share/presto` automatically.
+  * The one thing the conda package does *not* include is `mpiprepsubband`, since it is not
+    built against MPI. If you need it, build from source.
+
+To update to a new release, just `conda update -c conda-forge presto-pulsar`. New PRESTO
+releases usually show up on conda-forge within a day or two of being tagged on GitHub.
+
+## Building from source
+
+Build PRESTO yourself if you want to hack on the code, need `mpiprepsubband`, or want to
+compile with `-march=native` for the fastest possible `accelsearch` (see **Optimization flags**
+below).
+
+### Easiest route: build with [pixi](https://pixi.sh)
+
+If you use pixi, the repo has a `pixi.toml` workspace that provides the entire toolchain and
+all build dependencies from conda-forge and drives the full build:
 
     pixi run build     # C code + libpresto + Python package, installed into the pixi env
     pixi run test      # quick smoke tests
@@ -17,7 +71,8 @@ directory (`build-pixi/`), so they will not interfere with a manually managed
 tempo2 (used for polyco generation) is included from conda-forge — no TEMPO
 installation is needed at all.
 
-## td;dr for experienced PRESTO builders:
+### td;dr for experienced PRESTO builders:
+
 With v5, we have switched to building and installing with [meson](https://mesonbuild.com/).
 
 **MacOS users should see the comments at the bottom of this file!**
@@ -37,7 +92,7 @@ and
 
 `pip install --upgrade pip`.
 
-Now setup the C/Fortran code builds:
+Now set up the C code build:
 
 `cd $PRESTO`
 
@@ -119,7 +174,7 @@ Note that you can uninstall everything via:
     * Note: You can find the install location by doing: `grep libpresto $PRESTO/build/meson-logs/install-log.txt`
   * If you get an error when running `pip install ...` for the Python codes saying `../meson.build:29:15: ERROR: C shared or static library 'presto' not found`, you will need to do something similar to the above and add the install location of `libpresto.so` to `LIBRARY_PATH` (note that that is **not** `LD_LIBRARY_PATH`! The former is for runtime linking and the latter is for linking at compile time. Note that you might need to use `DYLD_LIBRARY_PATH` on macOS!)
 
-## Detailed install and build instructions:
+### Detailed install and build instructions:
 
 **(Note:  For MacOS users, please see the bottom of the document!)**
 
@@ -246,7 +301,7 @@ Updated Oct 2025, for v5.2.0
 
 -----------------------------------------------------------------
 
-## TROUBLESHOOTING
+### TROUBLESHOOTING
 --------------------
 
 Couple quick trouble-shooting tips if you are having problems compiling and running:
@@ -289,7 +344,7 @@ Couple quick trouble-shooting tips if you are having problems compiling and runn
 
 5. If the python build or install is failing, it can be useful to save and inspect the build directory via `pip install --config-settings=builddir=build .`.
 
-## For MacOS Users
+### For MacOS Users
 -------------------
 
 If you are using **MacOS**, Paul Ray has been running PRESTO a lot and knows several tricks to get it working:

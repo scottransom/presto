@@ -1,4 +1,6 @@
-[![PINT on ASCL](https://img.shields.io/badge/ascl-1107.017-blue.svg)](https://ascl.net/1107.017)
+[![PRESTO on ASCL](https://img.shields.io/badge/ascl-1107.017-blue.svg)](https://ascl.net/1107.017)
+[![conda-forge version](https://img.shields.io/conda/vn/conda-forge/presto-pulsar.svg)](https://anaconda.org/conda-forge/presto-pulsar)
+[![conda-forge downloads](https://img.shields.io/conda/dn/conda-forge/presto-pulsar.svg)](https://anaconda.org/conda-forge/presto-pulsar)
 
 # [PRESTO](https://github.com/scottransom/presto/)
 
@@ -75,19 +77,38 @@ Many additional utilities are provided for various tasks that are often required
 
 **Tutorial**: There is a tutorial in the "docs" directory which walks you through all the main steps of finding pulsars using PRESTO.
 
-## Getting it: 
+## Installing it:
+**The recommended way to install PRESTO is from [conda-forge](https://conda-forge.org)**, which
+gives you the whole suite &mdash; `libpresto`, all of the command-line tools, the man pages, and
+the `presto` Python package &mdash; with nothing to compile and no environment variables to set:
+
+    conda install -c conda-forge presto-pulsar
+
+or, if you use [pixi](https://pixi.sh):
+
+    pixi add presto-pulsar
+
+The conda package is named `presto-pulsar` (the plain `presto` name is taken on bioconda by an
+unrelated tool), but the Python import is still `import presto` and all of the tool names are
+unchanged. Packages are built for linux-64, osx-64, and osx-arm64. tempo2 (for `prepfold
+-timing` polycos) comes along automatically, and TEMPO is not needed at all.
+
+Build PRESTO from source instead if you want to hack on the code, need `mpiprepsubband` (MPI),
+or want a build tuned to your own CPU. See
+[INSTALL.md](https://github.com/scottransom/presto/blob/master/INSTALL.md) for the full
+instructions; the short version, if you use pixi, is `pixi run build` in a git checkout.
+
+## Getting the source: 
 The PRESTO source code is released under the GPL and can be browsed or gotten from here in many different ways (including zipped or tar'd or via git). If you are too lazy to read how to get it but have git on your system do:
 
     git clone https://github.com/scottransom/presto.git
 
 To update it on a regular basis do
 
-    cd $PRESTO
+    cd presto
     git pull
 
-and then re-build things in $PRESTO.
-
-For more detailed installation instructions, see [INSTALL.md](https://github.com/scottransom/presto/blob/master/INSTALL.md).
+and then re-build.
 
 If you want the "classic" branch, do the following:
 

@@ -1,10 +1,26 @@
 # conda-forge recipe (reference copy)
 
-This directory holds a reference copy of PRESTO's conda-forge recipe. It is **not** used by
-the normal meson/pixi build; it documents how PRESTO is packaged for conda-forge.
+PRESTO is on conda-forge as **[`presto-pulsar`](https://anaconda.org/conda-forge/presto-pulsar)**.
+This directory holds a *reference copy* of the recipe. It is **not** used by the normal
+meson/pixi build, and it is **not** what conda-forge builds from &mdash; it just documents how
+PRESTO is packaged, and gives somewhere to prototype packaging changes.
 
 - `recipe.yaml` / `build.sh` — the recipe. It builds `libpresto` + the C tools with meson,
   then the Python package with pip, taking ERFA from conda-forge's `liberfa` package.
+
+The authoritative copy lives in the feedstock,
+[`conda-forge/presto-pulsar-feedstock`](https://github.com/conda-forge/presto-pulsar-feedstock),
+under `recipe/`. **Keep the two in sync** whenever the packaging itself changes (dependencies,
+build steps, tests). The `version:`/`sha256:` here will lag the feedstock between releases;
+that is fine and expected. To check for drift:
+
+    diff <(tail -n +14 conda-recipe/recipe.yaml) \
+         <(tail -n +5 /path/to/presto-pulsar-feedstock/recipe/recipe.yaml)
+    diff conda-recipe/build.sh /path/to/presto-pulsar-feedstock/recipe/build.sh
+
+(the `tail` offsets just skip the differing header comments).
+
+## Recipe format
 
 The recipe uses the **v1 (rattler-build) recipe format** defined by
 [CEP-13](https://rattler.build/latest/reference/recipe_file/) — `recipe.yaml`, not the older
@@ -13,17 +29,9 @@ block instead of `{% set %}`, `if: <selector>` / `then:` lists instead of `# [se
 comments, `target_directory:` instead of `folder:`, and a `tests:` list instead of `test:`.
 `conda-recipe-manager convert meta.yaml` does most of a v0 → v1 conversion automatically.
 
-## First submission
+## Releasing a new version
 
-Copy these two files into a fork of
-[`conda-forge/staged-recipes`](https://github.com/conda-forge/staged-recipes) at
-`recipes/presto-pulsar/`, fill in the `sha256` of the v6.0.0 GitHub tarball
-(`curl -sL https://github.com/scottransom/presto/archive/refs/tags/v6.0.0.tar.gz | sha256sum`),
-test locally with `python build-locally.py`, and open a PR. See `../RELEASE.md` for the full
-checklist.
-
-## After the feedstock exists
-
-Once `presto-pulsar-feedstock` is created, its `recipe/recipe.yaml` becomes authoritative and
-conda-forge's autotick bot proposes version bumps automatically. Keep this copy roughly in
-sync when the packaging itself changes (deps, build steps).
+See [`../RELEASE.md`](../RELEASE.md). In short: tag the release on GitHub, then wait a day for
+conda-forge's **regro-cf-autotick-bot** to open the version-bump PR on the feedstock and merge
+it once CI is green (or do the bump by hand from a fork of the feedstock if you are impatient
+or the bot cannot figure it out).

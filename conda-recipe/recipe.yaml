@@ -1,10 +1,10 @@
 # PRESTO conda-forge recipe (v1 / rattler-build "recipe.yaml" format, CEP-13).
 #
-# This is the reference copy kept in the PRESTO source tree.  The authoritative
-# copy for the first submission lives in a fork of conda-forge/staged-recipes
-# under recipes/presto-pulsar/.  Once the presto-pulsar-feedstock exists, that feedstock's
-# recipe/ becomes authoritative and subsequent version bumps are handled by
-# conda-forge's regro-cf-autotick-bot (see RELEASE.md).
+# This is a REFERENCE COPY kept in the PRESTO source tree.  The authoritative
+# copy now lives in the feedstock, conda-forge/presto-pulsar-feedstock, under
+# recipe/.  Version bumps there are proposed automatically by conda-forge's
+# regro-cf-autotick-bot after each tagged GitHub release; keep this copy in
+# sync whenever the packaging itself changes (see RELEASE.md).
 #
 # The recipe builds BOTH halves of PRESTO from one source: meson builds
 # libpresto + the C tools, then pip builds the Python package (which links the

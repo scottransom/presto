@@ -1,4 +1,13 @@
 ## Development (unreleased, since v6.0.1):
+ * `README.md` and `INSTALL.md` now lead with **installing from conda-forge**
+   (`conda install -c conda-forge presto-pulsar`, or `pixi add presto-pulsar`) as the
+   recommended route for most people, with building from source presented as the alternative
+   for developers and for anyone who needs MPI or a `-march=native` build.
+ * `conda-recipe/` and `RELEASE.md` updated now that
+   [`conda-forge/presto-pulsar-feedstock`](https://github.com/conda-forge/presto-pulsar-feedstock)
+   exists: the feedstock's recipe is authoritative, the in-tree copy is explicitly just a
+   reference, and version bumps now go through conda-forge's autotick bot (with a manual
+   feedstock PR as the fallback).
  * `sifting.DM_re`, the regular expression that pulls the DM out of a candidate filename, now
    accepts **2 *or* 3 digits** after the decimal point, and requires the number to follow
    `_DM` and to be positive.  The old pattern accepted exactly 2 digits, so it silently
