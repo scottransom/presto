@@ -1,4 +1,16 @@
-## Development (unreleased, since v6.0.1):
+## Development (unreleased, since v6.1.0):
+
+## Version 6.1.0:
+ * **A changed default for how birdies are zapped, a long-standing f-fdot optimizer bug
+   fixed, and the first release since PRESTO landed on conda-forge.**  Zapped Fourier bins are
+   now replaced by noise rather than by a constant amplitude, which does change search results
+   on any zapped data.  The f-fdot candidate optimizer has been sizing its interpolation
+   kernel from a scaled coordinate since 2001 -- which turns out not to have cost anyone
+   candidates, for the reasons spelled out below, but did mean `presto.maximize_rz()`,
+   `explorefft` and `quicklook` under-reported power at high `|z|`.  Red noise removal became
+   shared `libpresto` code, with new `rednoise -inplace` and `realfft -rednoise` modes.  And
+   the docs now point most people at `conda install -c conda-forge presto-pulsar`.  See the
+   bullets below for the individual changes.
  * `tests/test_presto_python.py` gained a "Fourier f-fdot (r, z) maximization" section
    covering `presto.maximize_rz()` and `presto.maximize_rz_harmonics()` at large `|z|`, so a
    future change that mis-sizes the interpolation kernel gets caught.  Verified to fail

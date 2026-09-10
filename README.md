@@ -8,6 +8,30 @@ PRESTO is a large suite of pulsar search and analysis software developed primari
 
 **PRESTO has discovered well over 1500 pulsars, including ~500 recycled and/or binary pulsars!**
 
+## Version 6.1.0:
+ * **Zapped Fourier bins are now filled with noise rather than a constant amplitude**
+   (`zapbirds`, `simple_zapbirds.py`, `accelsearch -zaplist`). This changes search results on
+   any zapped data; pass `-constamp` for the old behavior. Several other `zapbirds` fixes too.
+ * `accelsearch` bug fix (present since 2001): the f-fdot candidate optimizer sized its
+   interpolation kernel from a scaled `z`, so it recovered too little power at large `|z|`.
+   Happily this did **not** cost anyone candidates &mdash; the sigmas and summed powers
+   `accelsearch` reports come from the search itself and are unchanged &mdash; but
+   `presto.maximize_rz()`, `explorefft` and `quicklook` did under-report power above
+   `|z|` ~ 150. See [CHANGELOG.md](https://github.com/scottransom/presto/blob/master/CHANGELOG.md)
+   for the details.
+ * `single_pulse_search.py` no longer leaves up to 7999 samples at the end of each time series
+   unsearched.
+ * SIGPROC filterbank bug fix: declinations between 0 and -1 degrees lost their minus sign.
+ * Red noise removal is now a shared `libpresto` routine, with new `rednoise -inplace` and
+   `realfft -rednoise` options so you can whiten without a separate pass over the file.
+ * New `presto.observatories` module: a single home for the telescope-name to observatory-code
+   table that used to be copied in three places.
+ * `ACCEL_sift.py` and `sifting.DM_re` now find DMs anywhere in a filename, and
+   `simple_zapbirds.py` parses its command line with `argparse`.
+ * Removed the `presto.singlepulse` subpackage &mdash; it turned out never to have been
+   installed &mdash; along with `make_spd.py`, `plot_spd.py` and `rrattrap.py`.
+ * `README.md` and `INSTALL.md` now recommend installing from conda-forge.
+
 ## Version 6.0.1:
  * `get_TOAs.py` now supports **CHIME** (telescope code `y`, observatory name `chime`).
  * The conda-forge recipe moved to the v1 (rattler-build) `recipe.yaml` format, and now uses
@@ -29,18 +53,6 @@ PRESTO is a large suite of pulsar search and analysis software developed primari
  * Vendored Numerical-Recipes/SLALIB/RANDLIB code replaced by GSL and ERFA; many Python modules
    modernized (NumPy docstrings, type hints, NumPy 2.5 fixes); man pages fleshed out.
  * The build uses meson (from v5); `pixi run build` drives a fully self-contained build.
-
-## Version 5.3.1:
- * Turned on OpenMP linking for rfifind! Oops.
-
-## Version 5.3.0:
- * rfifind now gets speedup using multiple CPUs via OpenMP (Thanks to Erum Vohra!)
- * Speed and parallelization improvements to accelsearch (Thanks to Erum Vohra!)
- * Bug fix in reading of EPS2DOT in readpar()
- * Bug fix to accelsearch when searching datasets longer than 2^32 points that caused segfaults
- * Bug fix to prepdata, prepsubband, and mpiprepsubband when barycentering files longer than 2^31 points that caused segfaults
- * Bug fix in prepfold where wrong fdotdot falues were reported if folding with fdotdot
- * Turned off OpenMP in the dedispersion routines until I figure out how to handle that better (it works in prepfold, though!)
 
 For information on older versions, please see the [CHANGELOG.md](https://github.com/scottransom/presto/blob/master/CHANGELOG.md).
 
