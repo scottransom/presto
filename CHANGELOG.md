@@ -1,4 +1,11 @@
 ## Development (unreleased, since v6.1.0):
+ * Doc fix: `README.md`, `INSTALL.md` and `RELEASE.md` claimed conda-forge builds for
+   **osx-arm64**, which do not exist -- the feedstock currently renders only linux-64 and
+   osx-64, so Apple Silicon runs the osx-64 package under Rosetta 2.  Every dependency
+   (pgplot, tempo2, liberfa, ...) *is* available for osx-arm64, so this is a feedstock
+   configuration gap rather than a real obstacle, and worth fixing there.  Also dropped two
+   stale notes saying tempo2 has no osx-arm64 conda-forge build; it has had one since
+   2026-08-19.
 
 ## Version 6.1.0:
  * **A changed default for how birdies are zapped, a long-standing f-fdot optimizer bug

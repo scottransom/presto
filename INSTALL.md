@@ -36,8 +36,10 @@ A few notes:
     name was already taken on bioconda by an unrelated tool (and conda-forge and bioconda share
     a namespace). The Python import is still `import presto`, and the command-line tool names
     are unchanged.
-  * Builds are provided for **linux-64, osx-64, and osx-arm64**. There is no Windows build (use
-    WSL there, or a container).
+  * Builds are currently provided for **linux-64 and osx-64**. There is no Windows build (use
+    WSL there, or a container), and no osx-arm64 build yet &mdash; on Apple Silicon the osx-64
+    package runs under Rosetta 2. All of PRESTO's dependencies are available for osx-arm64, so
+    this is a feedstock configuration gap rather than a real obstacle.
   * [tempo2](https://bitbucket.org/psrsoft/tempo2) (used by `prepfold -timing` to generate
     polycos) and ghostscript (used to convert `prepfold` plots to `.png`) come along as
     dependencies. TEMPO is not needed at all anymore.
@@ -194,7 +196,7 @@ Note that you can uninstall everything via:
 
 3.  **Install [tempo2](https://bitbucket.org/psrsoft/tempo2/)** (only needed for polycos)
 
-    tempo2 is used for polyco generation (e.g. `prepfold -timing`); if you don't fold with polycos you can skip it. The easiest install is from conda-forge (`conda`/`pixi install tempo2`), which also sets the required `TEMPO2` runtime environment variable automatically (note: there is no conda-forge build for osx-arm64). If you build from source instead, set `TEMPO2` to the runtime directory yourself.
+    tempo2 is used for polyco generation (e.g. `prepfold -timing`); if you don't fold with polycos you can skip it. The easiest install is from conda-forge (`conda`/`pixi install tempo2`), which also sets the required `TEMPO2` runtime environment variable automatically. If you build from source instead, set `TEMPO2` to the runtime directory yourself.
 
     Note: as of the post-v5.3.1 development code, **TEMPO is no longer used at all** — barycentering is done in-process via ERFA, and polycos come from tempo2.
 
@@ -360,7 +362,7 @@ If you are using **MacOS**, Paul Ray has been running PRESTO a lot and knows sev
     % sudo port select --set  virtualenvwrapper virtualenvwrapper311
     % sudo port install pgplot cfitsio gsl glib2 fftw-3 fftw-3-single
     ~~~
-- tempo2 (only needed for polycos) is available from conda-forge for osx-64; on osx-arm64 you currently need to build it from source.
+- tempo2 (only needed for polycos) is available from conda-forge for both osx-64 and osx-arm64.
 - Before you build, you will likely need to set the following environment variables. You probably do *not* need to have `DYLD_LIBRARY_PATH` set at runtime.
     ~~~
     # These are needed only at *BUILD* time

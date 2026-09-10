@@ -102,7 +102,8 @@ or, if you use [pixi](https://pixi.sh):
 
 The conda package is named `presto-pulsar` (the plain `presto` name is taken on bioconda by an
 unrelated tool), but the Python import is still `import presto` and all of the tool names are
-unchanged. Packages are built for linux-64, osx-64, and osx-arm64. tempo2 (for `prepfold
+unchanged. Packages are built for linux-64 and osx-64 (Apple Silicon runs the osx-64 build
+under Rosetta 2 for now). tempo2 (for `prepfold
 -timing` polycos) comes along automatically, and TEMPO is not needed at all.
 
 Build PRESTO from source instead if you want to hack on the code, need `mpiprepsubband` (MPI),
