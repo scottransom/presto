@@ -315,7 +315,6 @@ def main():
     if (detrendlen > chunklen):
         chunklen = detrendlen
         fftlen = int(next2_to_n(chunklen))
-    blocks_per_chunk = chunklen // detrendlen
     overlap = (fftlen - chunklen) // 2
     worklen = chunklen + 2*overlap  # currently it is fftlen...
 
@@ -374,29 +373,44 @@ def main():
                 if offregions[-1][1] == N - 1:
                     N = offregions[-1][0] + 1
 
-            # Compute the file length in detrendlens
-            roundN = N // detrendlen * detrendlen
-            numchunks = roundN // chunklen
-            # Read in the file
+            # Read in the file.  We read *all* of the valid samples, not just
+            # a whole number of detrending blocks, so that nothing at the end
+            # of the timeseries goes unsearched.
             print('Reading "%s"...'%filenm)
-            timeseries = np.fromfile(filenm, dtype=np.float32, count=roundN)
-            # Split the timeseries into chunks for detrending
-            numblocks = roundN // detrendlen
-            timeseries = np.reshape(timeseries, (numblocks, detrendlen))
+            timeseries = np.fromfile(filenm, dtype=np.float32, count=N)
+            if len(timeseries) < N:  # the file is shorter than the .inf claims
+                N = len(timeseries)
+            # Split the timeseries into blocks for detrending.  Any samples
+            # left over after the last full block are folded into it (making
+            # that block up to 2*detrendlen-1 long) rather than being dropped.
+            # Keeping every block at least detrendlen long means the block
+            # statistics below stay as reliable as they always were.
+            numblocks = N // detrendlen
+            if numblocks < 3:
+                print("  Skipping '%s':  only %d samples (need at least %d)" % \
+                      (filenm, N, 3*detrendlen))
+                continue
+            blockstarts = np.arange(numblocks) * detrendlen
+            blockends = np.append(blockstarts[1:], N)
+            blocks = [timeseries[lo:hi] for lo, hi in zip(blockstarts, blockends)]
+            # The search steps through the data in chunklen-sized chunks.  Use
+            # ceiling division so the final, partial chunk is searched too.
+            numchunks = (N + chunklen - 1) // chunklen
             stds = np.zeros(numblocks, dtype=np.float64)
             # de-trend the data one chunk at a time
             print('  De-trending the data and computing statistics...')
-            for ii, chunk in enumerate(timeseries):
+            for ii, block in enumerate(blocks):
+                blocklen = len(block)
                 if opts.fast:  # use median removal instead of detrending (2x speedup)
-                    tmpchunk = chunk.copy()
+                    tmpchunk = block.copy()
                     tmpchunk.sort()
-                    med = tmpchunk[detrendlen//2]
-                    chunk -= med
+                    med = tmpchunk[blocklen//2]
+                    block -= med
                     tmpchunk -= med
                 else:
                     # The detrend calls are the most expensive in the program
-                    timeseries[ii] = scipy.signal.detrend(chunk, type='linear')
-                    tmpchunk = timeseries[ii].copy()
+                    block[:] = scipy.signal.detrend(block, type='linear')
+                    tmpchunk = block.copy()
                     tmpchunk.sort()
                 # The following gets rid of (hopefully) most of the 
                 # outlying values (i.e. power dropouts and single pulses)
@@ -404,8 +418,9 @@ def main():
                 # of random gaussian deviates, the measured stdev is ~0.871
                 # of the true stdev.  Thus the 1.0/0.871=1.148 correction below.
                 # The following is roughly .std() since we already removed the median
-                stds[ii] = np.sqrt((tmpchunk[detrendlen//40:-detrendlen//40]**2.0).sum() /
-                                    (0.95*detrendlen))
+                trim = blocklen//40
+                stds[ii] = np.sqrt((tmpchunk[trim:blocklen-trim]**2.0).sum() /
+                                    (0.95*blocklen))
             stds *= 1.148
             # sort the standard deviations and separate those with
             # very low or very high values
@@ -433,15 +448,14 @@ def main():
                 bad_blocks = []
             print("  Now searching...")
 
-            # Now normalize all of the data and reshape it to 1-D
-            timeseries /= stds[:,np.newaxis]
-            timeseries = np.reshape(timeseries, (roundN,))
+            # Now normalize all of the data, one block at a time
+            for ii, block in enumerate(blocks):
+                block /= stds[ii]
             # And set the data in the bad blocks to zeros
             # Even though we don't search these parts, it is important
             # because of the overlaps for the convolutions
             for bad_block in bad_blocks:
-                loind, hiind = bad_block*detrendlen, (bad_block+1)*detrendlen
-                timeseries[loind:hiind] = 0.0
+                timeseries[blockstarts[bad_block]:blockends[bad_block]] = 0.0
             # Convert to a set for faster lookups below
             bad_blocks = set(bad_blocks)
 
@@ -449,26 +463,33 @@ def main():
             dm_candlist = []
             for chunknum in range(numchunks):
                 loind = chunknum*chunklen-overlap
-                hiind = (chunknum+1)*chunklen+overlap
-                # Take care of beginning and end of file overlap issues
-                if (chunknum==0): # Beginning of file
-                    chunk = np.zeros(worklen, dtype=np.float32)
-                    chunk[overlap:] = timeseries[loind+overlap:hiind]
-                elif (chunknum==numchunks-1): # end of the timeseries
-                    chunk = np.zeros(worklen, dtype=np.float32)
-                    chunk[:-overlap] = timeseries[loind:hiind-overlap]
-                else:
-                    chunk = timeseries[loind:hiind]
+                hiind = loind + worklen
+                # Copy the data into a zero-padded work buffer.  The padding
+                # covers whatever runs off either end of the timeseries: the
+                # overlaps at the start and end of the file, and the (possibly
+                # partial) final chunk.
+                chunk = np.zeros(worklen, dtype=np.float32)
+                srclo, srchi = max(loind, 0), min(hiind, N)
+                chunk[srclo-loind:srchi-loind] = timeseries[srclo:srchi]
+                # How many of the chunklen central samples are real data?
+                # (Only the final chunk can have fewer than chunklen of them.)
+                numvalid = min((chunknum+1)*chunklen, N) - chunknum*chunklen
 
-                # Make a set with the current block numbers
-                lowblock = blocks_per_chunk * chunknum
-                currentblocks = set(np.arange(blocks_per_chunk) + lowblock)
-                localgoodblocks = np.asarray(list(currentblocks -
-                                                   bad_blocks)) - lowblock
+                # Make a set with the current block numbers.  These are
+                # derived from the valid sample range rather than from
+                # chunklen//detrendlen, since the final block absorbs the
+                # leftover samples and so can span more than one chunk.
+                lowblock = min(chunknum*chunklen // detrendlen, numblocks-1)
+                highblock = min((chunknum*chunklen + numvalid - 1) // detrendlen,
+                                numblocks-1)
+                currentblocks = set(range(lowblock, highblock+1))
+                localgoodblocks = np.asarray(sorted(currentblocks -
+                                                    bad_blocks)) - lowblock
                 # Search this chunk if it is not all bad
                 if len(localgoodblocks):
-                    # This is the good part of the data (end effects removed)
-                    goodchunk = chunk[overlap:-overlap]
+                    # This is the good part of the data (end effects and any
+                    # zero-padding of a partial final chunk removed)
+                    goodchunk = chunk[overlap:overlap+numvalid]
 
                     # need to pass blocks/chunklen, localgoodblocks
                     # dm_candlist, dt, opts.threshold to cython routine
@@ -481,7 +502,7 @@ def main():
                     hibins = np.flatnonzero(goodchunk>opts.threshold)
                     hivals = goodchunk[hibins]
                     hibins += chunknum * chunklen
-                    hiblocks = hibins // detrendlen
+                    hiblocks = np.minimum(hibins // detrendlen, numblocks-1)
                     # Add the candidates (which are sorted by bin)
                     for bin, val, block in zip(hibins, hivals, hiblocks):
                         if block not in bad_blocks:
@@ -503,11 +524,12 @@ def main():
                                      np.sqrt(downfact)
                             smoothed_chunk = scipy.signal.convolve(chunk, kernel, 1)
                             goodchunk = smoothed_chunk[overlap:-overlap]
+                        goodchunk = goodchunk[:numvalid]
                         #hibins = np.nonzero(goodchunk>opts.threshold)[0]
                         hibins = np.flatnonzero(goodchunk>opts.threshold)
                         hivals = goodchunk[hibins]
                         hibins += chunknum * chunklen
-                        hiblocks = hibins // detrendlen
+                        hiblocks = np.minimum(hibins // detrendlen, numblocks-1)
                         hibins = hibins.tolist()
                         hivals = hivals.tolist()
                         # Now walk through the new candidates and remove those

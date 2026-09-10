@@ -1,4 +1,13 @@
 ## Development (unreleased, since v6.0.1):
+ * **`single_pulse_search.py` no longer skips samples at the end of a time series** (reported
+   by Francesco Coti Zelati, issue #229).  It searched only whole `chunklen` chunks of a whole
+   number of detrending blocks, so up to 7999 valid samples at the end of every `.dat` file
+   went unsearched.  It now reads every valid sample, folds the leftover samples into the
+   final detrending block (so every block stays at least `detrendlen` long and the block
+   statistics remain just as reliable as before), and searches a final, partial chunk in a
+   zero-padded work buffer.  Output for data whose length was already an exact multiple of
+   `chunklen` is unchanged, bit for bit.  Time series shorter than three detrending blocks are
+   now skipped with a message instead of dying in the block statistics.
  * `accelsearch` bug fix: the HIGHACC refinement in `max_rz_arr()` and
    `max_rz_arr_harmonics()` sized its interpolation kernel from the internal, `ZSCALE`-divided
    `z` rather than from the physical Fourier f-dot (reported by Francesco Coti Zelati, issue
