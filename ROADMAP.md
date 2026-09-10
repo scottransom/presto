@@ -309,15 +309,15 @@ tested or shipped against, and older than what its dependencies support.
 
 conda-forge already dropped **3.10** on its own: the rerender for v6.1.0 moved the build
 matrix from 3.10-3.13 to 3.11-3.14, so the 6.1.0 packages start at 3.11 regardless of what
-we declare. Dropping 3.11 as well is a decision for us to make, and there is a defensible
-basis for it: NumPy, SciPy, astropy and matplotlib all follow
+we declare. **Decided: the next release moves the floor to 3.12.** The basis is that NumPy, SciPy,
+astropy and matplotlib all follow
 [SPEC 0](https://scientific-python.org/specs/spec-0000/), which retires a Python version
-three years after release. On that schedule 3.11 (October 2022) is already past due and 3.12
-(October 2023) drops in October 2026 — so a floor of **3.12** would put PRESTO in step with
-the scientific stack it depends on, whereas plain upstream EOL for 3.11 is not until October
-2027.
+three years after release. On that schedule 3.11 (October 2022) is already past due, so a
+floor of 3.12 puts PRESTO in step with the scientific stack it depends on — whereas plain
+upstream EOL for 3.11 is not until October 2027, which would have made dropping it on EOL
+grounds alone premature.
 
-To actually do it, for the next release:
+To do it, for the next release:
   * set `requires-python` in `python/pyproject.toml` to the chosen floor,
   * fix the stale ">=3.8" line in `INSTALL.md` (and check for others),
   * add a matching `python >=X.Y` constraint to `requirements/host` and `requirements/run` in
