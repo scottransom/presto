@@ -1,4 +1,14 @@
 ## Development (unreleased, since v6.0.1):
+ * `sifting.DM_re`, the regular expression that pulls the DM out of a candidate filename, now
+   accepts **2 *or* 3 digits** after the decimal point, and requires the number to follow
+   `_DM` and to be positive.  The old pattern accepted exactly 2 digits, so it silently
+   truncated 3-decimal DMs.  `read_candidates()` now also gives a clear error rather than an
+   `AttributeError` when a filename has no recognizable DM.
+ * `examplescripts/ACCEL_sift.py` gets its DM list from `sifting.DM_re` instead of splitting
+   filenames on `"DM"` and `"_"` at fixed positions.  The old approach needed a special case
+   for short (segmented) searches, and still died with a `ValueError` on any naming it had not
+   anticipated.  Also dropped the python-2 `from builtins import map` shim and an unused
+   `itemgetter` import.
  * **`single_pulse_search.py` no longer skips samples at the end of a time series** (reported
    by Francesco Coti Zelati, issue #229).  It searched only whole `chunklen` chunks of a whole
    number of detrending blocks, so up to 7999 valid samples at the end of every `.dat` file

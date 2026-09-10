@@ -37,9 +37,13 @@ known_birds_p = []
 known_birds_f = []
 #---------------------------------------------------
 
-fund_re = re.compile("^\d")
-harms_re = re.compile("^[ ]\d")
-DM_re = re.compile("DM(\d+\.\d{2})")
+fund_re = re.compile(r"^\d")
+harms_re = re.compile(r"^[ ]\d")
+# The DM in a PRESTO filename: a positive float with 2 or 3 digits after the
+# decimal point, immediately following "_DM".  It can appear anywhere in the
+# name (e.g. "..._DM123.40_ACCEL_0" or "..._DM123.400.inf"), so this is a
+# search, not a match, and it deliberately will not match a negative DM.
+DM_re = re.compile(r"_DM(\d+\.\d{2,3})(?!\d)")
 
 # Add some functions to maintain support for the old
 # sifting API
@@ -1108,7 +1112,11 @@ def candlist_from_candfile(filename, trackbad=False, trackdupes=False):
             p = 1.0 / f       # Spin period in sec
 
             # Add it to the candidates list
-            DMstr = DM_re.search(filename).groups()[0]
+            match = DM_re.search(filename)
+            if match is None:
+                raise ValueError("Cannot find a '_DM<float>' DM in the "
+                                 "candidate filename '%s'" % filename)
+            DMstr = match.groups()[0]
             cands.append(Candidate(candnum, sigma, numharm,
                                           i_pow_det, c_pow, bin, z, 
                                           DMstr, filename, tobs))
