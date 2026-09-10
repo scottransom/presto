@@ -1,4 +1,9 @@
 ## Development (unreleased, since v6.0.1):
+ * `tests/test_presto_python.py` gained a "Fourier f-fdot (r, z) maximization" section
+   covering `presto.maximize_rz()` and `presto.maximize_rz_harmonics()` at large `|z|`, so a
+   future change that mis-sizes the interpolation kernel gets caught.  Verified to fail
+   against the pre-fix code and to pass after it, with better than 10x headroom on every
+   tolerance.
  * `README.md` and `INSTALL.md` now lead with **installing from conda-forge**
    (`conda install -c conda-forge presto-pulsar`, or `pixi add presto-pulsar`) as the
    recommended route for most people, with building from source presented as the alternative

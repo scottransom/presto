@@ -160,6 +160,55 @@ assert 0.9 * predpow < maxpow < 1.1 * predpow
 assert f - 0.03 < rmax < f + 0.03
 print("success")
 
+print("Testing Fourier f-fdot (r, z) maximization...", end=" ")
+# These use large |z| on purpose.  The optimizers work internally in the
+# scaled coordinate z/ZSCALE, and the interpolation kernel for the HIGHACC
+# refinement pass must be sized from the *physical* Fourier f-dot.  Sizing it
+# from the scaled coordinate instead leaves the kernel far too narrow, which
+# truncates the acceleration response -- costing ~40% of a candidate's power
+# at z=200 and ~72% at z=400, while being nearly harmless below |z| ~ 125
+# (which is how PRESTO went 25 years without noticing; see issue #230).
+N = 16384
+predpow = N**2 / 4.0
+us = np.arange(N, dtype=np.float64) / N
+
+
+def ffdot_signal(r, z, numharm=1):
+    """The FFT of numharm harmonics of a signal at Fourier (r, z)."""
+    sig = np.zeros(N, dtype=np.float64)
+    for h in range(1, numharm + 1):
+        rh, zh = r * h, z * h
+        sig += np.cos(2 * np.pi * (us * (us * (zh / 2.0) + (rh - 0.5 * zh))))
+    return presto.rfft(sig, -1)
+
+
+# Single harmonic: the truncated kernel shows up directly in the power, since
+# max_rz_arr() returns the value of the function it was optimizing.
+r = N / 4.0
+for z in (0.0, 50.0, 200.0, 400.0):
+    ft = ffdot_signal(r, z)
+    for dr, dz in ((0.0, 0.0), (0.2, 1.3), (-0.35, -2.5)):
+        maxpow, rmax, zmax, rd = presto.maximize_rz(ft, r + dr, z + dz, norm=1.0)
+        assert maxpow > 0.99 * predpow
+        assert abs(rmax - r) < 0.02
+        assert abs(zmax - z) < 0.05
+
+# Harmonic summing: maximize_rz_harmonics() recomputes each harmonic's power
+# with get_derivs3d(), which sizes its own kernel, so the returned power does
+# not see the truncation -- but the peak the optimizer walked to does.  A
+# too-narrow kernel left |dz| of 0.02-0.04 here instead of < 0.001.
+for numharm in (2, 4):
+    r = N / (8.0 * numharm)
+    ft = ffdot_signal(r, 100.0, numharm)
+    for dr, dz in ((0.0, 0.0), (0.2, 1.3)):
+        maxpow, rmax, zmax, rds = presto.maximize_rz_harmonics(
+            ft, r + dr, 100.0 + dz, numharm, norm=1.0
+        )
+        assert maxpow > 0.99 * numharm * predpow
+        assert abs(rmax - r) < 0.01
+        assert abs(zmax - 100.0) < 0.01
+print("success")
+
 print("Testing angle functions...", end=" ")
 dd1 = 15.25
 dd2 = presto.dms2rad(*presto.deg2dms(dd1)) * presto.RADTODEG
