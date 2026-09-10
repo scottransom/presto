@@ -307,9 +307,11 @@ against `readfile` output on a known file.
 ">=3.8" in one place, which contradicts it). Both are older than anything PRESTO is actually
 tested or shipped against, and older than what its dependencies support.
 
-conda-forge already dropped **3.10** on its own: the rerender for v6.1.0 moved the build
-matrix from 3.10-3.13 to 3.11-3.14, so the 6.1.0 packages start at 3.11 regardless of what
-we declare. **Decided: the next release moves the floor to 3.12.** The basis is that NumPy, SciPy,
+conda-forge will retire **3.10** on its own schedule: a rerender during the v6.1.0 PR moved
+the matrix from 3.10-3.13 to 3.11-3.14 under newer pinning. That rerender was backed out
+along with an osx-arm64 attempt, so the 6.1.0 packages do still ship 3.10-3.14 — but the next
+rerender will drop 3.10 whether or not we ask.
+**Decided: the next release moves the floor to 3.12.** The basis is that NumPy, SciPy,
 astropy and matplotlib all follow
 [SPEC 0](https://scientific-python.org/specs/spec-0000/), which retires a Python version
 three years after release. On that schedule 3.11 (October 2022) is already past due, so a

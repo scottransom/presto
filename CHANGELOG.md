@@ -1,8 +1,7 @@
 ## Development (unreleased, since v6.1.0):
  * `INSTALL.md` said Python >=3.8 in one place while `python/pyproject.toml` requires >=3.9;
-   corrected, and noted that the conda-forge packages start at 3.11 as of v6.1.0.  Raising the
-   minimum properly (to 3.12, in step with SPEC 0 and the NumPy/SciPy/astropy stack) is now a
-   `ROADMAP.md` item for the next release.
+   corrected.  Raising the minimum properly (to 3.12, in step with SPEC 0 and the
+   NumPy/SciPy/astropy stack) is now a `ROADMAP.md` item for the next release.
  * Doc fix: `README.md`, `INSTALL.md` and `RELEASE.md` claimed conda-forge builds for
    **osx-arm64**, which do not exist -- the feedstock currently renders only linux-64 and
    osx-64, so Apple Silicon runs the osx-64 package under Rosetta 2.  Every dependency
