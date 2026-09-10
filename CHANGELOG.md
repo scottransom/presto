@@ -1,4 +1,12 @@
 ## Development (unreleased, since v6.0.1):
+ * **SIGPROC filterbank bug fix: declinations between 0 and -1 degrees lost their sign**
+   (reported by ShiJie Gao, issue #228).  A header `src_dej` of `-1214.966` (i.e.
+   -00:12:14.966) was read as *+*00:12:14.966, because the sign was applied only to the
+   degrees field, which is zero for such positions.  The sign now moves to the
+   most-significant nonzero field, which is what `dms2rad()` and `ra_dec_to_string()` expect
+   and what the rest of PRESTO (`deg2dms()`, `hours2hms()`, `ra_dec_from_string()`) already
+   did.  This affected the position `readfile` printed *and* the barycentering of any SIGPROC
+   file with such a declination.
  * **Changed default: zapped Fourier bins are now filled with noise, not a constant.**
    `zapbirds`, `simple_zapbirds.py`, and `accelsearch -zaplist` used to replace every bin of a
    zapped region with the same amplitude (the square root of the local mean power).  That gives

@@ -425,8 +425,16 @@ void read_filterbank_files(struct spectra_info *s)
         d = (int) floor(fabs(fb.src_dej) / 10000.0);
         m = (int) floor((fabs(fb.src_dej) - d * 10000) / 100.0);
         sec = fabs(fb.src_dej) - d * 10000 - m * 100;
-        if (fb.src_dej < 0.0)
+        if (fb.src_dej < 0.0) {
+            /* The sign goes on the most-significant nonzero field, which is  */
+            /* what dms2rad() and ra_dec_to_string() expect.  Negating 'd'    */
+            /* alone silently loses the sign for -00:MM:SS.S declinations.    */
             d = -d;
+            if (d == 0) {
+                m = -m;
+                sec = -sec;
+            }
+        }
         ra_dec_to_string(s->dec_str, d, m, sec);
         s->dec2000 = dms2rad(d, m, sec) * RADTODEG;
     }
