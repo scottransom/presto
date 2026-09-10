@@ -130,7 +130,9 @@ double max_rz_arr(fcomplex * data, long numdata, double rin, double zin,
 
     /*  Restart at minimum using HIGHACC to get a better result */
 
-    par.kernhw = z_resp_halfwidth(fabs(z) + 4.0, HIGHACC);
+    /* NOTE:  'z' here is the *internal* (z/ZSCALE) coordinate, so it must be */
+    /* scaled back to a physical Fourier f-dot before sizing the kernel.      */
+    par.kernhw = z_resp_halfwidth(fabs(z * ZSCALE) + 4.0, HIGHACC);
     fval = simplex_max_rz(&F, &r, &z, 0.01, 1.0e-7);
 
     /* The following calculates derivatives at the peak           */
@@ -210,7 +212,8 @@ void max_rz_arr_harmonics(fcomplex data[], long numdata,
 
     /*  Restart at minimum using HIGHACC to get a better result */
 
-    par.kernhw = z_resp_halfwidth(fabs(z * num_harmonics) + 4.0, HIGHACC);
+    /* As above, 'z' is the internal (z/ZSCALE) coordinate at this point. */
+    par.kernhw = z_resp_halfwidth(fabs(z * ZSCALE * num_harmonics) + 4.0, HIGHACC);
     simplex_max_rz(&F, &r, &z, 0.01, 1.0e-7);
 
     /* The following calculates derivatives at the peak           */

@@ -1,4 +1,36 @@
 ## Development (unreleased, since v6.0.1):
+ * `accelsearch` bug fix: the HIGHACC refinement in `max_rz_arr()` and
+   `max_rz_arr_harmonics()` sized its interpolation kernel from the internal, `ZSCALE`-divided
+   `z` rather than from the physical Fourier f-dot (reported by Francesco Coti Zelati, issue
+   #230).  That left the kernel up to ~2.5x too narrow in half-width, truncating the
+   acceleration response at large `|z|`.  The fraction of a signal's true power that the
+   optimizer recovered, before and after the fix, on noiseless injected signals:
+
+   ```
+       |z|      50     100     125     150     175     200     300     400
+       old   0.9994  0.9957  0.9858  0.9094  0.7171  0.5995  0.3691  0.2765
+       new   0.9998  0.9996  0.9995  0.9995  0.9994  0.9994  0.9993  0.9993
+   ```
+
+   **Those numbers look alarming, but nobody's searches were less sensitive because of this,**
+   which is worth spelling out.  The sigma and summed power that `accelsearch` reports come
+   from the incoherent power of the f-fdot search plane, which `optimize_accelcand()` never
+   recomputes; and `cand->pows`, the one array that does receive the optimizer's power, is
+   written at every call site and never read anywhere.  Re-running a search on an injected
+   z=200 candidate before and after the fix gives an identical sigma (11.77), an identical
+   summed power (90.30) and an identical (r, z), with only the coherent power moving, from
+   93.41 to 94.05.  Coherent power in turn only matters to `sifting`, as an alternative way
+   for a `numharm = 1` candidate to survive the threshold cut.
+
+   Where the bug *did* show through is the routines that hand the optimized power straight
+   back to the caller: `presto.maximize_rz()` in python, and the interactive `explorefft` and
+   `quicklook`, all of which reported far too little power above `|z|` of about 150.
+
+   The bug is an old one.  It dates to 2001 (commit `a18cd94`, which switched the f-fdot
+   optimizer from `solvopt` to the Numerical Recipes `amoeba`); the line it replaced used the
+   physical `zin` and was correct, and the replacement substituted the simplex's internal
+   `z/ZSCALE` coordinate for it.  `max_rz_arr_harmonics()` inherited the same pattern when it
+   was added in 2017, and the v6.0.0 amoeba-to-GSL rewrite carried it over verbatim.
  * **SIGPROC filterbank bug fix: declinations between 0 and -1 degrees lost their sign**
    (reported by ShiJie Gao, issue #228).  A header `src_dej` of `-1214.966` (i.e.
    -00:12:14.966) was read as *+*00:12:14.966, because the sign was applied only to the
