@@ -157,7 +157,7 @@ prior TOAs exactly; aarchiba agrees within ~0.1 sigma.
   ≤ 3e-6 turns, |Δf|/f ≤ 4e-11; all polyco-based prepfold regression folds pass against
   the *unmodified* goodfolds references and `get_TOAs.py` TOAs are identical. The old
   generator is retained as `make_polycos_tempo1()`. **With this plus ERFA barycentering,
-  PRESTO no longer needs TEMPO at all.** (tempo2 caveat: no conda-forge osx-arm64 build.)
+  PRESTO no longer needs TEMPO at all.**
 
 ### Adopt ERFA/SOFA for astronomy/time routines
 

@@ -36,10 +36,9 @@ A few notes:
     name was already taken on bioconda by an unrelated tool (and conda-forge and bioconda share
     a namespace). The Python import is still `import presto`, and the command-line tool names
     are unchanged.
-  * Builds are currently provided for **linux-64 and osx-64**. There is no Windows build (use
-    WSL there, or a container), and no osx-arm64 build yet &mdash; on Apple Silicon the osx-64
-    package runs under Rosetta 2. All of PRESTO's dependencies are available for osx-arm64, so
-    this is a feedstock configuration gap rather than a real obstacle.
+  * Builds are provided for **linux-64, linux-aarch64, osx-64 and osx-arm64** (Apple
+    Silicon runs natively as of v6.1.1). There is no Windows build (use WSL there, or a
+    container).
   * [tempo2](https://bitbucket.org/psrsoft/tempo2) (used by `prepfold -timing` to generate
     polycos) and ghostscript (used to convert `prepfold` plots to `.png`) come along as
     dependencies. TEMPO is not needed at all anymore.

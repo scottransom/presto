@@ -56,8 +56,8 @@ to do is:
 
 1. Check the diff: `version:` and `sha256:` match the new tag (compare against the hash from
    step 3), and `build: number:` is back to `0`.
-2. Wait for the Azure CI to go green for every configuration it renders (currently linux-64
-   and osx-64, for each supported python).
+2. Wait for the Azure CI to go green for every configuration it renders (currently linux-64,
+   linux-aarch64, osx-64 and osx-arm64, for each supported python).
 3. Merge it. The new packages hit the `conda-forge` channel roughly half an hour later.
 
 If the recipe needs anything beyond the version/hash (a new dependency, a changed build step,

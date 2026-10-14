@@ -1,4 +1,7 @@
 ## Development (unreleased, since v6.1.1):
+ * conda-forge now builds `presto-pulsar` natively for **linux-aarch64** and **osx-arm64**
+   (starting with v6.1.1), alongside linux-64 and osx-64, so Apple Silicon no longer needs
+   Rosetta 2.  `README.md`, `INSTALL.md`, `RELEASE.md` and `ROADMAP.md` updated to match.
 
 ## Version 6.1.1:
  * **A bug-fix release.**  `prepfold -accelcand` folded jerk (`-wmax`) candidates with the
