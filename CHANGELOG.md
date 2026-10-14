@@ -1,4 +1,10 @@
-## Development (unreleased, since v6.1.0):
+## Development (unreleased, since v6.1.1):
+
+## Version 6.1.1:
+ * **A bug-fix release.**  `prepfold -accelcand` folded jerk (`-wmax`) candidates with the
+   wrong frequency and f-dot whenever `-start` was nonzero, and signed 8-bit SIGPROC data
+   would have been misread on aarch64 (ahead of adding linux-aarch64 and osx-arm64
+   conda-forge builds).  Plus a few documentation corrections.
  * Bug fix (#231): `prepfold -accelcand` with a nonzero `-start` shifted the candidate's
    frequency to the new fold start using only `fd` (`f += fd*dt`), ignoring the jerk.  For
    `-wmax` candidates it now propagates both `f` and `fd` correctly

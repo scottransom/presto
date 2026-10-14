@@ -8,6 +8,14 @@ PRESTO is a large suite of pulsar search and analysis software developed primari
 
 **PRESTO has discovered well over 1500 pulsars, including ~500 recycled and/or binary pulsars!**
 
+## Version 6.1.1:
+ * Bug fix (#231): `prepfold -accelcand` with a nonzero `-start` now propagates jerk
+   (`-wmax`) candidates correctly to the new fold start. Before, `f` and `f-dot` could be
+   badly off, often enough to wash out the pulse entirely. Candidates with `w = 0` were not
+   affected.
+ * Bug fix: signed 8-bit SIGPROC filterbank data is now read correctly on aarch64 (64-bit
+   ARM Linux and Apple Silicon). x86 was never affected.
+
 ## Version 6.1.0:
  * **Zapped Fourier bins are now filled with noise rather than a constant amplitude**
    (`zapbirds`, `simple_zapbirds.py`, `accelsearch -zaplist`). This changes search results on

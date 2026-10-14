@@ -1,5 +1,5 @@
 project('PRESTO', 'c',
-  version: '6.1.0',
+  version: '6.1.1',
   license: 'GPL-2.0',
   meson_version: '>= 1.3.0',
   default_options: [
