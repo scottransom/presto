@@ -769,10 +769,11 @@ void resolve_fold_params(Cmdline *cmd, infodata *idata, foldcand *fc,
         /* Now correct for the fact that we may not be starting */
         /* to fold at the same start time as the rzw search.    */
 
-        if (RAWDATA || insubs)
-            f += lorec * recdt * fd;
-        else
-            f += lorec * search->dt * fd;
+        {
+            const double dt = (RAWDATA || insubs) ? lorec * recdt : lorec * search->dt;
+            f += dt * (fd + 0.5 * dt * fdd);
+            fd += dt * fdd;
+        }
         if (rzwidata.bary)
             switch_f_and_p(f, fd, fdd, &search->bary.p1,
                            &search->bary.p2, &search->bary.p3);

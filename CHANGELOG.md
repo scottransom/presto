@@ -1,4 +1,12 @@
 ## Development (unreleased, since v6.1.0):
+ * Bug fix (#231): `prepfold -accelcand` with a nonzero `-start` shifted the candidate's
+   frequency to the new fold start using only `fd` (`f += fd*dt`), ignoring the jerk.  For
+   `-wmax` candidates it now propagates both `f` and `fd` correctly
+   (`f += fd*dt + fdd*dt^2/2`, `fd += fdd*dt`).  Candidates with `w = 0` are unaffected.
+ * Bug fix: signed 8-bit SIGPROC filterbank data (`signed = 1` in the header) was read
+   through a plain `char *`, which is *unsigned* on aarch64 (linux-aarch64 and Apple
+   Silicon), so negative samples would have come back as 128-255.  It now uses
+   `signed char`.  x86 builds were unaffected.
  * `INSTALL.md` said Python >=3.8 in one place while `python/pyproject.toml` requires >=3.9;
    corrected.  Raising the minimum properly (to 3.12, in step with SPEC 0 and the
    NumPy/SciPy/astropy stack) is now a `ROADMAP.md` item for the next release.
