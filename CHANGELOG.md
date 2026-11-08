@@ -1,4 +1,11 @@
 ## Development (unreleased, since v6.1.1):
+ * **Continuous integration is back**: GitHub Actions (`.github/workflows/ci.yml`) builds
+   PRESTO in the pixi environment and runs `pixi run test` on linux-64, linux-aarch64 and
+   osx-arm64 for every push and pull request.  `pixi.toml` gains linux-aarch64, takes ERFA
+   from conda-forge's `liberfa`, installs `tempo2` on every platform, adds `hypothesis` (for
+   the fftfit tests), and its `test` task now runs an explicit list of the known-good tests.
+   `tests/test_binary_calcs.py`, previously a plotting demo, now checks the B1913+16
+   velocity curve against its closed form and PRESTO's C orbit delays against `binary_psr`.
  * conda-forge now builds `presto-pulsar` natively for **linux-aarch64** and **osx-arm64**
    (starting with v6.1.1), alongside linux-64 and osx-64, so Apple Silicon no longer needs
    Rosetta 2.  `README.md`, `INSTALL.md`, `RELEASE.md` and `ROADMAP.md` updated to match.

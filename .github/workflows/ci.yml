@@ -1,0 +1,47 @@
+# Build PRESTO (C code + libpresto + Python package) in the pixi environment and run the
+# known-good test suite (`pixi run test`; the list lives in pixi.toml) on the platforms
+# conda-forge ships.  osx-64 is in pixi.toml but left out here to keep the matrix small;
+# the feedstock still builds and tests it at release time.
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: linux-64, os: ubuntu-24.04 }
+          - { name: linux-aarch64, os: ubuntu-24.04-arm }
+          - { name: osx-arm64, os: macos-15 }
+    env:
+      MPLBACKEND: Agg
+    steps:
+      - uses: actions/checkout@v7
+      - uses: prefix-dev/setup-pixi@v0.11.2
+        with:
+          pixi-version: v0.83.0
+          cache: true
+          locked: true
+      - name: Build and test
+        run: pixi run test
+      - name: Upload meson logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: meson-logs-${{ matrix.name }}
+          path: build-pixi/meson-logs/
+          if-no-files-found: ignore

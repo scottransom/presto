@@ -11,15 +11,15 @@
 # editing of the pure-Python modules while debugging.
 #
 # Notes:
-#  - ERFA is not on conda-forge; the meson subproject fallback builds it
-#    automatically (see subprojects/erfa.wrap).
+#  - ERFA comes from conda-forge's liberfa (the meson subproject fallback in
+#    subprojects/erfa.wrap is only for builds without a system ERFA).
 #  - tempo2 (used for polyco generation, e.g. prepfold -timing) comes from
 #    conda-forge, which also sets $TEMPO2.  TEMPO is no longer needed at all.
 
 [workspace]
 name = "presto"
 channels = ["conda-forge"]
-platforms = ["linux-64", "osx-arm64", "osx-64"]
+platforms = ["linux-64", "linux-aarch64", "osx-arm64", "osx-64"]
 
 [dependencies]
 python = ">=3.10"
@@ -33,9 +33,11 @@ scipy = "*"
 astropy = "*"
 matplotlib = "*"
 pytest = "*"
+hypothesis = "*"
 ruff = "*"
 fftw = "*"
 gsl = "*"
+liberfa = "*"
 cfitsio = "*"
 glib = "*"
 libpng = "*"
@@ -44,13 +46,7 @@ pgplot = "*"
 # Ghostscript ('gs'): prepfold calls it to turn its .ps plots into nice
 # anti-aliased .png images (optional at runtime; the .ps is made regardless)
 ghostscript = "*"
-
-# tempo2 (polyco generation, e.g. prepfold -timing) is not packaged for
-# osx-arm64 on conda-forge; build it manually there if you need polycos
-[target.linux-64.dependencies]
-tempo2 = "*"
-
-[target.osx-64.dependencies]
+# tempo2: polyco generation (e.g. prepfold -timing)
 tempo2 = "*"
 
 [activation.env]
@@ -76,6 +72,12 @@ install-py-editable = { cmd = "uv pip install --python=$CONDA_PREFIX/bin/python 
     "install-c",
 ] }
 build = { depends-on = ["install-py"] }
-test = { cmd = "pytest tests/test_barycenter.py && python tests/test_presto_python.py", depends-on = [
+# The known-good tests.  Listed explicitly: many older scripts in tests/ are
+# demos or stale smoke tests rather than tests (see ROADMAP.md).
+test = { cmd = """
+pytest tests/test_barycenter.py tests/test_binary_calcs.py \
+  tests/test_maximize_rz.py python/fftfit_src \
+  && python tests/test_presto_python.py
+""", depends-on = [
     "build",
 ] }

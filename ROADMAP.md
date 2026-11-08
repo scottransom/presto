@@ -154,10 +154,16 @@ PRESTO has had no CI since the stale Travis setup was removed in 2026-07. The po
 harness anyway, and that harness is most of the CI. This work is independent of the port and
 benefits everything, so it goes straight to `master`:
 
-1. **GitHub Actions + pixi** (`prefix-dev/setup-pixi`) running `pixi run build && pixi run
-   test` on linux-64, linux-aarch64 (free arm64 Linux runners for public repos) and osx-arm64.
-   Green on the existing tests first: `tests/test_barycenter.py`, `tests/test_presto_python.py`,
-   the fftfit tests, `test_binary_calcs.py`, `test_max_rzw_harmonics.py`.
+1. **[DONE]** GitHub Actions + pixi (`.github/workflows/ci.yml`, `prefix-dev/setup-pixi`)
+   runs `pixi run test` on linux-64, linux-aarch64 and osx-arm64. The test list is explicit in
+   `pixi.toml`: `test_barycenter.py`, `test_binary_calcs.py` (rewritten from a plotting demo
+   into two real checks), `test_maximize_rz.py`, the fftfit suite, and
+   `test_presto_python.py`.
+   - Still to triage, item by item: the stale scripts in `tests/` (`dedisp.py`,
+     `test_max_rzw_harmonics.py`, `tests/python/`), the old f2py-era demo
+     `python/fftfit_src/test_fftfit.py` (superseded by the real fftfit tests beside it), and the
+     legacy C `.mak` test programs.
+     Convert each to a real test, keep it as a demo in `examplescripts/`, or delete it.
 2. **pytest as the single runner**, driving executables through `subprocess`.
 3. **End-to-end smoke tests on small synthetic data generated in-test:** fake pulsar →
    `prepdata`/`realfft`/`rednoise` → `accelsearch` and `prepfold`, checking frequency and

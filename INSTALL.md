@@ -62,7 +62,7 @@ If you use pixi, the repo has a `pixi.toml` workspace that provides the entire t
 all build dependencies from conda-forge and drives the full build:
 
     pixi run build     # C code + libpresto + Python package, installed into the pixi env
-    pixi run test      # quick smoke tests
+    pixi run test      # the test suite CI runs (about 2 min)
     pixi shell         # drop into the environment (prepfold, python, etc. on PATH)
 
 Use `pixi run install-py-editable` after building if you want live-editable
@@ -131,14 +131,16 @@ Then finally, install the Python codes and bindings via `pip`:
     cd $PRESTO/python
     pip install .
 
-And that should do it! You can quickly test to see if most things are working by doing:
+And that should do it! You can test that things are working by running the same tests the
+CI does (they need `pytest` and `hypothesis`, e.g. `pip install pytest hypothesis`), from the
+top of the source tree:
 
-    cd $PRESTO
     python tests/test_presto_python.py
-    python examplescripts/ffdot_example.py
-    python python/fftfit_src/test_fftfit.py
+    pytest tests/test_barycenter.py tests/test_binary_calcs.py tests/test_maximize_rz.py python/fftfit_src
 
-Another good test is to see if you can run and fit the default profile in `pygaussfit.py`
+`python examplescripts/ffdot_example.py` is a good visual check of PGPLOT (it waits for you
+to press RETURN between pages), and so is running and fitting the default profile in
+`pygaussfit.py`.
 
 If you want slightly faster FFT calls, just run the installed `makewisdom`. By default it uses `FFTW_MEASURE` and skips the largest FFT sizes, so it finishes in a few seconds; add `-patient` to instead use `FFTW_PATIENT` over the full set of sizes for higher-quality (but much slower, ~10-20 min) wisdom. It writes `fftw_wisdom.txt` straight into `{prefix}/share/presto` (or `$PRESTO/lib` if you have `PRESTO` set), which is where PRESTO looks for it at runtime — no manual copying needed. You can pass an explicit output path as an argument to override the destination.
 
@@ -269,17 +271,17 @@ Note that you can uninstall everything via:
 
     If you get a shared library error, see the troubleshooting steps above or below.
 
-15. **Run some basic tests**
+15. **Run the tests**
 
-    `cd $PRESTO`
+    From the top of the source tree (the second line needs `pip install pytest hypothesis`):
 
     `python tests/test_presto_python.py`
 
-    `python examplescripts/ffdot_example.py`
+    `pytest tests/test_barycenter.py tests/test_binary_calcs.py tests/test_maximize_rz.py python/fftfit_src`
 
-    `python python/fftfit_src/test_fftfit.py`
-
-    Another good test is to see if you can run and fit the default profile in `pygaussfit.py`
+    For visual checks, `python examplescripts/ffdot_example.py` exercises PGPLOT (press
+    RETURN between pages), and so does running and fitting the default profile in
+    `pygaussfit.py`.
 
 16. **Run `makewisdom` to have (slightly) fast FFTs**
 

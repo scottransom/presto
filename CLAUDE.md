@@ -53,17 +53,22 @@ if `PRESTO` is set). Pass an explicit path argument to override the destination.
 
 ## Tests
 
-There is no single unified test runner. The main smoke tests are:
+`pixi run test` builds everything and runs the known-good suite, and GitHub Actions
+(`.github/workflows/ci.yml`) runs that same task on every push and PR, on linux-64,
+linux-aarch64 and osx-arm64. The test list is **explicit** in the `test` task in
+`pixi.toml`: `tests/test_barycenter.py`, `tests/test_binary_calcs.py`,
+`tests/test_maximize_rz.py`, the fftfit suite in `python/fftfit_src/` (needs `hypothesis`),
+and `tests/test_presto_python.py`. Add a new test to that list when you add it.
 
-```sh
-python tests/test_presto_python.py        # exercises the SWIG bindings (FFTs, folding, etc.)
-python examplescripts/ffdot_example.py
-python python/fftfit_src/test_fftfit.py
-```
+**`tests/test_presto_python.py` is one of the most important tests**: it exercises the SWIG
+wrappings of crucial C routines (FFTs, folding, etc.). It is a plain script with top-level
+asserts, not pytest functions; a failure exits 1.
 
-`tests/` also holds pytest-style Python tests (`test_*.py`, e.g. `test_binary_calcs.py`,
-`test_max_rzw_harmonics.py`) and legacy C test programs with `.mak` makefiles. There is
-currently no CI (the stale Travis setup was removed; see ROADMAP.md).
+Many other Python scripts in `tests/` (e.g. `dedisp.py`, `test_max_rzw_harmonics.py`,
+`tests/python/`) and `examplescripts/` are old demos or stale smoke tests that no longer
+work as tests, so CI deliberately does not glob-collect `tests/`. The legacy C test programs
+with `.mak` makefiles are not built by meson. `examplescripts/ffdot_example.py` is still a
+useful manual check, but it waits for input at a PGPLOT prompt.
 
 ## Architecture
 
