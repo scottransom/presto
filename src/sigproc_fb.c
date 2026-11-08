@@ -20,18 +20,44 @@ static void send_string(char *string, FILE * outfile)
     chkfwrite(string, sizeof(char), len, outfile);
 }
 
-static void get_string(FILE * inputfile, int *nbytes, char string[])
+/* Longest header string accepted.  A length outside 1..MAX_HDR_STRLEN means
+   this is not a SIGPROC header (or not a string where one was expected). */
+#define MAX_HDR_STRLEN 4096
+/* Size of the buffer header strings are read into; longer ones are truncated */
+#define HDR_STRBUF 256
+
+/* Read a header string (an int length, then that many chars) into string[buflen],
+   truncating it if it does not fit.  The whole string is always consumed and
+   counted in *nbytes, so the header stays in sync even when a value (e.g. a long
+   rawdatafile path) is longer than the buffer.  Leaves "ERROR" in string, having
+   read only the length, if the length is implausible. */
+static void get_string(FILE * inputfile, int *nbytes, char string[], size_t buflen)
 {
     int nchar;
+    size_t nkeep;
     strcpy(string, "ERROR");
     chkfread(&nchar, sizeof(int), 1, inputfile);
     *nbytes = sizeof(int);
     if (feof(inputfile)) exit(0);
-    if (nchar > 80 || nchar < 1)
+    if (nchar > MAX_HDR_STRLEN || nchar < 1)
         return;
-    chkfread(string, nchar, 1, inputfile);
-    string[nchar] = '\0';
+    nkeep = ((size_t) nchar < buflen) ? (size_t) nchar : buflen - 1;
+    chkfread(string, nkeep, 1, inputfile);
+    string[nkeep] = '\0';
+    if (nkeep < (size_t) nchar)
+        fseek(inputfile, (long) (nchar - nkeep), SEEK_CUR);
     *nbytes += nchar;
+}
+
+/* Copy src into dst[dstsize], truncating if needed (memcpy, not strncpy, so
+   that gcc 8.5's -Wstringop-truncation stays quiet) */
+static void copy_trunc(char *dst, const char *src, size_t dstsize)
+{
+    size_t n = strlen(src);
+    if (n > dstsize - 1)
+        n = dstsize - 1;
+    memcpy(dst, src, n);
+    dst[n] = '\0';
 }
 
 static int strings_equal(char *string1, char *string2)
@@ -252,12 +278,12 @@ void write_filterbank_header(sigprocfb * fb, FILE * outfile)
 /* attempt to read in the general header info from a pulsar data file */
 int read_filterbank_header(sigprocfb * fb, FILE * inputfile)
 {
-    char string[80];
+    char string[HDR_STRBUF];
     int itmp, nbytes = 0, totalbytes;
     int expecting_rawdatafile = 0, expecting_source_name = 0;
     int barycentric, pulsarcentric;
     /* try to read in the first line of the header */
-    get_string(inputfile, &nbytes, string);
+    get_string(inputfile, &nbytes, string, sizeof(string));
     if (!strings_equal(string, "HEADER_START")) {
         /* the data file is not in standard format, rewind and return */
         rewind(inputfile);
@@ -271,7 +297,7 @@ int read_filterbank_header(sigprocfb * fb, FILE * inputfile)
     fb->sumifs = 1;             // default value
     /* loop over and read remaining header lines until HEADER_END reached */
     while (1) {
-        get_string(inputfile, &nbytes, string);
+        get_string(inputfile, &nbytes, string, sizeof(string));
         if (strings_equal(string, "HEADER_END"))
             break;
         totalbytes += nbytes;
@@ -347,10 +373,10 @@ int read_filterbank_header(sigprocfb * fb, FILE * inputfile)
             fb->signedints = tmp;
             totalbytes += sizeof(char);
         } else if (expecting_rawdatafile) {
-            strcpy(fb->inpfile, string);
+            copy_trunc(fb->inpfile, string, sizeof(fb->inpfile));
             expecting_rawdatafile = 0;
         } else if (expecting_source_name) {
-            strcpy(fb->source_name, string);
+            copy_trunc(fb->source_name, string, sizeof(fb->source_name));
             expecting_source_name = 0;
         } else {
             fprintf(stderr,

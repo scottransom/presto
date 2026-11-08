@@ -160,3 +160,21 @@ def test_filterbank_formats_roundtrip(tmp_path: Path, nbits: int, signed: bool, 
     if signed:
         assert raw.min() < 0  # the test only means something if negatives are present
     np.testing.assert_allclose(dat, expected, rtol=0, atol=1e-3 * np.abs(expected).max())
+
+
+def test_filterbank_long_header_strings(tmp_path: Path) -> None:
+    """Header strings longer than the reader's buffers are truncated, not fatal.
+
+    Before the fix, any string over 80 characters (e.g. a long rawdatafile path, as
+    macOS temporary directories produce) left the header reader out of sync, and it
+    died with "unknown parameter: ERROR".
+    """
+    psr = FakePulsar(nspec=2400)
+    name = "J" + "x" * 99  # 100 characters
+    write_filterbank(psr, str(tmp_path / "long.fil"), rawdatafile="/" + "d" * 299,
+                     source_name=name)
+    run(["prepdata", "-nobary", "-dm", "0", "-o", "long", "long.fil"], tmp_path)
+    inf = infodata.infodata(str(tmp_path / "long.inf"))
+    assert inf.N == psr.nspec
+    assert inf.dt == pytest.approx(psr.tsamp)
+    assert name.startswith(inf.object) and len(inf.object) >= 70

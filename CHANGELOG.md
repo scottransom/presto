@@ -1,4 +1,10 @@
 ## Development (unreleased, since v6.1.1):
+ * Fix reading SIGPROC filterbank files whose header strings (`rawdatafile`, `source_name`)
+   are longer than 80 characters.  The reader used to stop on such a string without
+   consuming it, lose its place in the header, and exit with "unknown parameter: ERROR".  A
+   long `rawdatafile` path is enough to trigger it.  Strings up to 4096 characters are now
+   read in full and truncated to fit, and an 80-character string no longer writes one byte
+   past the reader's buffer.  Found by the new pipeline tests on macOS CI.
  * New end-to-end pipeline tests (`tests/test_pipeline_synthetic.py`, run by CI): a
    synthetic dispersed pulsar (23.4567 Hz, 10% duty cycle, S/N 12, DM 50), written to a
    filterbank by the new `tests/synthpulsar.py`, must be found at the right frequency, DM and

@@ -106,6 +106,8 @@ def write_filterbank(
     signed: bool = False,
     offset: float | None = None,
     scale: float = 12.0,
+    rawdatafile: str | None = None,
+    source_name: str = "FAKEPSR",
 ) -> None:
     """Write noise plus the pulsar to a SIGPROC filterbank file.
 
@@ -124,6 +126,10 @@ def write_filterbank(
         signed or float data).
     scale : float, optional
         Noise standard deviation in output units. Default 12.
+    rawdatafile : str, optional
+        The header's ``rawdatafile`` string. Defaults to `path`.
+    source_name : str, optional
+        The header's ``source_name`` string. Default "FAKEPSR".
     """
     rng = np.random.default_rng(psr.seed)
     data = rng.standard_normal((psr.nspec, psr.nchan), dtype=np.float32)
@@ -142,8 +148,8 @@ def write_filterbank(
         "telescope_id": 0,  # "Fake"
         "machine_id": 0,  # "FAKE"
         "data_type": 1,
-        "rawdatafile": path,
-        "source_name": "FAKEPSR",
+        "rawdatafile": path if rawdatafile is None else rawdatafile,
+        "source_name": source_name,
         "src_raj": 0.0,
         "src_dej": 0.0,
         "tstart": psr.tstart,
