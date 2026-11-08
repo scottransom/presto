@@ -57,8 +57,18 @@ if `PRESTO` is set). Pass an explicit path argument to override the destination.
 (`.github/workflows/ci.yml`) runs that same task on every push and PR, on linux-64,
 linux-aarch64 and osx-arm64. The test list is **explicit** in the `test` task in
 `pixi.toml`: `tests/test_barycenter.py`, `tests/test_binary_calcs.py`,
-`tests/test_maximize_rz.py`, the fftfit suite in `python/fftfit_src/` (needs `hypothesis`),
-and `tests/test_presto_python.py`. Add a new test to that list when you add it.
+`tests/test_maximize_rz.py`, `tests/test_pipeline_synthetic.py`, the fftfit suite in
+`python/fftfit_src/` (needs `hypothesis`), and `tests/test_presto_python.py`. Add a new test
+to that list when you add it.
+
+`tests/test_pipeline_synthetic.py` is the end-to-end test: `tests/synthpulsar.py` writes a
+deterministic 64-channel filterbank with a known injected pulsar (23.4567 Hz, 10% duty,
+S/N 12, DM 50). The pipeline then runs on it (prepdata/prepsubband → realfft → rednoise →
+accelsearch → prepfold on both the `.dat` and the raw file), and each result is checked
+against the truth. Thresholds sit below the measured values, which are recorded at each
+assert; re-measure before tightening them. The same file round-trips 8-bit, signed 8-bit,
+16-bit and float filterbanks through `prepdata -dm 0` sample by sample. Use `synthpulsar.py`
+for any new test that needs raw data.
 
 **`tests/test_presto_python.py` is one of the most important tests**: it exercises the SWIG
 wrappings of crucial C routines (FFTs, folding, etc.). It is a plain script with top-level

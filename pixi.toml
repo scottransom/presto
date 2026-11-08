@@ -76,7 +76,7 @@ build = { depends-on = ["install-py"] }
 # demos or stale smoke tests rather than tests (see ROADMAP.md).
 test = { cmd = """
 pytest tests/test_barycenter.py tests/test_binary_calcs.py \
-  tests/test_maximize_rz.py python/fftfit_src \
+  tests/test_maximize_rz.py tests/test_pipeline_synthetic.py python/fftfit_src \
   && python tests/test_presto_python.py
 """, depends-on = [
     "build",

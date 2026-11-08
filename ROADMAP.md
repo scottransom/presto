@@ -165,12 +165,16 @@ benefits everything, so it goes straight to `master`:
      legacy C `.mak` test programs.
      Convert each to a real test, keep it as a demo in `examplescripts/`, or delete it.
 2. **pytest as the single runner**, driving executables through `subprocess`.
-3. **End-to-end smoke tests on small synthetic data generated in-test:** fake pulsar →
-   `prepdata`/`realfft`/`rednoise` → `accelsearch` and `prepfold`, checking frequency and
-   significance against tolerances, not bytes (`FFTW_ESTIMATE` or shipped wisdom, to avoid
-   `MEASURE` nondeterminism).
-4. **The aarch64 signed-8-bit filterbank check as a permanent test**, plus an x86 job built with
-   `-funsigned-char`, so char-signedness bugs are caught without an arm user reporting them.
+3. **[DONE]** End-to-end tests on synthetic data generated in-test
+   (`tests/test_pipeline_synthetic.py`, generator `tests/synthpulsar.py`): a 23.4567 Hz,
+   10%-duty, S/N 12, DM 50 pulsar in a 64-channel 8-bit filterbank, through prepdata and
+   prepsubband (4 DM trials), realfft, rednoise, `accelsearch -zmax 0` and prepfold (on the
+   `.dat` and on the raw filterbank). Results are checked against the injected values with
+   tolerances, not bytes. Runs in ~4 s. Not yet covered: 1/2/4-bit data (the Python writer
+   cannot produce it), PSRFITS (no writer), rfifind, and `accelsearch` with `-zmax > 0`.
+4. **[DONE]** The aarch64 signed-8-bit check is a permanent test (the round-trip of every
+   sample format through `prepdata -dm 0`). **Still to do:** an x86 job built with
+   `-funsigned-char`, so char-signedness bugs show up on x86 too.
 5. **Optionally the prepfold suite** (`tests/prepfold/prepfold_tests.sh`, ~100 MB fixture), on
    a schedule rather than every push.
 
@@ -246,6 +250,18 @@ kappa = 1: aarchiba 0.656, classic 0.625 against 0.683). It is inherited from th
 regression. `aarchiba` is the better starting point: resolve Anne Archibald's
 `std`-normalization `FIXME`, look at linearization bias for broad profiles, or validate an
 empirical inflation factor against the coverage tests.
+
+### Small issues found while writing the synthetic tests
+
+- `python/presto/filterbank.py`'s reader ignores the SIGPROC `signed` header key, so it reads
+  signed 8-bit data as unsigned. (The writer is fine, and so are PRESTO's C readers.)
+- `python/presto/sifting.py` registers its matplotlib scale with the `axis` constructor
+  parameter, which is pending deprecation since matplotlib 3.11 and is removed in 3.15.
+- `sifting.candlist_from_candfile` requires `_DM<float>` in the filename (`_DM50.00`, not
+  `_DM50`) and raises otherwise.
+- Raw-data readers work in fixed blocks (2400 spectra for SIGPROC), and prepdata drops the
+  final partial block, padding it with the mean and recording that in the `.inf`. For a file
+  of only one block, the padding value is 0 instead of the mean. Harmless, but odd.
 
 ### `python/presto/filterbank.py` low-bit-depth support
 

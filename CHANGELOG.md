@@ -1,4 +1,10 @@
 ## Development (unreleased, since v6.1.1):
+ * New end-to-end pipeline tests (`tests/test_pipeline_synthetic.py`, run by CI): a
+   synthetic dispersed pulsar (23.4567 Hz, 10% duty cycle, S/N 12, DM 50), written to a
+   filterbank by the new `tests/synthpulsar.py`, must be found at the right frequency, DM and
+   significance by prepdata/prepsubband, realfft, rednoise, accelsearch and prepfold. The same
+   file checks that 8-bit, signed 8-bit, 16-bit and 32-bit-float filterbanks are read back
+   exactly; the signed case is a permanent regression test for the aarch64 signed-char bug.
  * **Continuous integration is back**: GitHub Actions (`.github/workflows/ci.yml`) builds
    PRESTO in the pixi environment and runs `pixi run test` on linux-64, linux-aarch64 and
    osx-arm64 for every push and pull request.  `pixi.toml` gains linux-aarch64, takes ERFA
