@@ -55,9 +55,11 @@ if `PRESTO` is set). Pass an explicit path argument to override the destination.
 
 `pixi run test` builds everything and runs the known-good suite, and GitHub Actions
 (`.github/workflows/ci.yml`) runs that same task on every push and PR, on linux-64,
-linux-aarch64 and osx-arm64. The test list is **explicit** in the `test` task in
+linux-aarch64 and osx-arm64, plus a linux-64 build with `-funsigned-char` (plain `char` is
+unsigned on aarch64), which catches signed-char assumptions on x86. The test list is **explicit** in the `test` task in
 `pixi.toml`: `tests/test_barycenter.py`, `tests/test_binary_calcs.py`,
-`tests/test_maximize_rz.py`, `tests/test_pipeline_synthetic.py`, the fftfit suite in
+`tests/test_maximize_rz.py`, `tests/test_pipeline_synthetic.py`, `tests/test_sifting.py`, the
+fftfit suite in
 `python/fftfit_src/` (needs `hypothesis`), and `tests/test_presto_python.py`. Add a new test
 to that list when you add it.
 
@@ -66,8 +68,11 @@ deterministic 64-channel filterbank with a known injected pulsar (23.4567 Hz, 10
 S/N 12, DM 50). The pipeline then runs on it (prepdata/prepsubband → realfft → rednoise →
 accelsearch → prepfold on both the `.dat` and the raw file), and each result is checked
 against the truth. Thresholds sit below the measured values, which are recorded at each
-assert; re-measure before tightening them. The same file round-trips 8-bit, signed 8-bit,
-16-bit and float filterbanks through `prepdata -dm 0` sample by sample. Use `synthpulsar.py`
+assert; re-measure before tightening them. (`sifting` replaces the ACCEL file's sigma with a
+single-trial one, so `cand.sigma` there is higher than the ACCEL file's column.) The same
+file round-trips 8-bit, signed 8-bit, 16-bit and float filterbanks through `prepdata -dm 0`
+sample by sample, and checks 1/2/4-bit files channel by channel against both the Python and C
+readers (via `prepsubband -sub`). Use `synthpulsar.py`
 for any new test that needs raw data.
 
 **`tests/test_presto_python.py` is one of the most important tests**: it exercises the SWIG

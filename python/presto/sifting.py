@@ -274,7 +274,7 @@ class Candlist(object):
         yscale = "log" if maxdm > 2000.0 else "linear"
         plt.yscale(yscale)
 
-        if yscale is "log":
+        if yscale == "log":
             plt.ylim(1.0, maxdm+0.1*dmrange)
         else:
             plt.ylim(mindm-0.1*dmrange, maxdm+0.1*dmrange)
@@ -371,7 +371,7 @@ class Candlist(object):
         yscale = "log" if maxdm > 2000.0 else "linear"
         plt.yscale(yscale)
 
-        if yscale is "log":
+        if yscale == "log":
             plt.ylim(1.0, maxdm+0.1*dmrange)
         else:
             plt.ylim(mindm-0.1*dmrange, maxdm+0.1*dmrange)
@@ -1282,8 +1282,11 @@ def LogLinScaleFactory(b):
     class LogLinScale(matplotlib.scale.ScaleBase):
         name = 'loglin'
 
-        def __init__(self, axis, **kwargs):
-            matplotlib.scale.ScaleBase.__init__(self)
+        def __init__(self, *args, **kwargs):
+            # *args rather than a named `axis`: matplotlib >= 3.11 then builds the
+            # scale without an axis (naming one is pending-deprecated), and older
+            # versions' positional axis is still accepted and passed on.
+            matplotlib.scale.ScaleBase.__init__(self, args[0] if args else None)
             self.thresh = kwargs.pop("thresh", 1e-5)
             if self.thresh <= 0.0:
                 raise ValueError("thresh must be larger than 0")
@@ -1307,7 +1310,8 @@ def LogLinScaleFactory(b):
                 matplotlib.transforms.Transform.__init__(self)
                 self.thresh = thresh
 
-            def transform(self, a):
+            def transform_non_affine(self, a):
+                a = np.asarray(a, dtype=float)
                 aa = np.ma.masked_where(a<self.thresh, a)
                 if aa.mask.any():
                     aa[a<self.brk] = np.ma.log10(a[a<self.brk]) - \
@@ -1330,7 +1334,8 @@ def LogLinScaleFactory(b):
                 matplotlib.transforms.Transform.__init__(self)
                 self.thresh = thresh
 
-            def transform(self, a):
+            def transform_non_affine(self, a):
+                a = np.asarray(a, dtype=float)
                 aa = a.copy()
                 aa[a<self.brk] = np.ma.power(10, a[a<self.brk]-self.brk + \
                                                 np.log10(self.brk))

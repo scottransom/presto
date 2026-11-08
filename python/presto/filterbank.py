@@ -54,8 +54,8 @@ def create_filterbank_file(
     FilterbankFile
         The resulting FilterbankFile object, opened in read-write mode.
     """
-    dtype = get_dtype(nbits)  # Get dtype. This will check to ensure
-    # 'nbits' is valid.
+    # Get dtype. This also checks that 'nbits' is valid.
+    dtype = get_dtype(nbits, signed=bool(header.get("signed", 0)))
     header["nbits"] = nbits
     outfile = open(outfn, "wb")
     outfile.write(sigproc.addto_hdr("HEADER_START", None))
@@ -69,7 +69,9 @@ def create_filterbank_file(
         outfile.write(sigproc.addto_hdr(paramname, value))
     outfile.write(sigproc.addto_hdr("HEADER_END", None))
     if spectra is not None:
-        spectra.flatten().astype(dtype).tofile(outfile)
+        if nbits < 8:
+            spectra = np.clip(spectra, 0, 2**nbits - 1)
+        _encode_spectra(spectra, nbits, header["nchans"], dtype).tofile(outfile)
     outfile.close()
     return FilterbankFile(outfn, mode=mode)
 
@@ -113,19 +115,19 @@ def check_nbits(nbits: int) -> None:
     Raises
     ------
     ValueError
-        If ``filterbank.py`` cannot cope with the given `nbits` (only 8- and
-        16-bit integers and 32-bit floats are supported).
+        If ``filterbank.py`` cannot cope with the given `nbits` (1-, 2-, 4-,
+        8- and 16-bit integers and 32-bit floats are supported).
     """
-    if nbits not in [32, 16, 8]:
+    if nbits not in [32, 16, 8, 4, 2, 1]:
         raise ValueError(
             "'filterbank.py' only supports "
-            "files with 8- or 16-bit "
+            "files with 1-, 2-, 4-, 8- or 16-bit "
             "integers, or 32-bit floats "
             "(nbits provided: %g)!" % nbits
         )
 
 
-def get_dtype(nbits: int) -> str:
+def get_dtype(nbits: int, signed: bool = False) -> str:
     """
     Return a numpy dtype string for a number of bits per sample.
 
@@ -134,18 +136,94 @@ def get_dtype(nbits: int) -> str:
     nbits : int
         The number of bits per sample, as recorded in the filterbank file's
         header.
+    signed : bool, optional
+        Whether the header's ``signed`` key is set (default False). As in
+        PRESTO's C reader and in SIGPROC, it applies only to 8-bit data.
 
     Returns
     -------
     str
-        A numpy-recognized dtype string (e.g. ``"uint8"`` or ``"float32"``).
+        A numpy-recognized dtype string (e.g. ``"uint8"``, ``"int8"`` or
+        ``"float32"``). 1-, 2- and 4-bit samples are unpacked into ``"uint8"``.
     """
     check_nbits(nbits)
     if is_float(nbits):
         dtype = "float%d" % nbits
+    elif signed and nbits == 8:
+        dtype = "int8"
+    elif nbits < 8:
+        dtype = "uint8"
     else:
         dtype = "uint%d" % nbits
     return dtype
+
+
+def pack_bits(samples: np.ndarray, nbits: int) -> np.ndarray:
+    """
+    Pack 1-, 2- or 4-bit samples into bytes, in SIGPROC order.
+
+    Each byte holds ``8 // nbits`` consecutive channels, with the first of them
+    in the least significant bits. This matches PRESTO's C reader and SIGPROC.
+
+    Parameters
+    ----------
+    samples : numpy.ndarray
+        Integer samples of shape ``(nspec, nchans)``, each in
+        ``0 .. 2**nbits - 1``. ``nchans * nbits`` must be a multiple of 8.
+    nbits : int
+        Bits per sample: 1, 2 or 4.
+
+    Returns
+    -------
+    numpy.ndarray
+        The packed bytes, shape ``(nspec, nchans * nbits // 8)``, dtype uint8.
+    """
+    per_byte = 8 // nbits
+    nspec, nchans = samples.shape
+    if nchans % per_byte:
+        raise ValueError(
+            "%d channels at %d bits do not fill whole bytes" % (nchans, nbits)
+        )
+    vals = samples.astype(np.uint8).reshape(nspec, nchans // per_byte, per_byte)
+    packed = np.zeros((nspec, nchans // per_byte), dtype=np.uint8)
+    for ii in range(per_byte):
+        packed |= vals[:, :, ii] << np.uint8(ii * nbits)
+    return packed
+
+
+def unpack_bits(packed: np.ndarray, nbits: int, nchans: int) -> np.ndarray:
+    """
+    Unpack bytes of 1-, 2- or 4-bit samples (the inverse of `pack_bits`).
+
+    Parameters
+    ----------
+    packed : numpy.ndarray
+        Packed uint8 data holding a whole number of spectra.
+    nbits : int
+        Bits per sample: 1, 2 or 4.
+    nchans : int
+        Number of channels per spectrum.
+
+    Returns
+    -------
+    numpy.ndarray
+        The samples, shape ``(nspec, nchans)``, dtype uint8.
+    """
+    per_byte = 8 // nbits
+    mask = np.uint8(2**nbits - 1)
+    packed = np.asarray(packed, dtype=np.uint8).reshape(-1, nchans // per_byte)
+    vals = np.empty(packed.shape + (per_byte,), dtype=np.uint8)
+    for ii in range(per_byte):
+        vals[:, :, ii] = (packed >> np.uint8(ii * nbits)) & mask
+    return vals.reshape(-1, nchans)
+
+
+def _encode_spectra(data: np.ndarray, nbits: int, nchans: int, dtype: str) -> np.ndarray:
+    """Return spectra as the array of bytes to write: cast, and packed if nbits < 8."""
+    data = np.asarray(data).reshape(-1, nchans)
+    if nbits < 8:
+        return pack_bits(data, nbits)
+    return data.astype(dtype)
 
 
 def read_header(filename: str, verbose: bool = False) -> tuple[dict, int]:
@@ -220,8 +298,10 @@ class FilterbankFile(object):
     dt : float
         The time per spectrum in sec (the sample time, or period/nbins for a
         folded file).
+    signed : bool
+        Whether the header's ``signed`` key is set (meaningful for 8-bit data).
     dtype : str
-        The numpy dtype string of the samples.
+        The numpy dtype string of the samples (``int8`` for signed 8-bit data).
     dtype_min, dtype_max : int or float
         The minimum and maximum representable sample values.
 
@@ -258,13 +338,22 @@ class FilterbankFile(object):
             self.dt = self.tsamp
 
         # Get info about dtype
-        self.dtype = get_dtype(self.nbits)
+        self.signed = bool(self.header.get("signed", 0))
+        self.dtype = get_dtype(self.nbits, signed=self.signed)
         if is_float(self.nbits):
             tinfo = np.finfo(self.dtype)
         else:
             tinfo = np.iinfo(self.dtype)
         self.dtype_min = tinfo.min
         self.dtype_max = tinfo.max
+        if self.nbits < 8:
+            # Samples are unpacked into uint8 but only span nbits
+            self.dtype_max = 2**self.nbits - 1
+            if (self.nchans * self.nbits) % 8:
+                raise ValueError(
+                    "%d channels at %d bits do not fill whole bytes"
+                    % (self.nchans, self.nbits)
+                )
 
         if mode.lower() in ("read", "readonly"):
             self.filfile = open(self.filename, "rb")
@@ -330,10 +419,17 @@ class FilterbankFile(object):
         pos = self.header_size + start * self.bytes_per_spectrum
         # Compute number of elements to read
         nspec = int(stop) - int(start)
-        num_to_read = nspec * self.nchans
-        num_to_read = max(0, num_to_read)
+        nspec = max(0, nspec)
         self.filfile.seek(pos, os.SEEK_SET)
-        spectra_dat = np.fromfile(self.filfile, dtype=self.dtype, count=num_to_read)
+        if self.nbits < 8:
+            packed = np.fromfile(
+                self.filfile, dtype=np.uint8, count=nspec * self.bytes_per_spectrum
+            )
+            spectra_dat = unpack_bits(packed, self.nbits, self.nchans)
+        else:
+            spectra_dat = np.fromfile(
+                self.filfile, dtype=self.dtype, count=nspec * self.nchans
+            )
         spectra_dat = np.reshape(spectra_dat, (nspec, self.nchans))
         spec = spectra.Spectra(
             self.freqs,
@@ -379,7 +475,7 @@ class FilterbankFile(object):
         np.clip(data, self.dtype_min, self.dtype_max, out=data)
         # Move to end of file
         self.filfile.seek(0, os.SEEK_END)
-        self.filfile.write(data.astype(self.dtype))
+        self.filfile.write(_encode_spectra(data, self.nbits, self.nchans, self.dtype))
         self.nspec += nspec
         # self.filfile.flush()
         # os.fsync(self.filfile)
@@ -428,7 +524,7 @@ class FilterbankFile(object):
         # Move to requested position
         pos = self.header_size + ispec * self.bytes_per_spectrum
         self.filfile.seek(pos, os.SEEK_SET)
-        self.filfile.write(data.astype(self.dtype))
+        self.filfile.write(_encode_spectra(data, self.nbits, self.nchans, self.dtype))
         if nspec + ispec > self.nspec:
             self.nspec = nspec + ispec
 

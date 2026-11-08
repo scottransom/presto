@@ -105,7 +105,7 @@ def write_filterbank(
     nbits: int = 8,
     signed: bool = False,
     offset: float | None = None,
-    scale: float = 12.0,
+    scale: float | None = None,
     rawdatafile: str | None = None,
     source_name: str = "FAKEPSR",
 ) -> None:
@@ -118,14 +118,15 @@ def write_filterbank(
     path : str
         Output file name.
     nbits : int, optional
-        Bits per sample: 8 or 16 (integers) or 32 (float). Default 8.
+        Bits per sample: 1, 2, 4, 8 or 16 (integers) or 32 (float). Default 8.
     signed : bool, optional
         Write signed 8-bit samples (sets the SIGPROC ``signed`` header key). Default False.
     offset : float, optional
         Mean level in output units. Defaults to the middle of the integer range (0 for
         signed or float data).
     scale : float, optional
-        Noise standard deviation in output units. Default 12.
+        Noise standard deviation in output units. Defaults to 12, or for 1/2/4-bit data
+        to 1/1/3 (1-bit data is then a sign quantizer).
     rawdatafile : str, optional
         The header's ``rawdatafile`` string. Defaults to `path`.
     source_name : str, optional
@@ -134,8 +135,15 @@ def write_filterbank(
     rng = np.random.default_rng(psr.seed)
     data = rng.standard_normal((psr.nspec, psr.nchan), dtype=np.float32)
     data += pulse_signal(psr)
+    if scale is None:
+        scale = {1: 1.0, 2: 1.0, 4: 3.0}.get(nbits, 12.0)
     if offset is None:
-        offset = 0.0 if (signed or nbits == 32) else float(2 ** (nbits - 1))
+        if signed or nbits == 32:
+            offset = 0.0
+        elif nbits < 8:
+            offset = (2**nbits - 1) / 2.0
+        else:
+            offset = float(2 ** (nbits - 1))
     data = data * scale + offset
     if nbits == 32:
         out = data.astype(np.float32)

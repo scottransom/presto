@@ -1,4 +1,21 @@
 ## Development (unreleased, since v6.1.1):
+ * `presto.filterbank` now reads and writes **1-, 2- and 4-bit** SIGPROC filterbank files,
+   such as the 4-bit `GBT_Lband_PSR.fil` from the tutorial.  Samples unpack to `uint8`, and
+   new `pack_bits`/`unpack_bits` helpers use the SIGPROC order (first channel in the lowest
+   bits) that PRESTO's C reader expects.  On `GBT_Lband_PSR.fil` the Python and C readers
+   agree on every sample, and rewriting the file reproduces its data bytes exactly.  New
+   tests check 1/2/4-bit files channel by channel against both readers and run the
+   synthetic-pulsar search at each depth.
+ * `presto.sifting`'s "loglin" plot axis scale works again.  It raised `TypeError` on
+   current matplotlib (it called `ScaleBase.__init__` without its required `axis`, and its
+   transforms overrode `transform()` instead of `transform_non_affine()`), and with
+   matplotlib 3.11 importing `sifting` warned about the `axis` constructor parameter, which
+   is removed in 3.15.  Now works and is warning-free on matplotlib 3.10 and 3.11.  Also
+   replaced two `is "log"` string comparisons (a SyntaxWarning on Python 3.14) with `==`.
+ * `presto.filterbank` now honors the SIGPROC `signed` header key: signed 8-bit files read
+   (and write) as `int8` instead of being misread as `uint8`, matching PRESTO's C readers.
+ * CI also builds and tests on linux-64 with `-funsigned-char`, so code that assumes plain
+   `char` is signed (it is unsigned on aarch64) fails on x86 too.
  * Fix reading SIGPROC filterbank files whose header strings (`rawdatafile`, `source_name`)
    are longer than 80 characters.  The reader used to stop on such a string without
    consuming it, lose its place in the header, and exit with "unknown parameter: ERROR".  A

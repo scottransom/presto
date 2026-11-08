@@ -27,6 +27,9 @@ jobs:
           - { name: linux-64, os: ubuntu-24.04 }
           - { name: linux-aarch64, os: ubuntu-24.04-arm }
           - { name: osx-arm64, os: macos-15 }
+          # Plain char is unsigned on aarch64 but signed on x86.  Building with
+          # -funsigned-char catches code that silently assumes signed char.
+          - { name: linux-64-unsigned-char, os: ubuntu-24.04, unsigned_char: true }
     env:
       MPLBACKEND: Agg
     steps:
@@ -36,6 +39,13 @@ jobs:
           pixi-version: v0.83.0
           cache: true
           locked: true
+      - name: Configure with -funsigned-char
+        if: matrix.unsigned_char
+        # c_args replaces meson's use of CFLAGS, so keep conda's flags as well.
+        # The `configure` task's --reconfigure preserves c_args.
+        run: >-
+          pixi run bash -c 'meson setup build-pixi --prefix=$CONDA_PREFIX --libdir=lib
+          -Dc_args="$CFLAGS -funsigned-char"'
       - name: Build and test
         run: pixi run test
       - name: Upload meson logs on failure

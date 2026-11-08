@@ -18,7 +18,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from presto import infodata, sifting, sigproc
+from presto import filterbank, infodata, sifting, sigproc
 from synthpulsar import FakePulsar, write_filterbank
 
 PSR = FakePulsar()
@@ -46,7 +46,12 @@ def search_dat(base: str, cwd: Path) -> Path:
 
 
 def cand_near_truth(accelfile: Path, tol_r: float = 0.5):
-    """Return the candidate at the injected fundamental (within tol_r bins), or None."""
+    """Return the candidate at the injected fundamental (within tol_r bins), or None.
+
+    Note that ``sifting`` replaces the ACCEL file's multi-trial sigma with a single-trial
+    sigma recomputed from the optimized power, so ``.sigma`` here is higher than the sigma
+    column in the ACCEL file (e.g. 8.06 against 7.19 for the default observation).
+    """
     if not accelfile.exists():  # accelsearch writes no file when nothing passes its cut
         return None
     cands = sifting.candlist_from_candfile(str(accelfile)).cands
@@ -95,8 +100,8 @@ def test_accelsearch_finds_pulsar(obs: Path) -> None:
     """accelsearch detects the fundamental at the injected frequency."""
     cand = cand_near_truth(obs / "fake_DM50.00_red_ACCEL_0")
     assert cand is not None, "pulsar not found within 0.5 bins of the injected frequency"
-    assert abs(cand.r - TRUE_R) < 0.1  # measured 0.01
-    assert cand.sigma > 5.5  # measured 7.19
+    assert abs(cand.r - TRUE_R) < 0.1  # measured 0.008
+    assert cand.sigma > 5.5  # measured 8.06 (single-trial; see cand_near_truth)
     assert cand.numharm >= 4  # measured 8
 
 
@@ -108,7 +113,7 @@ def test_prepsubband_dm_trials(obs: Path) -> None:
     for dm in (0, 25, 50, 75):
         cand = cand_near_truth(search_dat(f"sub_DM{dm:.2f}", obs))
         sigmas[dm] = cand.sigma if cand is not None else 0.0
-    # measured: DM 0 not found, 25 not found, 50 -> 6.97, 75 -> 2.81
+    # measured (single-trial sigma): DM 0 and 25 not found, 50 -> 7.97, 75 -> 4.82
     assert sigmas[50] > 5.5
     assert all(sigmas[50] > sigmas[dm] + 2.0 for dm in (0, 25, 75)), sigmas
 
@@ -162,6 +167,21 @@ def test_filterbank_formats_roundtrip(tmp_path: Path, nbits: int, signed: bool, 
     np.testing.assert_allclose(dat, expected, rtol=0, atol=1e-3 * np.abs(expected).max())
 
 
+
+@pytest.mark.parametrize("nbits,signed,dtype", FORMATS,
+                         ids=["8bit", "8bit-signed", "16bit", "32bit-float"])
+def test_python_filterbank_reader(tmp_path: Path, nbits: int, signed: bool, dtype) -> None:
+    """presto.filterbank reads back exactly the samples written, signed 8-bit included."""
+    psr = FakePulsar(nspec=2400, snr=50.0)
+    fn = str(tmp_path / "py.fil")
+    write_filterbank(psr, fn, nbits=nbits, signed=signed)
+    _, hdrlen = sigproc.read_header(fn)
+    raw = np.fromfile(fn, dtype=dtype, offset=hdrlen).reshape(-1, psr.nchan)
+    fb = filterbank.FilterbankFile(fn)
+    assert fb.dtype == np.dtype(dtype).name
+    assert fb.signed == signed
+    np.testing.assert_array_equal(fb.get_spectra(0, psr.nspec).data, raw.T)
+
 def test_filterbank_long_header_strings(tmp_path: Path) -> None:
     """Header strings longer than the reader's buffers are truncated, not fatal.
 
@@ -178,3 +198,51 @@ def test_filterbank_long_header_strings(tmp_path: Path) -> None:
     assert inf.N == psr.nspec
     assert inf.dt == pytest.approx(psr.tsamp)
     assert name.startswith(inf.object) and len(inf.object) >= 70
+
+
+
+@pytest.mark.parametrize("nbits", [1, 2, 4])
+def test_lowbit_filterbank_channels(tmp_path: Path, nbits: int) -> None:
+    """1/2/4-bit files written by presto.filterbank read back channel by channel.
+
+    Independent random values in every channel are checked against both the Python
+    reader and PRESTO's C reader (via prepsubband -sub, one subband per channel at DM 0),
+    so any error in the in-byte channel order shows up. The packing (first channel in the
+    lowest bits) was also checked against the real 4-bit GBT_Lband_PSR.fil: the Python and
+    C readers agree on every sample, and rewriting it reproduces its data bytes exactly.
+    """
+    nchan, nspec = 64, 24000
+    psr = FakePulsar(nchan=nchan, nspec=nspec)
+    rng = np.random.default_rng(nbits)
+    vals = rng.integers(0, 2**nbits, size=(nspec, nchan))
+    header = {"telescope_id": 0, "machine_id": 0, "data_type": 1, "source_name": "LOWBIT",
+              "src_raj": 0.0, "src_dej": 0.0, "tstart": psr.tstart, "tsamp": psr.tsamp,
+              "fch1": psr.fch1, "foff": psr.foff, "nchans": nchan, "nifs": 1}
+    fn = str(tmp_path / "low.fil")
+    filterbank.create_filterbank_file(fn, header, spectra=vals, nbits=nbits)
+    assert (tmp_path / "low.fil").stat().st_size > nspec * nchan * nbits // 8
+    fb = filterbank.FilterbankFile(fn)
+    np.testing.assert_array_equal(fb.get_spectra(0, nspec).data, vals.T)
+    run(["prepsubband", "-nobary", "-noclip", "-sub", "-subdm", "0", "-nsub", f"{nchan}",
+         "-o", "low", "low.fil"], tmp_path)
+    subs = sorted(tmp_path.glob("low_DM0.00.sub[0-9]*"))
+    assert len(subs) == nchan
+    S = np.array([np.fromfile(f, dtype=np.int16) for f in subs])
+    n = S.shape[1]  # prepsubband drops the final partial block
+    assert n > nspec // 2
+    # sub00 is the lowest frequency, i.e. the last file channel (foff < 0)
+    np.testing.assert_array_equal(S, vals.T[::-1, :n])
+
+
+@pytest.mark.parametrize("nbits", [4, 2, 1])
+def test_lowbit_pipeline(tmp_path: Path, nbits: int) -> None:
+    """The pulsar is still found in 4-, 2- and 1-bit versions of the observation."""
+    write_filterbank(PSR, str(tmp_path / "low.fil"), nbits=nbits)
+    run(["prepdata", "-nobary", "-dm", f"{PSR.dm}", "-numout", f"{NUMOUT}",
+         "-o", "low_DM50.00", "low.fil"], tmp_path)
+    cand = cand_near_truth(search_dat("low_DM50.00", tmp_path))
+    assert cand is not None
+    # measured: |dr| 0.13 / 0.13 / 0.008 and single-trial sigma 7.23 / 6.68 / 6.54 at
+    # 4 / 2 / 1 bits (8-bit: 8.06), the expected quantization losses
+    assert abs(cand.r - TRUE_R) < 0.25
+    assert cand.sigma > 5.5

@@ -170,11 +170,13 @@ benefits everything, so it goes straight to `master`:
    10%-duty, S/N 12, DM 50 pulsar in a 64-channel 8-bit filterbank, through prepdata and
    prepsubband (4 DM trials), realfft, rednoise, `accelsearch -zmax 0` and prepfold (on the
    `.dat` and on the raw filterbank). Results are checked against the injected values with
-   tolerances, not bytes. Runs in ~4 s. Not yet covered: 1/2/4-bit data (the Python writer
-   cannot produce it), PSRFITS (no writer), rfifind, and `accelsearch` with `-zmax > 0`.
+   tolerances, not bytes. 1-, 2- and 4-bit files are checked channel by channel against both
+   readers, and the pulsar must still be found at those depths. Runs in ~6 s. Not yet
+   covered: PSRFITS (no writer), rfifind, and `accelsearch` with `-zmax > 0`.
 4. **[DONE]** The aarch64 signed-8-bit check is a permanent test (the round-trip of every
-   sample format through `prepdata -dm 0`). **Still to do:** an x86 job built with
-   `-funsigned-char`, so char-signedness bugs show up on x86 too.
+   sample format through `prepdata -dm 0`), and CI also builds on linux-64 with
+   `-funsigned-char`. With the pre-6.1.1 `char` code put back, that job fails exactly the
+   signed test, so the bug class is caught on x86 too.
 5. **Optionally the prepfold suite** (`tests/prepfold/prepfold_tests.sh`, ~100 MB fixture), on
    a schedule rather than every push.
 
@@ -253,22 +255,11 @@ empirical inflation factor against the coverage tests.
 
 ### Small issues found while writing the synthetic tests
 
-- `python/presto/filterbank.py`'s reader ignores the SIGPROC `signed` header key, so it reads
-  signed 8-bit data as unsigned. (The writer is fine, and so are PRESTO's C readers.)
-- `python/presto/sifting.py` registers its matplotlib scale with the `axis` constructor
-  parameter, which is pending deprecation since matplotlib 3.11 and is removed in 3.15.
 - `sifting.candlist_from_candfile` requires `_DM<float>` in the filename (`_DM50.00`, not
   `_DM50`) and raises otherwise.
 - Raw-data readers work in fixed blocks (2400 spectra for SIGPROC), and prepdata drops the
   final partial block, padding it with the mean and recording that in the `.inf`. For a file
   of only one block, the padding value is 0 instead of the mean. Harmless, but odd.
-
-### `python/presto/filterbank.py` low-bit-depth support
-
-The pure-Python reader supports only 8-, 16- and 32-bit files (`check_nbits`). Add 1-, 2- and
-4-bit support, which SIGPROC and PRESTO's C readers handle (e.g. the 4-bit
-`GBT_Lband_PSR.fil`). That needs sub-byte unpacking in `get_spectra` plus `get_dtype`/
-`check_nbits` updates; the framing math is already right. Verify against `readfile` output.
 
 ### `prepfold_multi` generated command-line files
 
