@@ -13,8 +13,8 @@ analysis, plotting, and orchestration are Python. The C code builds into a share
 Raw-data support: PSRFITS search-format, SIGPROC filterbank (1/2/4/8/32-bit), single-precision
 float time series (with a `.inf` header), and event/photon arrival times.
 
-Planned larger changes (conda-forge packaging, dependency removal, etc.) live in
-[ROADMAP.md](ROADMAP.md).
+Planned larger changes (currently: CI, then a C port of CoherentSearch.jl with Highway SIMD
+kernels, developed on a feature branch) live in [ROADMAP.md](ROADMAP.md).
 
 ## Build and install
 

@@ -1,346 +1,278 @@
 # PRESTO Roadmap
 
-Rough notes on significant changes planned for the coming weeks/months. This is a living,
-aspirational document — items may change, be reordered, or be dropped. For stable "how to work
-in this repo" guidance, see [CLAUDE.md](CLAUDE.md); for tracked work, see GitHub issues.
+Notes on significant planned changes. This is a living, aspirational document — items may
+change, be reordered, or be dropped. For stable "how to work in this repo" guidance, see
+[CLAUDE.md](CLAUDE.md); for what has already shipped, see [CHANGELOG.md](CHANGELOG.md) and the
+git history; for tracked work, see GitHub issues.
 
-## Primary goal: get PRESTO into conda-forge
+## Where things stand (late 2026)
 
-Package all of PRESTO — compiled code **and** Python modules — for conda-forge, so it can be
-installed trivially with `conda`/`pixi`. Most of the items below are prerequisites or
-simplifications that make clean packaging possible.
+The 2026 goal — **PRESTO on conda-forge** — is done. The package is
+[`presto-pulsar`](https://github.com/conda-forge/presto-pulsar-feedstock) (the plain `presto`
+name is taken on bioconda by an unrelated tool). It shipped with v6.0.1 (2026-08-18) and is
+built for linux-64, linux-aarch64, osx-64 and osx-arm64 (native arm runners since v6.1.1).
+`RELEASE.md` is the release-to-conda-forge checklist.
 
-**ERFA packaging wrinkle — [RESOLVED 2026-08-19].** conda-forge originally had no C-library
-ERFA package (verified 2026-07: no `erfa`/`liberfa` feedstock, and `pyerfa` only ships a
-private Python extension — no `erfa.h` or `liberfa.so` to link against). The recipe worked
-around this by vendoring the ERFA release tarball as a second `source:`. During the
-staged-recipes review, @eunos-1128 submitted and now maintains a **`liberfa` feedstock**, so
-the recipe simply lists `liberfa` in `requirements.host` — the preferred option (b) above.
-PRESTO's `subprojects/erfa.wrap` fallback is untouched and still serves source builds where
-no system ERFA is present; the recipe passes `--wrap-mode=nodownload` so a missing `erfa.pc`
-fails loudly instead of silently re-vendoring.
+The prerequisite work that made clean packaging possible is also complete:
 
-### Remove environment-variable requirements
+- **No required environment variables.** Runtime data installs to `{prefix}/share/presto`;
+  `PRESTO` is now only an optional override (`src/datadir.c`, `python/presto/_datadir.py`).
+  `makewisdom` is installed and writes wisdom to the same place.
+- **Fortran-free compiled code.** FFTFIT is pure Python (`classic` and `aarchiba` methods),
+  and the last Fortran (`dgels`) was replaced with GSL. PGPLOT is still an external Fortran
+  dependency.
+- **No TEMPO.** Barycentering uses ERFA; polycos come from `tempo2 -tempo1`.
+- **ERFA and GSL in place of vendored/NR code:** SLALIB date routines, `amoeba.c`, `median.c`,
+  randlib, and several `misc_utils.c` helpers.
+- **Man pages** for every clig-based tool, installed to `{prefix}/share/man/man1`.
+- **Dead code removed:** `dftfold`, `a2x`, `cand_output.c`, `solvopt.c`/`apprgrdn.c`, the
+  unbuildable legacy C tests.
 
-Stop requiring `PRESTO` (and other) environment variables to be set. These currently locate
-runtime data such as the pulsar database and the FFTW wisdom file, among other things. For a
-conda-forge package these paths need to be discoverable without user-set env vars.
+## Next major goal: a coherent harmonic search in PRESTO
 
-**[DONE]** `PRESTO` is no longer required. Shared runtime data (`pulsars.cat`,
-`psr_catalog.txt`, `aliases.txt`) now installs to `{prefix}/share/presto`, and both C and
-Python resolve it with the same search order — `$PRESTO/lib` (optional override) →
-`{prefix}/share/presto` (compiled in via `-DPRESTO_DATADIR` for C, `sys.prefix` for Python)
-→ a path derived from the running executable/module (relocation-safe). New `src/datadir.c`
-`presto_data_path()` (used by `database.c`/`fftcalls.c`) and `python/presto/_datadir.py`
-`data_path()` (used by `pypsrcat.py`) implement this; `check_meson_build.py` now treats
-`PRESTO` as optional. FFTW wisdom is machine-specific and no longer shipped (soft-warns if
-absent); `makewisdom` is now installed and writes `fftw_wisdom.txt` straight into that same
-data directory (via `presto_data_writepath()`), with an optional path-override argument.
-Validated: catalog reads (4303 psrs) and `pypsrcat` import/regen work with `PRESTO` unset;
-`test_presto_python.py` passes unset.
+### What and why
 
-### Reduce/remove the Fortran dependency
+[CoherentSearch.jl](https://github.com/scottransom/CoherentSearch.jl) (v1.0.0, 2026-10-08; the
+version the submitted paper describes) is a periodicity search over PRESTO `.fft` files that
+keeps the *phase* of every harmonic. At each trial frequency it Fourier-interpolates up to 60
+harmonics (Eqn. 30 of Ransom, Eikenberry & Middleditch 2002), inverse-FFTs them into a pulse
+profile, and matched-filters that profile against a boxcar bank. A decimation ladder reuses the
+same amplitudes for shallower folds. In its injection Monte Carlo it detects 76% of white-noise
+injections against `accelsearch -zmax 0`'s 42% and riptide's 50–71%, with a calculable
+false-alarm rate. Single-threaded it is faster than riptide's `rseek`.
 
-- Remove Fortran from the main compiled binaries, replacing it with GSL code where possible.
-- **[DONE]** Convert the original **FFTFIT** Fortran code and its Python module to pure Python
-  (NumPy + SciPy). This can be done independently of the rest and should get thorough tests.
-  See the dedicated plan below.
-- **[DONE]** Replace the vendored LAPACK/BLAS `dgels` least-squares solver (`src/least_squares.f`,
-  the last Fortran source) with GSL's `gsl_multifit_linear` in `bary2topo()`. This drops
-  `least_squares.f`, `include/f77.h`, and the Fortran language from the meson build, so
-  `libpresto` and all compiled tools are now Fortran-free (PGPLOT remains an external Fortran
-  dependency). Validated: GSL vs the old Fortran agree to ~4e-14 relative on the raw fit
-  outputs, and end-to-end prepfold topocentric timing parameters differ by ~1e-10 to 1e-9 of
-  their quoted uncertainties (QR-vs-SVD roundoff, negligible for timing).
+It belongs in PRESTO because its input *is* PRESTO's pipeline (`realfft` → `rednoise` →
+normalized `_red.fft`; the analytic noise scale assumes exactly that), and its candidates go
+to `prepfold`. Most PRESTO users will never install Julia. Porting also removes Julia's ~1 s
+per-invocation start-up and the sysimage/precompile machinery.
 
-#### FFTFIT pure-Python rewrite (first Fortran-removal target)
+**This is a reach and packaging play, not a speed play.** The Julia code is already near
+LLVM-quality, and ~45% of its runtime is FFTW, which a C port calls identically. Expect speed
+parity (roughly ±20%), not a win.
 
-FFTFIT (Taylor 1992) measures pulsar times-of-arrival by fitting a shift/scale between an
-observed profile and a template, entirely in the Fourier domain. Current implementation:
-`python/fftfit_src/*.f` (`fftfit`, `cprof`, `fccf`, `brent`, `ffft`) wrapped via f2py; the
-public API used by `bin/get_TOAs.py` and `bin/sum_profiles.py` is just `cprof(template)` and
-`fftfit(profile, amp, pha)`. Because this feeds high-precision timing, the replacement must be
-validated very carefully against the original.
+Julia stays the reference implementation, the research platform, and the home of the GPU
+(CUDA.jl) path. The C port follows it; it does not replace it.
 
-**Validation philosophy:** "match, but aim to improve" — bulk agreement with the Fortran must be
-negligible relative to the reported `eshift`; cases where the port is *more* accurate or stable
-(low-SNR, the `eshift=999` bailout, near-half-bin shifts) count as improvements, not failures.
-Note the Fortran is single-precision (`real*4`) with truncated constants, so a double-precision
-port will not be bit-identical by design.
+### Language: C, with the SIMD kernels in C++ (Highway)
 
-**Oracles:** (1) a frozen golden dataset generated from the current Fortran [primary]; (2) Anne
-Archibald's independent pure-Python FFTFIT [independent cross-check — see below]; (3) real-data
-TOAs, kept lightweight by reusing the existing prepfold fixtures in `tests/prepfold/goodfolds/*.pfd`
-rather than adding new data.
+Plain C for everything except the two or three hand-shaped SIMD kernels. Templates were the
+main reason to consider C++, and the port only needs the production single-precision path
+(the `Float64` path exists for Julia's equivalence pins, which stay in Julia). A fully
+independent C++ code was considered and rejected: PRESTO already provides the file formats,
+the `.inf` reader, FFTW/wisdom handling, clig/pyclig, PGPLOT, meson, and a conda-forge
+package with the users.
 
-**Two implementations, selectable by method (decided):** ship both behind a method selector.
-  * `"classic"` — the faithful NumPy/SciPy port of Taylor's Fortran. **Default**, for
-    backward-compatible TOAs / reproducibility. Validated to ~0.28 sigma vs. the Fortran.
-  * `"aarchiba"` — Anne Archibald's independent algorithm (cross-spectrum + upsampled `irfft` +
-    bounded minimization + least-squares scale/uncertainty), adopted from her unmerged PINT
-    branch. Opt-in improvement: handles the symmetric-profile / very-low-harmonic case the
-    Fortran bails on, and different-length profiles.
+### SIMD on conda-forge (benefits all of PRESTO, not just this)
 
-**Adopting Anne's code (`aarchiba/PINT` branch `fftfit_new`, BSD-3-clause → GPL-compatible,
-retain attribution):** her implementation appears abandoned upstream (she has left the field; the
-PR, nanograv/PINT#777, was never merged). PRESTO can give it a maintained home. Her 844-line
-`hypothesis` test suite is excellent and should be adopted/adapted. Note her API returns `shift`
-in *turns* plus `scale`/`offset`/`uncertainty`; a thin adapter maps to PRESTO's
-`(shift_bins, eshift, snr, esnr, b, errb, ngood)` tuple.
+conda-forge's x86-64 builds target a baseline CPU (no AVX2/FMA), whereas Julia JIT-compiles for
+the host. FFTW already dispatches at runtime, so only our own loops are affected. Options, in
+the order to pursue them:
 
-**Uncertainty calibration [decided: ship now, fix later].** Measured 1-sigma coverage (does the
-error bar contain the truth ~68% of the time?) shows *both* methods under-cover by ~5-15%, worse
-for broad profiles (e.g. kappa=1: aarchiba 0.656, classic 0.625 vs target 0.683; multi-sigma over
-N=2000). This is a pre-existing FFTFIT trait inherited faithfully by the classic port, not a
-regression; the shift itself is solid for both. Decision: proceed with the rewrite, document the
-uncertainties as approximate/slightly optimistic, and treat calibration as a separate follow-up
-(see below) rather than a blocker.
+0. **Measure the ceiling first (free).** Build PRESTO at the default flags and again with
+   `-march=x86-64-v3`, then time `accelsearch`, `prepsubband`, `rfifind` and `prepfold` on real
+   data. That bounds what any SIMD work could buy the existing tools. Expect modest gains,
+   since FFTW dominates most of them.
+1. **conda-forge microarchitecture variants (no code changes).** Add the
+   `x86_64-microarch-level` metapackage to the feedstock's build requirements to produce v1 and
+   v3 builds; the solver chooses one via the `__archspec` virtual package. That gives every
+   auto-vectorized loop in PRESTO AVX2/FMA. Costs: double the x86 build configs; CI cannot
+   guarantee level 4, so no AVX-512 — arguably a feature, given the AVX-512 licence-downclock
+   history below.
+2. **Google Highway for hand-written kernels.** [Highway](https://github.com/google/highway) is
+   portable explicit SIMD with built-in runtime dispatch (`HWY_DYNAMIC_DISPATCH`) across SSE4,
+   AVX2, AVX3 (Skylake-X), AVX3_DL, AVX3_ZEN4, AVX3_SPR, NEON, SVE/SVE2 and RVV. On conda-forge
+   as `libhwy` (1.4.0, all six platforms); also in Debian and Homebrew.
+   - *Why it fits:* the CoherentSearch.jl optimization log is largely a record of the
+     auto-vectorizer surprising us. The worst case was one `vscatterqps` in the boxcar tile
+     transpose, which dropped Skylake-SP to AVX-512 licence level 2 for the *whole* search
+     (2.84 → 2.06 GHz). With explicit `Load`/`MulAdd`/`Store`, a scatter appears only if
+     written. Target selection can exclude plain AVX3 (Skylake-SP) while keeping the Zen 4 and
+     Sapphire Rapids targets. SVE reaches Graviton/Grace cluster nodes, which neither the
+     conda-forge baseline nor NEON-only code serves well. `contrib/` adds VQSort and vector
+     math.
+   - *Costs:* C++17. Confine it to a `src/simd/` directory of `.cc` files with `extern "C"`
+     entry points so all data structures and libpresto's ABI stay C (libpresto would then
+     link libstdc++, and meson needs `project(..., 'c', 'cpp')`). Highway code is verbose,
+     each kernel compiles once per target, and scalable vectors (SVE/RVV) complicate the
+     fixed 32-trial accumulator layout (use `FixedTag`/`CappedTag`, or unroll on `Lanes(d)`).
+3. **Fallback if C++ proves unwelcome: plain-C dispatch.** Compile the kernel files two or
+   three times in meson with different flags (baseline, `-mavx2 -mfma`) and pick function
+   pointers once at startup via `__builtin_cpu_supports`. Works everywhere (including macOS,
+   unlike `target_clones`, which needs ifunc), but each variant still relies on the
+   auto-vectorizer.
 
-**Follow-up (tracked, non-blocking): FFTFIT uncertainty calibration.** Get 1-sigma coverage to
-~0.683 across regimes. aarchiba is the better starting point (marginally better calibrated, and
-its least-squares/covariance framework is amenable to a principled fix). Candidate fixes: resolve
-Anne's `std`-normalization `FIXME`; investigate linearization bias for broad profiles; possibly an
-empirical inflation factor validated against the coverage tests.
+**Plan:** do (0) now, (1) on the feedstock independently of the port, and (2) for the new
+search's hot kernels: the grouped interpolation matvec and the transposed boxcar
+gate/prefix-sum scan. Then adopt Highway kernels in `accelsearch` *only where profiling says
+the non-FFTW loops matter* (see `fourier_interpolation_tradeoffs.md` §5 in CoherentSearch.jl).
+The one plausible `accelsearch` target is the harmonic sum in `add_ffdotpows`, whose
+`inpows[rinds[kk]]` gather is a near-arithmetic index sequence that could become contiguous
+loads.
 
-**Status: DONE** (except the non-blocking uncertainty-calibration follow-up above). The pure-Python
-FFTFIT is the installed implementation (`python/presto/fftfit.py` + `fftfit_aarchiba.py`); the
-Fortran and its f2py build are removed. `get_TOAs.py` gained `-A/--fftfit {classic,aarchiba}`
-(default classic). Regression + `hypothesis` tests live in `python/fftfit_src/` and drive the
-installed package; the frozen oracle (`fftfit_reference.npz`) is retained so tests survive the
-Fortran's removal. End-to-end verified on two topocentric `goodfolds` folds: classic reproduces the
-prior TOAs exactly; aarchiba agrees within ~0.1 sigma.
+### Scope of the port
 
-**Phased approach:**
-0. [done] Golden-reference harness: freeze inputs+outputs of the current Fortran over a broad
-   synthetic battery (`fftfit_reference.npz`), plus real-data cases from a `goodfolds` fold.
-1. [done] Bottom-up "classic" port (`cprof` via NumPy `rfft`; `fftfit` with `scipy.optimize.brentq`
-   for `brent.f` and NumPy for `ffft.f`, letting both Fortran files be dropped). Validated vs the
-   frozen oracle: shift within 0.28 sigma, bailouts exact.
-2. [done] Independent cross-check: vendored Anne's algorithm agrees with the port to <=0.23 bins on
-   all well-determined fits (disagreements only at snr~1.5).
-3. [done] Adopt Anne's code + test suite as the `"aarchiba"` method; build the method selector and
-   the shift/uncertainty adapter. (Uncertainty calibration deferred as a tracked follow-up.)
-4. [done] Assemble behind the public API (drop-in for `get_TOAs.py`, `sum_profiles.py`) with
-   `"classic"` default and a `--fftfit` selector; validated against real-data TOAs from `goodfolds`.
-5. [done] Swap the build: replace the f2py target with a pure-Python install, remove the Fortran,
-   update the tests.
+**In:** the production search from CoherentSearch.jl v1.0.0, single precision throughout:
+- direct interpolation plans (`DirectPlan`, `build_group_table`) and the V=32 group kernel;
+- base and stride-`k` decimated inverse FFTs (`fftwf_plan_many_dft_c2r` with `istride = k`);
+- analytic σ (default), `--sigma measured` (quickselect MAD — the red-noise fallback), and the
+  band-limited boxcar normalization (`_boxcar_shape!`) plus the σ sanity check;
+- the `Float32` batched boxcar gate with exact rescore above `exactcut`, the ladder-pruned
+  width bank, and chunk starts / Nyquist give-up;
+- duplicate and harmonic collapse, a candidate output file, and multi-file invocations;
+- OpenMP over whole chunks, round-robin (`schedule(static,1)`), one private workspace per
+  thread, all FFTW planning before the parallel region;
+- **PGPLOT candidate plots** (`/CPS`, `/PNG`), drawn per file as each search finishes, plus a
+  small replot tool that reads a saved candidate file. Profile reconstruction
+  (`candidate_profile`) is microseconds per candidate.
+- `bin/sift_candidates.py` (pure stdlib) moves over unchanged.
 
-### Remove the TEMPO dependency
+**Out:** the metric-statistics/normalize histograms, the reference/oracle paths, the
+`Float64` profile path, the toy search, and the GPU.
 
-- **[DONE]** Barycentering: use **ERFA** instead of TEMPO. `barycenter()` in
-  `src/barycenter.c` now computes UTC→TT→TDB (ERFA's built-in leap seconds + `eraDtdb`),
-  the Roemer delay (`eraEpv00` analytic ephemeris + `eraPvtob`/`eraC2i06a` for the
-  observatory, from a new internal ITRF table in `src/observatories.c`), and the solar
-  Shapiro delay, all in-process with **no external files**. v/c comes from a central
-  difference of the total delay, matching TEMPO's `femit/fobs - 1` definition (positive
-  = moving away). Two conventions matter: PRESTO MJDs count elapsed-seconds/86400 from
-  UTC midnight (not ERFA's "stretched" leap-day quasi-JD — up to 1 s different on a
-  leap-second day), and UT1≈UTC is used (≤1.4 μs). Validated vs TEMPO/DE405 over 14
-  observatories × 7 sky positions × 8 epochs (1995–2023, incl. leap-second days):
-  absolute agreement ~14 μs max (the eraEpv00-vs-DE405 ephemeris difference), ~1.3 μs
-  differential drift over a dense 12-hr series (mostly TEMPO's measured UT1 vs our
-  UT1≈UTC), and |Δ(v/c)| ≲ 3e-9 (vs typical |v/c| ~1e-4). The old code is retained as
-  `barycenter_tempo()` and `src/check_bary_erfa.c` re-runs the full comparison anytime
-  (needs TEMPO); `tests/test_barycenter.py` checks against frozen TEMPO values
-  (`tests/bary_tempo_reference.txt`) with no TEMPO needed. The `ephem` argument is now
-  ignored.
-- **[DONE]** Polyco creation: use **tempo2** (which is on conda-forge and sets `$TEMPO2`
-  automatically) instead of TEMPO. `make_polycos()` in `src/polycos.c` and
-  `polycos.create_polycos()` now run `tempo2 -tempo1 -f par -polyco "mjd1 mjd2 nspan
-  ncoeff maxha sitename freq"`, which writes TEMPO1-format polycos that the existing
-  `getpoly()`/`phcalc()` readers consume (one reader fix: the line-2 observatory field is
-  now a site name like "gbt", so it is parsed as a string). Sites are passed as tempo2
-  observatory *names* — tempo2's tempo1-code alias table is conflicting ('k' is e-Merlin,
-  'y' is aliased to Jodrell), and the old TEMPO codes had two latent bugs anyway (ATA 's'
-  was SHAO 65m; KAT-7 'k' was FAST). Validated vs TEMPO with `src/check_polycos_t2.c`
-  (needs both programs): constant phase offsets 0.001–0.023 μs, differential drift
-  ≤ 3e-6 turns, |Δf|/f ≤ 4e-11; all polyco-based prepfold regression folds pass against
-  the *unmodified* goodfolds references and `get_TOAs.py` TOAs are identical. The old
-  generator is retained as `make_polycos_tempo1()`. **With this plus ERFA barycentering,
-  PRESTO no longer needs TEMPO at all.**
+### Validation
 
-### Adopt ERFA/SOFA for astronomy/time routines
+The Julia correctness chain (Python oracle → Julia reference → Julia production) gets one more
+link: Julia v1.0.0 production → C.
 
-Replace hand-rolled code with ERFA/SOFA where possible: `mjd2cal`, `cal2jd`, and certain routines
-in `misc_utils.c`. The barycenter↔topocenter calculations are done (see above), which also
-provided the two prerequisites listed here: the observatory-position database now lives in
-`src/observatories.c` (coordinates from TEMPO's obsys.dat, with PINT/tempo2 filling gaps), and
-leap seconds come from ERFA's built-in table (`eraDat` — note this means very new leap seconds,
-should they ever resume, require an ERFA update).
+- **Not byte-identical to Julia, by design:** FMA contraction and summation order differ, and
+  FFTW `MEASURE` plans differ between processes.
+- **Pin:** per-trial metrics from Julia's `chunk_metrics` on fixed chunks, committed as small
+  fixtures, against a C dump mode at about 1e-6 relative. Candidate sets must be identical
+  above threshold plus the gate margin on a few real files (e.g. `PM0063`, NGC6624).
+- **Within C,** keep the Julia standard: deterministic and chunk-invariant output, checked by
+  `diff` on the candidate file.
+- **Per kernel:** re-sweep the constants tuned under Julia/LLVM (`V = 32`, `_BC_BATCH = 128`,
+  `BJ = 8`) on fitzroy (Skylake-SP), foops (Comet Lake) and an aarch64 host, and audit the
+  disassembly of every hot kernel for scatters and 512-bit code.
+- **Watch item:** FFTW's c2r overwrites its input by default, and every decimated pass reads
+  `ftprofs` after the base pass. Use `FFTW_PRESERVE_INPUT` (supported for rank-1 c2r) or a
+  separate buffer, and check what FFTW.jl does rather than assume.
 
-**[DONE]** The vendored Starlink SLALIB date/time routines (`src/cldj.c`, `src/djcl.c`,
-`include/slalib.h`, `include/slamac.h`) are gone. `slaCldj` (Gregorian→MJD) is now `eraCal2jd`
-via a new libpresto helper `cal_to_mjd()` in `misc_utils.c` (used by the PSRFITS/SPIGOT/BPP/WAPP
-readers and the `cal2mjd` tool); `slaDjcl` (MJD→Gregorian) is now `eraJd2cal` (in `mjd_to_datestr()`
-and the `mjd2cal` tool). While there, `sphere_ang_diff()` now wraps `eraSeps()` (agrees to ~4e-15
-rad) and `dms2rad()`/`hms2rad()` wrap `eraAf2a()`/`eraTf2a()` so ERFA owns the sign conventions
-(bit-identical output). No behavior change for any tool. Still to do: the Python `parfile.py`
-optionally imports the old `slalib` package (`sla_ecleq`/`sla_eqecl`/`sla_eqgal`); those could
-move to astropy (already a required dep), minding TEMPO's ecliptic-obliquity conventions.
+### Prerequisite: CI and a real test suite (do this first, on `master`)
 
-### Replace numerical routines with GSL
+PRESTO has had no CI since the stale Travis setup was removed in 2026-07. The port needs a
+harness anyway, and that harness is most of the CI. This work is independent of the port and
+benefits everything, so it goes straight to `master`:
 
-Replace the in-tree median and statistics calls with well-tested GSL equivalents.
+1. **GitHub Actions + pixi** (`prefix-dev/setup-pixi`) running `pixi run build && pixi run
+   test` on linux-64, linux-aarch64 (free arm64 Linux runners for public repos) and osx-arm64.
+   Green on the existing tests first: `tests/test_barycenter.py`, `tests/test_presto_python.py`,
+   the fftfit tests, `test_binary_calcs.py`, `test_max_rzw_harmonics.py`.
+2. **pytest as the single runner**, driving executables through `subprocess`.
+3. **End-to-end smoke tests on small synthetic data generated in-test:** fake pulsar →
+   `prepdata`/`realfft`/`rednoise` → `accelsearch` and `prepfold`, checking frequency and
+   significance against tolerances, not bytes (`FFTW_ESTIMATE` or shipped wisdom, to avoid
+   `MEASURE` nondeterminism).
+4. **The aarch64 signed-8-bit filterbank check as a permanent test**, plus an x86 job built with
+   `-funsigned-char`, so char-signedness bugs are caught without an arm user reporting them.
+5. **Optionally the prepfold suite** (`tests/prepfold/prepfold_tests.sh`, ~100 MB fixture), on
+   a schedule rather than every push.
 
-**[DONE]** `src/median.c` (a Numerical Recipes Quickselect) is now a thin wrapper around
-GSL's `gsl_stats_float_median()`. Odd-length results are bit-identical to the old code;
-even-length results now interpolate (mean of the two central values).
+The feedstock's own tests remain the release-time check; CI catches problems before they get
+there.
 
-### Docstrings, typehints, and ruff
+### Workflow: a long-lived feature branch
 
-Add these things to at least the python routines python/presto, but especially psr_utils.py, 
-prepfold.py, psrfits.py, spectra.py, filterbank.py, and sifting.py.
+This departs from the usual direct-to-`master` workflow (see CLAUDE.md), because it is exactly
+the "very large-scale change" that rule reserves branches for: a new executable, a new
+dependency (Highway), and C++ in the build for the first time.
 
-### Add Descriptions etc in .cli files for the man pages
+- CI (above), the `-march=x86-64-v3` measurement, and the feedstock microarch change go to
+  `master` (or the feedstock) as usual — none of them needs the port.
+- The port lives on a branch, e.g. `coherent-search`, rebased on `master` periodically so it
+  runs under CI from day one.
+- Merge into `master` via a PR once phase 3 below passes its pins on all CI platforms; a
+  release with the new tool follows.
 
-Have Claude fill in Descriptions, Author, and SeeAlso fields in the pyCLIG .cli files to improve
-the generated man pages. Read the code, `docs/PRESTO_search_tutorial.odp`, and the `FAQ.md` for 
-relevant information. I would like the man files to start being more useful since there really 
-isn't great documentation for PRESTO, in general. Include common usage examples for the main 
-PRESTO routines (`rfifind`, `[mpi]prep*`, `accelsearch`, `realfft`, and `show_pfd`). Once complete,
-re-generate all the CLIG-based files (except prepfold_multi, given the issues!). On a related note,
-the relevant information in `prepfold_multi.1` should also go in a new section in the `FAQ.md`.
+### Phases
 
-**[DONE]** Description/Author/SeeAlso added to all 15 remaining `.cli` files (usage examples
-included for `rfifind`, `prepdata`, `prepsubband`, `mpiprepsubband`, `accelsearch`, `realfft`,
-and `show_pfd`); all regenerated via pyclig except `prepfold_multi_cmd.cli`, which keeps its
-existing hand-written content. `prepfold_multi`'s `-candfile` format is now also copied into a
-new FAQ.md entry. Man page installation (next section) is still open.
+1. **k = 1 only, single-threaded, scalar C:** interpolation, base transform, analytic σ,
+   gate and exact rescore. Pinned against Julia per-trial metrics.
+2. **The full search:** decimation ladder, pruned widths, measured σ, candidate collapse,
+   output file, clig `.cli` and man page.
+3. **Throughput:** OpenMP, multi-file invocations, wisdom; then PGPLOT plots and the replot
+   tool. *Merge point.*
+4. **SIMD:** Highway kernels with dispatch, constant re-tuning, disassembly audits; meson and
+   feedstock changes for `libhwy` and C++.
+5. **Afterwards, optional:** profile `accelsearch` and move any loops worth it onto Highway.
 
-### As an extension to the previous, figure out man page installation
+### Open questions
 
-Discuss with Claude ways to do this seamlessly and usefully, especially once we (soon!) 
-get PRESTO into conda-forge.
+- The tool's name (`coherentsearch`, `cohsearch`, …) and its candidate-file format (keep
+  `.cohout`, or something `ACCEL_sift`/`prepfold`-friendly?).
+- Whether to accept C++ in libpresto at all, or keep the Highway kernels in a separate small
+  library linked only by the executables that use them.
+- Whether `--sigma measured` should warn, or switch automatically, when the σ sanity check
+  fires (Julia warns and does not switch).
+- A cheaper alternative to rule out first: Julia 1.12's `juliac --trim` for a self-contained
+  executable. Likely fragile with FFTW.jl and ArgParse, and it still does not slot into
+  PRESTO's meson build or the feedstock, so it is not the plan.
 
-**[DONE]** The `docs/*.1` man pages now install to `{prefix}/share/man/man1` via
-`install_man()` in the top-level `meson.build`, so `man rfifind` (etc.) works with no
-`$PRESTO` or extra `MANPATH` setup (conda activation already adds `{prefix}/share/man`).
+## Other open items
 
-### Clean up old and unused code
+### libpresto headers and soversion
 
-Ask Claude to examine files in `src`, `include`, `tests`, and in `python` to find things that
-can safely be removed. These should be things that have not been significantly touched in a
-a long while, are irrelevant because of other code. I would like to approve a list item by 
-item for those things to be removed.
+`libpresto` installs as an unversioned `.so` with **no headers** (only `presto.pc`), so nothing
+can link against it from the conda package, and the recipe declares no `run_exports`. To open
+that up: install the headers under `include/presto/` (names like `mask.h`, `median.h`,
+`vectors.h` are too generic for a shared `include/`), give the library a `soversion:`, and only
+then add `run_exports` in the feedstock. Relevant to the C++/Highway question above.
 
-**[DONE]** `dftfold` (outdated, unused, no references elsewhere in the tree) was removed
-while doing the `.cli` Description/Author/SeeAlso pass below.
+### Raise the minimum Python version to 3.12 (decided, next release)
 
-**[DONE]** `a2x` (the old ASCII→PostScript helper) and its files (`bin/a2x.sh`, `lib/a2x.ps`,
-`lib/a2xshell.ps`) were removed, along with the dead code that shelled out to it:
-`src/cand_output.c` (both `file_reg_candidates`/`file_bin_candidates` were unused — the former
-only by the already-broken legacy `tests/test_apps.c`) and its `presto.h` prototypes, plus the
-commented-out a2x block in `minifft.c`. The dead `tests/test_apps.c` (missing `fftapps.h`/
-`plotting.h`, unbuildable) and its `test_fdot`/`test_plot`/`test_finterp` `.mak` files were
-removed too.
+`python/pyproject.toml` declares `requires-python = '>=3.9'`, and `INSTALL.md` still says
+">=3.8" in one place. NumPy, SciPy, astropy and matplotlib follow
+[SPEC 0](https://scientific-python.org/specs/spec-0000/), which retires a Python version three
+years after release, so 3.11 (October 2022) is already past due and 3.12 puts PRESTO in step
+with its dependencies. conda-forge will drop 3.10 at the next rerender regardless. For the next
+release:
+  * set `requires-python = '>=3.12'` in `python/pyproject.toml`,
+  * fix the stale ">=3.8" line in `INSTALL.md` (and check for others),
+  * add `python >=3.12` to `requirements/host` and `requirements/run` in the feedstock recipe —
+    a bare `python` builds for whatever conda-forge's global pinning offers, so the recipe, not
+    `requires-python`, is what narrows the matrix,
+  * confirm nothing in the package still guards on older versions.
 
-### Replace code of questionable origin or which can be replaced with GSL or ERFA (or scipy)
+### FFTFIT uncertainty calibration
 
-- One or two of the .c files (e.g. `amoeba.c` and `median.c`, plus parts of `misc_utils.c`) 
-  originate in Numerical Recipes. It would be great to replace those.
-  **[DONE for `amoeba.c`]** replaced by a GSL simplex in `maximize_rz` (commit 8f41787).
-  **[DONE for `median.c`]** now wraps GSL's `gsl_stats_float_median()` (see above).
-- **[DONE]** `solvopt.c` and `apprgrdn.c` were dead — no callers anywhere and not even in
-  the meson build (never compiled) — so they were simply removed.
-- **[DONE]** Replaced the randlib stuff (`src/randlib.c`, `src/com.c`, `include/randlib.h`)
-  with GSL's `gsl_rng`/`gsl_ran_gaussian`/`gsl_ran_poisson`. It was only used by `makedata`
-  (and the unbuilt legacy `tests/test_ffts.c`); those files are now gone.
-- **[DONE]** Replaced the vendored SLALIB time/coordinate utilities (`cldj.c`, `djcl.c`, and
-  the `dms2rad`/`hms2rad`/`sphere_ang_diff`/`mjd_to_datestr` routines in `misc_utils.c`, plus
-  the `mjd2cal` and `cal2mjd` tools) with ERFA calls. See the ERFA section above for details.
-
-### Develop a plan, with scripts, for doing proper tagged releases
-
-This will be important for simplfying updates when PRESTO is on conda-forge
-
-**[DONE]** `RELEASE.md` documents the repeatable checklist (version stamp &rarr; CHANGELOG/README
-&rarr; tag &rarr; push &rarr; `gh release` &rarr; hash &rarr; conda-forge). `determine_version.py`
-gained a `--set X.Y.Z` mode to stamp an explicit release version (overriding the git-derived dev
-version) into the three files it keeps in sync.
-
-### Develop scripts and recipes for getting PRESTO onto conda-forge
-
-When that is complete (and integration into conda-forge is imminent), we will tag v6.
-
-**[IN PROGRESS]** v6.0.1 is stamped/tagged, and a conda-forge recipe is kept in-repo under
-`conda-recipe/` (`recipe.yaml` + `build.sh`, in the v1/rattler-build format). It builds both
-halves (meson for `libpresto`/tools, then `pip` for the Python package) and takes ERFA from
-conda-forge's `liberfa`. Builds target `linux-64`, `osx-64`, and `osx-arm64` (the last became
-possible once `tempo2` was enabled for arm64 during the review). Remaining: get the
-`conda-forge/staged-recipes` PR reviewed and merged (creates `presto-pulsar-feedstock`; the
-plain `presto` name is taken on bioconda by an unrelated tool), after which
-the autotick bot handles version bumps.
-
-Deferred: `libpresto` currently installs as an unversioned `.so` with **no headers** (only
-`presto.pc`), so nothing can link against it from the package and the recipe declares no
-`run_exports`. To open that up later, install the headers under `include/presto/` (the names
-— `mask.h`, `median.h`, `vectors.h`, … — are too generic for a shared `include/`), give the
-library a `soversion:`, and only then add `run_exports` in the feedstock.
-
-## Nice-to-haves
-
-### Revitalize CI
-
-The old Travis CI setup (`.travis/`, `.travis.yml`) was stale for years and has been removed
-(2026-07). Set up modern CI — presumably GitHub Actions — that builds the meson project and
-Python package and runs the test suite: `tests/test_barycenter.py`, `tests/test_presto_python.py`
-(now TEMPO-free), the fftfit tests in `python/fftfit_src/`, and ideally the prepfold suite
-(`tests/prepfold/prepfold_tests.sh`, which downloads its ~100 MB fixture and needs TEMPO for
-the polyco-based folds). A linux + macOS matrix would also catch the recurring macOS
-build/rpath issues early.
-
-## Other known issues to fix
+Both FFTFIT methods under-cover their 1-sigma errors by ~5–15%, worst for broad profiles (e.g.
+kappa = 1: aarchiba 0.656, classic 0.625 against 0.683). It is inherited from the Fortran, not a
+regression. `aarchiba` is the better starting point: resolve Anne Archibald's
+`std`-normalization `FIXME`, look at linearization bias for broad profiles, or validate an
+empirical inflation factor against the coverage tests.
 
 ### `python/presto/filterbank.py` low-bit-depth support
 
-The pure-Python `filterbank.py` reader only supports 8-, 16-, and 32-bit filterbank files
-(`check_nbits` rejects everything else). It should be extended to also read **1-, 2-, and
-4-bit** data, which the SIGPROC format and PRESTO's C reader (`readfile`, `prep*`) all handle
-(e.g. the 4-bit `GBT_Lband_PSR.fil`). This needs sub-byte unpacking in `get_spectra` (samples
-are packed multiple-per-byte) plus `get_dtype`/`check_nbits` updates; the framing math
-(`bytes_per_spectrum = nchans*nbits // 8`) is already correct for packed low-bit data. Verify
-against `readfile` output on a known file.
-
-### Raise the minimum Python version
-
-`python/pyproject.toml` declares `requires-python = '>=3.9'` (and `INSTALL.md` still says
-">=3.8" in one place, which contradicts it). Both are older than anything PRESTO is actually
-tested or shipped against, and older than what its dependencies support.
-
-conda-forge will retire **3.10** on its own schedule: a rerender during the v6.1.0 PR moved
-the matrix from 3.10-3.13 to 3.11-3.14 under newer pinning. That rerender was backed out
-along with an osx-arm64 attempt, so the 6.1.0 packages do still ship 3.10-3.14 — but the next
-rerender will drop 3.10 whether or not we ask.
-**Decided: the next release moves the floor to 3.12.** The basis is that NumPy, SciPy,
-astropy and matplotlib all follow
-[SPEC 0](https://scientific-python.org/specs/spec-0000/), which retires a Python version
-three years after release. On that schedule 3.11 (October 2022) is already past due, so a
-floor of 3.12 puts PRESTO in step with the scientific stack it depends on — whereas plain
-upstream EOL for 3.11 is not until October 2027, which would have made dropping it on EOL
-grounds alone premature.
-
-To do it, for the next release:
-  * set `requires-python` in `python/pyproject.toml` to the chosen floor,
-  * fix the stale ">=3.8" line in `INSTALL.md` (and check for others),
-  * add a matching `python >=X.Y` constraint to `requirements/host` and `requirements/run` in
-    the conda recipe — a bare `python` builds for whatever conda-forge's global pinning
-    offers, so the recipe, not `requires-python`, is what narrows the feedstock matrix,
-  * and confirm nothing in the package still guards on older versions.
+The pure-Python reader supports only 8-, 16- and 32-bit files (`check_nbits`). Add 1-, 2- and
+4-bit support, which SIGPROC and PRESTO's C readers handle (e.g. the 4-bit
+`GBT_Lband_PSR.fil`). That needs sub-byte unpacking in `get_spectra` plus `get_dtype`/
+`check_nbits` updates; the framing math is already right. Verify against `readfile` output.
 
 ### `prepfold_multi` generated command-line files
 
-`prepfold_multi` currently requires **manual** edits to its auto-generated
-`src/prepfold_multi_cmd.[ch]` after they are generated from `clig/prepfold_multi_cmd.cli` — the
-generator (`pyclig`) output is not yet correct/complete on its own. Fix so `prepfold_multi`
-regenerates cleanly from its `.cli` like every other tool. Until then, do not blindly overwrite
-the hand-edits when regenerating.
+`src/prepfold_multi_cmd.[ch]` need **manual** edits after `pyclig` generates them from
+`clig/prepfold_multi_cmd.cli`. Fix the generator or the `.cli` so it regenerates cleanly like
+every other tool. Until then, do not blindly overwrite the hand edits.
+
+### Python docstrings, type hints and ruff
+
+Continue adding numpy-style docstrings and type hints across `python/presto`, especially
+`psr_utils.py`, `prepfold.py`, `psrfits.py`, `spectra.py`, `filterbank.py` and `sifting.py`, and
+ruff-format the files touched.
+
+### Remaining replaceable code
+
+- `python/presto/parfile.py` optionally imports the old `slalib` package (`sla_ecleq`/
+  `sla_eqecl`/`sla_eqgal`). Move these to astropy (already required), minding TEMPO's
+  ecliptic-obliquity conventions.
+- Parts of `misc_utils.c` still originate in Numerical Recipes; replace them with GSL/ERFA
+  where possible.
+- Further dead-code removal stays item-by-item, with each removal approved first.
 
 ## Postponed, potentially indefinitely
 
 ### Drop support for retired pulsar backends
 
-(Note: Postponed since all the code now compiles without warnings and will likely not be touched
-again. And we occasionally find old files from those machines where it is (very!) useful to be 
-able to see what they are via `readfile`.)
-Remove all code for old backends (Spigot, BCPM, WAPP, and others). This is believed to affect 
-only the `readfile` code path.
+Remove the code for old backends (Spigot, BCPM, WAPP, and others), believed to affect only the
+`readfile` code path. Postponed: the code compiles without warnings and is unlikely to be
+touched again, and old files from those machines still turn up, where `readfile` is very useful.
