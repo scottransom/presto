@@ -30,6 +30,8 @@ size_t chkfread(void *data, size_t type, size_t number, FILE * stream)
 {
     size_t num;
 
+    if (number == 0)            /* data may be NULL then, which fread() forbids */
+        return 0;
     num = fread(data, type, number, stream);
     if (num != number && ferror(stream)) {
         perror("\nError in chkfread()");
@@ -44,6 +46,8 @@ size_t chkfwrite(void *data, size_t type, size_t number, FILE * stream)
 {
     size_t num;
 
+    if (number == 0)            /* data may be NULL then, which fwrite() forbids */
+        return 0;
     num = fwrite(data, type, number, stream);
     if (num != number && ferror(stream)) {
         perror("\nError in chkfwrite()");

@@ -56,7 +56,14 @@ if `PRESTO` is set). Pass an explicit path argument to override the destination.
 `pixi run test` builds everything and runs the known-good suite, and GitHub Actions
 (`.github/workflows/ci.yml`) runs that same task on every push and PR, on linux-64,
 linux-aarch64 and osx-arm64, plus a linux-64 build with `-funsigned-char` (plain `char` is
-unsigned on aarch64), which catches signed-char assumptions on x86. The test list is **explicit** in the `test` task in
+unsigned on aarch64), which catches signed-char assumptions on x86, and a linux-64 build
+with AddressSanitizer + UndefinedBehaviorSanitizer (`-Db_sanitize=address,undefined`; UBSan
+findings abort). That job preloads `libasan.so` only so the uninstrumented Python can load
+the SWIG module; `tests/conftest.py` then strips it from `LD_PRELOAD` so child processes
+don't inherit it (forced into tempo2 by `prepfold -timing`, it hangs). To reproduce
+locally, configure `build-pixi` the same way (see `.github/workflows/ci.yml`), then
+`pixi run build` and `LD_PRELOAD=$($CC -print-file-name=libasan.so) pixi run test`
+inside `pixi run bash`; reconfigure with `-Db_sanitize=none` afterwards. The test list is **explicit** in the `test` task in
 `pixi.toml`: `tests/test_barycenter.py`, `tests/test_binary_calcs.py`,
 `tests/test_maximize_rz.py`, `tests/test_pipeline_synthetic.py`, `tests/test_sifting.py`, the
 fftfit suite in

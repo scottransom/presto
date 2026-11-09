@@ -30,6 +30,10 @@ jobs:
           # Plain char is unsigned on aarch64 but signed on x86.  Building with
           # -funsigned-char catches code that silently assumes signed char.
           - { name: linux-64-unsigned-char, os: ubuntu-24.04, unsigned_char: true }
+          # AddressSanitizer + UndefinedBehaviorSanitizer: out-of-bounds and uninitialized
+          # reads that happen to give the right answer on one platform (like the mask.c
+          # bug that only misbehaved on macOS) fail here on every push.
+          - { name: linux-64-sanitizers, os: ubuntu-24.04, sanitize: true }
     env:
       MPLBACKEND: Agg
     steps:
@@ -46,8 +50,27 @@ jobs:
         run: >-
           pixi run bash -c 'meson setup build-pixi --prefix=$CONDA_PREFIX --libdir=lib
           -Dc_args="$CFLAGS -funsigned-char"'
+      - name: Configure with ASan + UBSan
+        if: matrix.sanitize
+        # UBSan findings abort (-fno-sanitize-recover) so that they fail the tests.
+        run: >-
+          pixi run bash -c 'meson setup build-pixi --prefix=$CONDA_PREFIX --libdir=lib
+          -Db_sanitize=address,undefined -Db_lundef=false
+          -Dc_args="$CFLAGS -fno-omit-frame-pointer -fno-sanitize-recover=undefined"'
       - name: Build and test
+        if: ${{ !matrix.sanitize }}
         run: pixi run test
+      - name: Build and test (sanitized)
+        if: matrix.sanitize
+        # Python itself is not instrumented, so preload ASan's runtime for the SWIG module
+        # (harmless for the instrumented executables).  Leak checking is off: many tools
+        # never free what they allocate before exiting.
+        env:
+          ASAN_OPTIONS: detect_leaks=0
+          UBSAN_OPTIONS: print_stacktrace=1
+        run: >-
+          pixi run build && pixi run bash -c
+          'LD_PRELOAD=$($CC -print-file-name=libasan.so) pixi run test'
       - name: Upload meson logs on failure
         if: failure()
         uses: actions/upload-artifact@v7

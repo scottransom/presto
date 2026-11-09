@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
     double dm = 242.30;
     double *dispdts;
     float *fdata_new, *fdata_old, *stored = NULL;
-    long long nblocks_stored = 0, block_floats;
+    long long nblocks_stored = 0, nblocks_cap = 0, block_floats;
     rawblock_reader *reader;
     char *maskfile = NULL;
     char *rawfiles[16384];
@@ -96,8 +96,17 @@ int main(int argc, char *argv[])
         dedisp_subbands(reader->current_clean, reader->last_clean,
                         sps, numchan, idispdts, nsub, fdata_new);
         rawblock_reader_advance(reader);
-        stored = (float *) realloc(stored,
-                                   (size_t) (nblocks_stored + 1) * block_floats * sizeof(float));
+        /* Grow geometrically: growing by one block per call is quadratic */
+        /* wherever realloc() copies (e.g. under AddressSanitizer).       */
+        if (nblocks_stored == nblocks_cap) {
+            nblocks_cap = nblocks_cap ? 2 * nblocks_cap : 1024;
+            stored = (float *) realloc(stored,
+                                       (size_t) nblocks_cap * block_floats * sizeof(float));
+            if (stored == NULL) {
+                fprintf(stderr, "Error: out of memory storing Pass A blocks.\n");
+                return 2;
+            }
+        }
         memcpy(stored + nblocks_stored * block_floats, fdata_new,
                block_floats * sizeof(float));
         nblocks_stored++;

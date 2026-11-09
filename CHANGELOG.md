@@ -1,4 +1,11 @@
 ## Development (unreleased, since v6.1.1):
+ * CI now also builds on linux-64 with **AddressSanitizer and UndefinedBehaviorSanitizer** and
+   runs the test suite under them on every push.  Its first run found only that
+   `chkfread()`/`chkfwrite()` passed NULL to `fread()`/`fwrite()` for zero-length transfers
+   (e.g. prepfold's `.pfd` P-dot list with `-nopdsearch`); they now return early.  The
+   real-data search and prepfold suites are also clean under the sanitizers (after making
+   the `reader_equiv_check` test helper grow its buffer geometrically: growing it one
+   block per `realloc()` was quadratic under ASan and took over 30 minutes).
  * Fixed an out-of-bounds read in the rfifind-mask code (`merge_no_dupes()` in `mask.c`)
    that could change **which channels get masked**.  When a mask zaps no channels for the
    whole observation (common), merging in each interval's channels read the int just before
