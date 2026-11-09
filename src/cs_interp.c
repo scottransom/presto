@@ -1,0 +1,270 @@
+/*
+ * coherentsearch: reading .fft files and exact Fourier interpolation of the
+ * harmonic stacks (CoherentSearch.jl's directinterp.jl).
+ *
+ * Harmonic h of trial t sits at h*r_lo + h*t*pnum/q Fourier bins.  The integer
+ * and fractional parts are tracked with exact integer arithmetic, so the m
+ * weights 1/(dr - j) and the scale conj(sin(pi dr) e^{i pi dr})/pi depend only
+ * on the residue (h*t*pnum) mod q, and are tabulated once per harmonic.
+ */
+#include "coherentsearch.h"
+
+void cs_default_params(cs_params *p, int maxdecim)
+{
+    p->nharms = 60;
+    p->m = 16;
+    p->hidr = 0.5;
+    p->threshold = 8.0;
+    p->boxcar_fsp = 1.5;
+    p->boxcar_maxfrac = 0.3;
+    p->sigma_measured = 0;
+    /* Keep only the factors that still leave >= 2 harmonics to fold. */
+    p->ndecim = 0;
+    for (int k = 1; k <= (maxdecim < 1 ? 1 : maxdecim) && p->ndecim < CS_MAXDECIM; k++)
+        if (p->nharms / k >= 2)
+            p->decims[p->ndecim++] = k;
+}
+
+void cs_read_fft(const char *filenm, cs_fft *fft)
+{
+    char *base = calloc(strlen(filenm) + 8, 1);
+    strcpy(base, filenm);
+    size_t len = strlen(base);
+    if (len > 4 && strcmp(base + len - 4, ".fft") == 0)
+        base[len - 4] = '\0';
+    infodata idata;
+    readinf(&idata, base);
+    char *fftnm = calloc(strlen(base) + 8, 1);
+    sprintf(fftnm, "%s.fft", base);
+    FILE *f = chkfopen(fftnm, "rb");
+    fft->numamps = chkfilelen(f, sizeof(fcomplex));
+    fft->amps = gen_cvect(fft->numamps);
+    chkfread(fft->amps, sizeof(fcomplex), fft->numamps, f);
+    fclose(f);
+    fft->N = (long long) idata.N;
+    fft->T = idata.N * idata.dt;
+    free(fftnm);
+    free(base);
+}
+
+void cs_free_fft(cs_fft *fft)
+{
+    vect_free(fft->amps);
+    fft->amps = NULL;
+}
+
+/* The trial step as an exact small rational pnum/q (Julia's
+ * rationalize(Int, lodr; tol=1e-13) followed by the same sanity checks), via
+ * continued-fraction convergents.  Returns 0 if there is none. */
+static int trial_grid_rational(double lodr, long long *pnum, long long *q)
+{
+    if (!(lodr > 0.0))
+        return 0;
+    long long p0 = 0, q0 = 1, p1 = 1, q1 = 0;   /* convergents h_{-2}/k_{-2}, h_{-1}/k_{-1} */
+    double x = lodr;
+    for (int it = 0; it < 64; it++) {
+        double a = floor(x);
+        if (a > 1e15)
+            break;
+        long long ai = (long long) a;
+        long long p2 = ai * p1 + p0, q2 = ai * q1 + q0;
+        p0 = p1;
+        q0 = q1;
+        p1 = p2;
+        q1 = q2;
+        if (fabs((double) p1 / (double) q1 - lodr) <= 1e-13)
+            break;
+        double frac = x - a;
+        if (frac <= 0.0)
+            break;
+        x = 1.0 / frac;
+    }
+    if (q1 <= 0 || q1 > CS_DIRECT_QMAX || p1 < 1)
+        return 0;
+    if (fabs((double) p1 / (double) q1 - lodr) > 8 * (nextafter(lodr, INFINITY) - lodr))
+        return 0;
+    *pnum = p1;
+    *q = q1;
+    return 1;
+}
+
+static long long gcdll(long long a, long long b)
+{
+    while (b) {
+        long long t = a % b;
+        a = b;
+        b = t;
+    }
+    return a < 0 ? -a : a;
+}
+
+cs_hplan *cs_build_plans(const cs_params *p, double r_lo)
+{
+    const int m = p->m, m2 = p->m / 2;
+    const double lodr = cs_lodr(p);
+    long long pnum = 0, q = 0;
+    int rational = trial_grid_rational(lodr, &pnum, &q);
+    cs_hplan *plans = calloc(p->nharms, sizeof(cs_hplan));
+    for (int h = 1; h <= p->nharms; h++) {
+        cs_hplan *hp = plans + h - 1;
+        double hr = h * r_lo;
+        hp->h = h;
+        hp->m = m;
+        hp->rfloor0 = (long long) floor(hr);
+        hp->dr0 = hr - (double) hp->rfloor0;
+        hp->dh = h * lodr;
+        if (!rational) {
+            hp->P = 0;
+            hp->q = 1;
+            hp->pnum = 1;
+            continue;
+        }
+        long long step = h * pnum;
+        hp->q = q;
+        hp->pnum = pnum;
+        hp->s = step % q;
+        hp->base_adv = step / q;
+        hp->P = (int) (q / gcdll(step, q));
+        hp->row = malloc(q * sizeof(int));
+        for (long long i = 0; i < q; i++)
+            hp->row[i] = -1;
+        hp->W = malloc((size_t) hp->P * m * sizeof(float));
+        hp->A = malloc((size_t) hp->P * sizeof(fcomplex));
+        hp->carry = malloc((size_t) hp->P);
+        long long res = 0;
+        for (int pp = 0; pp < hp->P; pp++) {
+            hp->row[res] = pp;
+            /* Computed in double and rounded once on storage. */
+            double u = hp->dr0 + (double) res / (double) q;
+            hp->carry[pp] = (u >= 1.0);
+            double dr = hp->carry[pp] ? u - 1.0 : u;
+            float *w = hp->W + (size_t) pp * m;
+            if (dr == 0.0) {
+                /* r is exactly a Fourier bin: the kernel is a delta on it. */
+                hp->A[pp].r = 1.0f;
+                hp->A[pp].i = 0.0f;
+                for (int i = 0; i < m; i++)
+                    w[i] = (i == m2 - 1) ? 1.0f : 0.0f;
+            } else {
+                /* conj(sin(pi dr) * exp(i pi dr) / pi) */
+                double s = sin(M_PI * dr) / M_PI;
+                hp->A[pp].r = (float) (s * cos(M_PI * dr));
+                hp->A[pp].i = (float) (-s * sin(M_PI * dr));
+                for (int i = 0; i < m; i++)
+                    w[i] = (float) (1.0 / (dr - (i + 1 - m2)));
+            }
+            res += hp->s;
+            if (res >= q)
+                res -= q;
+        }
+    }
+    return plans;
+}
+
+void cs_free_plans(cs_hplan *plans, int nharms)
+{
+    if (!plans)
+        return;
+    for (int h = 0; h < nharms; h++) {
+        free(plans[h].row);
+        free(plans[h].W);
+        free(plans[h].A);
+        free(plans[h].carry);
+    }
+    free(plans);
+}
+
+/* Residue and accumulated integer-bin count of harmonic hp->h at trial t:
+ * floor(h r_t) = rfloor0 + qint + carry[row[res]]. */
+static inline void hstate(const cs_hplan *hp, long long t, long long *res, long long *qint)
+{
+    /* t * h * pnum fits easily in 64 bits for any real search (t < 1e12). */
+    long long T = t * hp->h * hp->pnum;
+    *qint = T / hp->q;
+    *res = T % hp->q;
+}
+
+int cs_harmonic_fits(const cs_hplan *hp, const cs_fft *fft, long long t)
+{
+    const int m2 = hp->m / 2;
+    const long long nhalf = fft->N / 2;
+    if (hp->P == 0) {
+        /* The fallback's arithmetic, reproduced exactly -- including that its
+         * Nyquist test floors without the 1e-15 nudge the window uses. */
+        double r = (hp->rfloor0 + hp->dr0) + t * hp->dh;
+        long long rf = (long long) floor(r + 1e-15);
+        return rf + 1 - m2 >= 0 && rf + m2 <= fft->numamps - 1 && (long long) floor(r) < nhalf;
+    }
+    long long res, qint;
+    hstate(hp, t, &res, &qint);
+    long long fb = hp->rfloor0 + qint + hp->carry[hp->row[res]];
+    return fb + 1 - m2 >= 0 && fb + m2 <= fft->numamps - 1 && hp->rfloor0 + qint < nhalf;
+}
+
+/* The per-trial fallback: weights recomputed in double for every trial. */
+static void fill_row_slow(const cs_hplan *hp, const cs_fft *fft, long long t0, int n,
+                          fcomplex *out, int stride)
+{
+    const int m = hp->m, m2 = hp->m / 2;
+    const double hr_lo = hp->rfloor0 + hp->dr0;
+    for (int j = 0; j < n; j++) {
+        double r = hr_lo + (t0 + j) * hp->dh;
+        long long fb = (long long) floor(r + 1e-15);
+        double dr = fmod(r, 1.0);
+        fcomplex *o = out + (size_t) j * stride;
+        if (dr == 0.0) {
+            *o = fft->amps[fb];
+            continue;
+        }
+        double sre = 0.0, sim = 0.0;
+        for (int i = 0; i < m; i++) {
+            int jj = i + 1 - m2;
+            double w = 1.0 / (dr - jj);
+            sre += w * fft->amps[fb + jj].r;
+            sim += w * fft->amps[fb + jj].i;
+        }
+        double s = sin(M_PI * dr) / M_PI, ar = s * cos(M_PI * dr), ai = -s * sin(M_PI * dr);
+        o->r = (float) (ar * sre - ai * sim);
+        o->i = (float) (ar * sim + ai * sre);
+    }
+}
+
+int cs_fill_row(const cs_hplan *hp, const cs_fft *fft, long long t0, int n,
+                fcomplex *out, int stride)
+{
+    if (n < 1)
+        return 0;
+    if (!(cs_harmonic_fits(hp, fft, t0) && cs_harmonic_fits(hp, fft, t0 + n - 1)))
+        return 0;
+    if (hp->P == 0) {
+        fill_row_slow(hp, fft, t0, n, out, stride);
+        return 1;
+    }
+    const int m = hp->m, m2 = hp->m / 2;
+    const fcomplex *amps = fft->amps;
+    long long res, qint;
+    hstate(hp, t0, &res, &qint);
+    for (int j = 0; j < n; j++) {
+        const int pp = hp->row[res];
+        const long long lo = hp->rfloor0 + qint + hp->carry[pp] + 1 - m2;
+        const float *w = hp->W + (size_t) pp * m;
+        const fcomplex *a = amps + lo;
+        float sre = 0.0f, sim = 0.0f;
+        for (int i = 0; i < m; i++) {
+            sre += w[i] * a[i].r;
+            sim += w[i] * a[i].i;
+        }
+        const fcomplex A = hp->A[pp];
+        fcomplex *o = out + (size_t) j * stride;
+        o->r = A.r * sre - A.i * sim;
+        o->i = A.r * sim + A.i * sre;
+        /* Advance one trial: every wrap of the residue past q carries a bin. */
+        qint += hp->base_adv;
+        res += hp->s;
+        if (res >= hp->q) {
+            res -= hp->q;
+            qint++;
+        }
+    }
+    return 1;
+}

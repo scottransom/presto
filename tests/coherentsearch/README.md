@@ -12,7 +12,8 @@ ordinary `pixi run test` on every push.
 | `gen_fixtures.jl` | writes `fixtures/` by calling CoherentSearch.jl's own functions. |
 | `fixtures/` | the reference numbers (below). |
 | `cs_oracle.py` | a plain NumPy statement of the algorithm, stage by stage. It is the specification the C code is written against, and its docstring lists the conventions that are easy to get wrong. |
-| `../test_coherentsearch.py` | checks the oracle against every fixture. It will also check the C code once it exists. |
+| `cs_dump.c` | a test helper (built by meson as `build-pixi/src/cs_dump`, not installed) that runs the C code on one chunk and writes its stages in the fixture layout. |
+| `../test_coherentsearch.py` | checks the oracle, and the C code through `cs_dump`, against every fixture. |
 
 ## The fixtures
 

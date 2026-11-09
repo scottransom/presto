@@ -34,26 +34,14 @@ SEED = 20261109
 PSR_SLOW = (200.37, 0.03, 0.5)
 PSR_FAST = (2911.13, 0.08, 0.2)
 
+# PRESTO's .inf layout for artificial data (as makedata writes it), which readinf()
+# reads without the telescope, position and band fields of a real observation.
 INF_TEMPLATE = """\
  Data file name without suffix          =  {basenm}
  Telescope used                         =  None (Artificial Data Set)
- Instrument used                        =  None
- Object being observed                  =  Synthetic coherentsearch test data
- J2000 Right Ascension (hh:mm:ss.ssss)  =  00:00:00.0000
- J2000 Declination     (dd:mm:ss.ssss)  =  00:00:00.0000
- Data observed by                       =  make_synth_fft.py
- Epoch of observation (MJD)             =  60000.000000000000000
- Barycentered?           (1 yes, 0 no)  =  1
  Number of bins in the time series      =  {N}
  Width of each time series bin (sec)    =  {dt}
  Any breaks in the data? (1 yes, 0 no)  =  0
- Type of observation (EM band)          =  Radio
- Beam diameter (arcsec)                 =  1
- Dispersion measure (cm-3 pc)           =  0
- Central freq of low channel (MHz)      =  1400
- Total bandwidth (MHz)                  =  100
- Number of channels                     =  1
- Channel bandwidth (MHz)                =  100
  Data analyzed by                       =  make_synth_fft.py
  Any additional notes:
     White noise plus two pulsars (r = {r1} and {r2} bins), FFT normalised to unit

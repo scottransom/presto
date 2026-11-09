@@ -250,10 +250,26 @@ dependency (Highway), and C++ in the build for the first time.
    default `.cohout`. `cs_oracle.py`, a plain NumPy statement of the algorithm, reproduces
    all of it (metrics to 3e-14). It is the specification the C code follows, and the C
    dump mode will be checked against the same fixtures.
-1. **k = 1 only, single-threaded, scalar C:** interpolation, base transform, analytic σ,
-   gate and exact rescore. Pinned against Julia per-trial metrics.
-2. **The full search:** decimation ladder, pruned widths, measured σ, candidate collapse,
-   output file, clig `.cli` and man page.
+1. **[DONE] Single-threaded scalar C for one chunk** (`include/coherentsearch.h`,
+   `src/cs_interp.c`, `src/cs_metric.c`, `src/cs_chunk.c`; for now linked into executables,
+   not libpresto). It covers the exact-rational interpolation plans (and the non-rational
+   fallback), the batched FFTW c2r with `FFTW_PRESERVE_INPUT`, and every decimation k with
+   its pruned width bank. It computes the analytic and measured σ, the shape factors and the
+   per-trial boxcar metric, all in float32 like Julia's production path. More than planned:
+   the decimated passes, pruned widths and measured σ came along because they are only a
+   strided view of the same stacks. The `cs_dump` test helper writes one chunk's stages;
+   `tests/test_coherentsearch.py` checks them against the Julia fixtures. Integers, analytic
+   σ and shapes match exactly; stacks match to 2.8e-7, measured σ to 2e-7 and metrics to
+   2.9e-6 (Julia's own float32 path is 2.4e-6 from exact). Clean under valgrind.
+   **Not done, deliberately:** the batched float32 *gate*. In scalar C it would be the same
+   arithmetic as the exact rescore, so it only pays as a SIMD kernel and moves to phase 4.
+   The plain per-trial interpolation loop also replaces Julia's trials-axis group kernel
+   (`build_group_table`); that is a SIMD layout, likewise phase 4.
+2. **The full search:** the chunk loop with `chunk_starts` (forced splits where a harmonic
+   starts or stops fitting), the σ sanity check, candidate collapse (duplicates and
+   harmonics), `measure_ducy`, the `.cohout` output file, the `coherentsearch` executable
+   with its clig `.cli` and man page, and `src/Makefile`. Pinned to the full-search fixtures
+   (chunk starts, the 1095 raw candidates, `default.cohout`).
 3. **Throughput:** OpenMP, multi-file invocations, wisdom; then PGPLOT plots and the replot
    tool. *Merge point.*
 4. **SIMD:** Highway kernels with dispatch, constant re-tuning, disassembly audits; meson and

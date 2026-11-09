@@ -9,11 +9,15 @@ interpolated harmonic stacks -> which harmonics are used -> inverse-FFT profiles
 width banks, noise scales and shape factors -> per-trial metrics (every decimation)
 -> chunk boundaries of a full search -> the metric of every raw candidate it reports.
 
-The C ``coherentsearch`` will be compared against the same fixtures once it exists.
+The C code is then checked against the same fixtures through ``cs_dump`` (a test
+helper built by meson, not installed), which writes one chunk's stages in the fixture
+layout.
 """
 
 from __future__ import annotations
 
+import os
+import subprocess
 import sys
 import tomllib
 from pathlib import Path
@@ -26,6 +30,8 @@ FIX = HERE / "fixtures"
 sys.path.insert(0, str(HERE))
 
 import cs_oracle as cs  # noqa: E402
+
+REPO = Path(__file__).resolve().parent.parent
 
 PARAMS = cs.Params()
 PROV = tomllib.loads((FIX / "provenance.toml").read_text())
@@ -182,6 +188,98 @@ def test_raw_candidates(fft, search_meta):
         got = cs.boxcar_metric(prof, widths, sigma, shape)
         worst = max(worst, abs(got - metric))
     print(f"raw candidates: {len(cands)}, worst |oracle - julia prod| = {worst:.2e}")
-    assert worst < 2e-5, (
-        worst
-    )  # measured 2.5e-6, i.e. Julia's single-precision rounding
+    # measured 2.5e-6, i.e. Julia's single-precision rounding
+    assert worst < 2e-5, worst
+
+
+# --- the C port, through cs_dump -----------------------------------------------------
+
+
+def _cs_dump() -> Path:
+    """The ``cs_dump`` helper: ``$CS_DUMP``, else the pixi build's."""
+    if "CS_DUMP" in os.environ:
+        return Path(os.environ["CS_DUMP"])
+    build = REPO / "build-pixi"
+    exe = build / "src" / "cs_dump"
+    if not build.is_dir():
+        pytest.skip("no build-pixi/ (run `pixi run build`) and $CS_DUMP is not set")
+    # A pixi build that lacks it is a build problem, not a reason to skip.
+    assert exe.is_file(), f"{exe} missing: rebuild with `pixi run build`"
+    return exe
+
+
+@pytest.fixture(scope="module")
+def cdump(tmp_path_factory) -> Path:
+    """Run ``cs_dump`` on every fixture chunk; return the directory of outputs."""
+    exe = _cs_dump()
+    out = tmp_path_factory.mktemp("cs_dump")
+    for name in CASES:
+        meta = load_case(name)
+        lofreq = meta["r_lo"] / cs.read_fft(HERE / PROV["input"]).T
+        subprocess.run(
+            [
+                str(exe),
+                str(HERE / PROV["input"]),
+                str(out / name),
+                str(meta["t0"]),
+                str(meta["n"]),
+                repr(lofreq),
+                str(PROV["maxdecim"]),
+            ],
+            check=True,
+        )
+    return out
+
+
+def cload(
+    cdir: Path, name: str, fn: str, dtype: str, ncols: int | None = None
+) -> np.ndarray:
+    a = np.fromfile(cdir / name / fn, dtype=dtype)
+    return a if ncols is None else a.reshape(-1, ncols)
+
+
+@pytest.mark.parametrize("name", CASES)
+def test_c_harmonic_stacks(name, cdump):
+    """C interpolation (float32 weights and sums) against the exact Julia stacks."""
+    meta = load_case(name)
+    cmeta = tomllib.loads((cdump / name / "meta.toml").read_text())
+    assert cmeta["filled"] == meta["filled"]
+    ref = load(name, "ftprofs.c64", "<c8", PARAMS.nharms + 1)
+    got = cload(cdump, name, "ftprofs.c64", "<c8", PARAMS.nharms + 1)
+    assert got.shape == ref.shape
+    err = np.max(np.abs(got - ref)) / np.max(np.abs(ref))
+    assert err < 1e-6, err  # measured 2.8e-7 worst
+
+
+@pytest.mark.parametrize("name", CASES)
+def test_c_profiles(name, cdump):
+    ref = load(name, "profs_k1.f32", "<f4", 2 * PARAMS.nharms)
+    got = cload(cdump, name, "profs_k1.f32", "<f4", 2 * PARAMS.nharms)
+    err = np.max(np.abs(got - ref)) / np.max(np.abs(ref))
+    assert err < 1e-6, err  # measured 1.8e-7 worst
+
+
+@pytest.mark.parametrize("name", CASES)
+def test_c_metric_stage(name, cdump):
+    """C widths, noise scales, shapes and per-trial metrics against Julia's."""
+    meta = load_case(name)
+    cmeta = tomllib.loads((cdump / name / "meta.toml").read_text())
+    for k in PARAMS.decimations:
+        km, ck = meta[f"k{k}"], cmeta[f"k{k}"]
+        for key in ("Hk", "nbins", "widths", "nvalid"):
+            assert ck[key] == km[key], (k, key)
+        assert ck["sigma_analytic"] == pytest.approx(km["sigma_analytic"], rel=1e-14)
+        np.testing.assert_allclose(ck["shape"], km["shape"], rtol=1e-12)
+        # float32 MAD against Julia's float32 one: measured 2e-7 worst
+        assert ck["sigma_measured"] == pytest.approx(
+            km["sigma_measured_prod"], rel=1e-6
+        )
+        for kind in ("analytic", "measured"):
+            ref = load(name, f"metric_k{k}_{kind}.f64", "<f8")
+            got = cload(cdump, name, f"metric_k{k}_{kind}.f64", "<f8")
+            assert len(got) == len(ref)
+            # Against the exact metrics: measured 2.9e-6 (analytic) and 3.6e-6
+            # (measured) worst, the same scale as Julia's own float32 path (2.4e-6).
+            np.testing.assert_allclose(
+                got, ref, rtol=0, atol=2e-5, err_msg=f"k={k} {kind}"
+            )
