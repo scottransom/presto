@@ -1,0 +1,103 @@
+# Admin data
+
+Name coherentsearch
+
+Usage "Search normalised FFTs for pulsars by coherently summing many harmonics and scoring the folded profiles with boxcar matched filters."
+
+Version [exec date +%d%b%y]
+
+Commandline full_cmd_line
+
+# Options (in order you want them to appear)
+
+Double -threshold threshold {S/N cutoff for candidates} \
+	-r 0.0 oo  -d 8.0
+Int -nharms  nharms     {Number of harmonics to sum coherently (60 is divisible by 2-6, so it decimates evenly)} \
+	-r 2 1024  -d 60
+Int -maxdecim maxdecim  {Largest harmonic-decimation factor k: also fold nharms/k harmonics at k times each fundamental (1 disables it)} \
+	-r 1 64  -d 6
+Double -lofreq lofreq   {Lowest fundamental frequency (Hz) to search} \
+	-r 0.0 oo  -d 0.1
+Int -lobin   lobin      {Lowest Fourier bin to search (overrides -lofreq)} \
+	-r 0 oo
+Double -hifreq hifreq   {Highest fundamental frequency (Hz) to search.  Decimation extends coverage to hifreq * maxdecim} \
+	-r 0.0 oo  -d 125.0
+Double -hidr hidr       {Trial spacing (Fourier bins) at the highest harmonic} \
+	-r 0.0 oo  -d 0.5
+Int -m       m          {Fourier bins in the interpolation kernel (even)} \
+	-r 2 1024  -d 16
+Flag -measuredsigma measuredsigma {Measure each chunk's noise scale (robust MAD) instead of computing it from a normalised FFT}
+Int -ncands  ncands     {Maximum number of candidates to report} \
+	-r 1 oo  -d 100
+Double -drtol drtol     {Fourier-bin tolerance for collapsing near-identical candidates} \
+	-r 0.0 oo  -d 1.0
+Int -numharm numharm    {Highest harmonic number when collapsing harmonically related candidates} \
+	-r 1 1024  -d 16
+Flag -noremove noremove {Do not collapse near-identical candidates}
+Flag -noharmremove noharmremove {Do not collapse harmonically related candidates}
+Int -blocksize blocksize {Trial fundamentals per chunk} \
+	-r 1 oo  -d 2048
+String -o outfile       {Output candidate file name (single input file only; default: <input>.cohout beside it)}
+String -outdir outdir   {Write each <input>.cohout into this directory instead}
+Flag -noprogress noprogress {Do not print a progress meter}
+Flag -verbose verbose   {Report the trial grid and chunking before searching}
+
+# Rest of command line:
+
+Rest infile {Input '.fft' file(s), each with a matching '.inf' file.  They should be normalised (e.g. by rednoise) so that Fourier powers have mean 1} \
+        -c 1 16384
+
+Description {coherentsearch searches normalised Fourier power spectra
+.RI ( .fft
+files, normally from
+.BR realfft (1)
+followed by
+.BR rednoise (1))
+for periodic signals.  Unlike
+.BR accelsearch (1),
+which adds harmonic
+.I powers
+incoherently, it interpolates the complex amplitude of every harmonic
+exactly, inverse-FFTs the harmonic stack into a pulse profile, and
+scores that profile with a bank of boxcar matched filters.  Keeping the
+phases makes it most sensitive to narrow pulses, which put their power
+into many harmonics.  It is a C port of the production search in
+CoherentSearch.jl (Ransom 2026, arXiv:2610.11749).
+.PP
+Every trial fundamental, spaced so that the highest harmonic moves by
+.B -hidr
+bins, is folded with
+.B -nharms
+harmonics.  Harmonic decimation then re-uses the same amplitudes to fold
+every k-th harmonic
+.RB ( "k = 2 .. -maxdecim" )
+at k times each fundamental, almost for free.  The profile S/N is
+normalised by a noise scale computed from the number of harmonics
+summed, which assumes Fourier powers of mean 1; a check on a few chunks
+warns if the data disagree, and
+.B -measuredsigma
+estimates the scale from the data instead.
+.PP
+Candidates above
+.B -threshold
+are collapsed (near-identical frequencies, then harmonically related
+ones), and the strongest
+.B -ncands
+are written to
+.IR <input>.cohout ,
+with each one's S/N, frequency, period, number of harmonics summed and
+best-matching duty cycle.
+.PP
+Example:
+.RS
+.nf
+realfft mypulsar_DM10.00.dat
+rednoise mypulsar_DM10.00.fft
+coherentsearch mypulsar_DM10.00_red.fft
+.fi
+.RE
+}
+
+Author {Scott Ransom <sransom@nrao.edu>}
+
+SeeAlso {accelsearch(1), realfft(1), rednoise(1), prepfold(1)}

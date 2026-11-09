@@ -283,3 +283,51 @@ def test_c_metric_stage(name, cdump):
             np.testing.assert_allclose(
                 got, ref, rtol=0, atol=2e-5, err_msg=f"k={k} {kind}"
             )
+
+
+def test_c_full_search(tmp_path, search_meta):
+    """The whole default search: chunk boundaries exactly, and the same raw
+    candidates (threshold 6, nothing collapsed) on the same trials."""
+    exe = _cs_dump()
+    out = tmp_path / "search.toml"
+    subprocess.run(
+        [str(exe), "-search", str(HERE / PROV["input"]), str(out), "6.0"], check=True
+    )
+    c = tomllib.loads(out.read_text())
+    assert c["total"] == search_meta["total"]
+    assert c["chunk_starts"] == search_meta["chunk_starts"]
+    jc = np.loadtxt(FIX / "search" / "raw_cands_thresh6.txt", ndmin=2)
+    # Trials are keyed by their (bit-identical) Fourier frequency and fold depth.
+    jd = {(r, int(h)): m for r, _f, m, h in jc}
+    cd = {(r, int(h)): m for r, _f, m, h in c["cands"]}
+    # A trial within float32 rounding of the threshold could legitimately land on
+    # either side; none does on this file, so demand the identical set.
+    assert set(cd) == set(jd)
+    worst = max(abs(cd[k] - jd[k]) for k in jd)
+    assert worst < 2e-5, worst  # measured 3.8e-6
+
+
+def test_c_cohout(tmp_path):
+    """coherentsearch itself, with every default, against the Julia CLI's output."""
+    exe = _cs_dump().parent / "coherentsearch"
+    assert exe.is_file(), exe
+    for ext in (".fft", ".inf"):
+        (tmp_path / f"synth_cs{ext}").write_bytes(
+            (HERE / f"synth_cs{ext}").read_bytes()
+        )
+    subprocess.run([str(exe), "-noprogress", "synth_cs.fft"], cwd=tmp_path, check=True)
+
+    def rows(path: Path) -> list[list[str]]:
+        return [
+            ln.split() for ln in path.read_text().splitlines() if not ln.startswith("#")
+        ]
+
+    got = rows(tmp_path / "synth_cs.cohout")
+    ref = rows(FIX / "search" / "default.cohout")
+    assert len(got) == len(ref) == 2
+    for g, r in zip(got, ref):
+        assert g[0] == r[0]  # rank
+        assert float(g[1]) == pytest.approx(
+            float(r[1]), abs=0.0101
+        )  # S/N, printed %.2f
+        assert g[2:] == r[2:]  # frequency, period, harmonics, duty cycle

@@ -1,0 +1,458 @@
+/*
+ * coherentsearch: the full search over a band, and candidate handling
+ * (CoherentSearch.jl's search, chunk_starts, _sigma_sanity_check,
+ * remove_duplicates, remove_harmonics, measure_ducy and write_candidates).
+ */
+#include "coherentsearch.h"
+
+void cs_candlist_push(cs_candlist *l, cs_cand c)
+{
+    if (l->n == l->cap) {
+        l->cap = l->cap ? 2 * l->cap : 256;
+        l->c = realloc(l->c, l->cap * sizeof(cs_cand));
+        if (!l->c) {
+            perror("coherentsearch: candidate list");
+            exit(1);
+        }
+    }
+    l->c[l->n++] = c;
+}
+
+void cs_candlist_free(cs_candlist *l)
+{
+    free(l->c);
+    l->c = NULL;
+    l->n = l->cap = 0;
+}
+
+cs_band cs_make_band(const cs_fft *fft, const cs_params *p, double lofreq,
+                     double hifreq, int lobin)
+{
+    cs_band b;
+    b.r_lo = lobin >= 0 ? (double) lobin : lofreq * fft->T;
+    b.r_hi = hifreq * fft->T;
+    long long total = (long long) floor((b.r_hi - b.r_lo) / cs_lodr(p)) + 1;
+    b.total = total > 0 ? total : 0;
+    return b;
+}
+
+/* --- chunk boundaries ------------------------------------------------------ */
+
+/* First t in 0..total-1 with pred(t) == want, for a pred that is monotone in t
+ * (total if there is none). */
+static long long first_where(int (*pred)(const cs_hplan *, const cs_fft *, long long),
+                             const cs_hplan *hp, const cs_fft *fft, long long total, int want)
+{
+    if (total < 1)
+        return total;
+    if ((pred(hp, fft, 0) != 0) == want)
+        return 0;
+    if ((pred(hp, fft, total - 1) != 0) != want)
+        return total;
+    long long lo = 0, hi = total - 1;
+    while (hi - lo > 1) {
+        long long mid = lo + (hi - lo) / 2;
+        if ((pred(hp, fft, mid) != 0) == want)
+            hi = mid;
+        else
+            lo = mid;
+    }
+    return hi;
+}
+
+/* The two monotone halves of cs_harmonic_fits. */
+static int fits_lo(const cs_hplan *hp, const cs_fft *fft, long long t)
+{
+    long long nyq;
+    (void) fft;
+    return cs_hbin(hp, t, &nyq) + 1 - hp->m / 2 >= 0;
+}
+
+static int fits_hi(const cs_hplan *hp, const cs_fft *fft, long long t)
+{
+    long long nyq, fb = cs_hbin(hp, t, &nyq);
+    return fb + hp->m / 2 <= fft->numamps - 1 && nyq < fft->N / 2;
+}
+
+static int cmp_ll(const void *a, const void *b)
+{
+    long long x = *(const long long *) a, y = *(const long long *) b;
+    return (x > y) - (x < y);
+}
+
+/* One flag per harmonic per chunk is only right if every trial in a chunk
+ * agrees on which harmonics fit, so chunks are also split wherever that
+ * changes.  Each harmonic is usable on one contiguous interval, found by
+ * bisection; that adds at most 2*nharms boundaries. */
+long long *cs_chunk_starts(const cs_hplan *plans, const cs_fft *fft, const cs_params *p,
+                           long long total, int nprof, long long *nchunks)
+{
+    if (total < 1) {
+        *nchunks = 0;
+        return NULL;
+    }
+    long long nreg = (total + nprof - 1) / nprof;
+    long long *s = malloc((nreg + 2 * p->nharms) * sizeof(long long));
+    long long n = 0;
+    for (long long t = 0; t < total; t += nprof)
+        s[n++] = t;
+    if (total > 1) {
+        for (int h = 0; h < p->nharms; h++) {
+            long long a = first_where(fits_lo, plans + h, fft, total, 1);
+            long long b = first_where(fits_hi, plans + h, fft, total, 0);
+            if (a > 0 && a < total)
+                s[n++] = a;
+            if (b > 0 && b < total)
+                s[n++] = b;
+        }
+    }
+    qsort(s, n, sizeof(long long), cmp_ll);
+    long long u = 0;
+    for (long long i = 0; i < n; i++)
+        if (u == 0 || s[i] != s[u - 1])
+            s[u++] = s[i];
+    *nchunks = u;
+    return s;
+}
+
+/* --- the analytic-sigma sanity check -------------------------------------- */
+
+#define CS_SIGMA_CHECK_CHUNKS 3
+#define CS_SIGMA_CHECK_TOL 0.10
+
+/* The analytic scale assumes the input is normalised (Fourier powers of mean
+ * 1), and fails silently -- inflating every S/N -- when it is not.  Checking
+ * a few chunks costs nothing and turns that into a warning. */
+int cs_sigma_sanity_check(cs_workspace *ws, const cs_hplan *plans, const cs_fft *fft,
+                          const cs_params *p, const cs_band *band, int nprof,
+                          const char *fname)
+{
+    const long long total = band->total;
+    const long long nchunks = (total + nprof - 1) / nprof;
+    const int nsample = nchunks < CS_SIGMA_CHECK_CHUNKS ? (int) nchunks : CS_SIGMA_CHECK_CHUNKS;
+    double worst = 0.0, worst_f = 0.0, meas_w = 0.0, ana_w = 0.0;
+    int worst_k = 1;
+    for (int i = 0; i < nsample; i++) {
+        long long c = nsample == 1 ? 0 : ((long long) i * (nchunks - 1)) / (nsample - 1);
+        long long i0 = c * nprof;
+        int n = (int) (total - i0 < nprof ? total - i0 : nprof);
+        /* A short trailing chunk measures badly; use full chunks only, unless
+         * the whole search is shorter than one. */
+        if (n < nprof && total >= nprof)
+            continue;
+        if (n < 8)
+            continue;
+        double rstart = band->r_lo + i0 * cs_lodr(p);
+        cs_fill_chunk(ws, plans, fft, p, i0, n);
+        for (int di = 0; di < ws->ndecim; di++) {
+            cs_decim *d = ws->d + di;
+            fftwf_execute(d->plan);
+            double meas = cs_block_sigma(d->profs, d->nbins, n, ws->sigbuf);
+            double ana = cs_analytic_sigma(ws->filled, d->k, d->Hk);
+            if (!(meas > 0.0 && ana > 0.0))
+                continue;
+            double dev = fabs(ana / meas - 1.0);
+            if (dev > worst) {
+                worst = dev;
+                worst_k = d->k;
+                worst_f = rstart / fft->T;
+                meas_w = meas;
+                ana_w = ana;
+            }
+        }
+    }
+    if (worst > CS_SIGMA_CHECK_TOL) {
+        double ratio = ana_w / meas_w;
+        fprintf(stderr, "\nWARNING (%s): the analytic noise scale disagrees with the measured "
+                "one by ", fname);
+        /* Quote a ratio, not a percentage, when it is far off: a 1000x error
+         * would otherwise read like a 99.9% one. */
+        if (ratio > 2.0 || ratio < 0.5)
+            fprintf(stderr, "a factor of %.3g", ratio > 1.0 ? ratio : 1.0 / ratio);
+        else
+            fprintf(stderr, "%.1f%%", 100.0 * worst);
+        fprintf(stderr, " -- every reported S/N is scaled by that.\n"
+                "  This normally means the input FFT is not normalised (Fourier powers\n"
+                "  with mean 1); run PRESTO's rednoise on it, or use -measuredsigma.\n"
+                "  Worst at k=%d, %.4f Hz: measured %.5g vs analytic %.5g (ratio %.4g)\n\n",
+                worst_k, worst_f, meas_w, ana_w, ratio);
+        return 0;
+    }
+    return 1;
+}
+
+/* --- the search ------------------------------------------------------------ */
+
+void cs_search(const cs_fft *fft, const cs_params *p, const cs_band *band, int nprof,
+               double threshold, int progress, cs_candlist *out)
+{
+    if (band->total < 1)
+        return;
+    const double lodr = cs_lodr(p);
+    /* The phase tables key off the global trial index, so they are built once
+     * against r_lo and shared by every chunk. */
+    cs_hplan *plans = cs_build_plans(p, band->r_lo);
+    long long nchunks;
+    long long *starts = cs_chunk_starts(plans, fft, p, band->total, nprof, &nchunks);
+    cs_workspace *ws = cs_workspace_new(p, nprof);
+    int lastpct = -1;
+    for (long long c = 0; c < nchunks; c++) {
+        const long long i0 = starts[c];
+        const int n = (int) ((c < nchunks - 1 ? starts[c + 1] : band->total) - i0);
+        const double rstart = band->r_lo + i0 * lodr;
+        cs_fill_chunk(ws, plans, fft, p, i0, n);
+        for (int di = 0; di < ws->ndecim; di++) {
+            cs_decim *d = ws->d + di;
+            cs_prepare_decim(ws, d, fft, p, rstart, n);
+            cs_score_decim(d, p->sigma_measured ? d->sigma_measured : d->sigma_analytic);
+            for (int j = 0; j < d->nvalid; j++) {
+                if (d->mvals[j] > threshold) {
+                    cs_cand cand;
+                    cand.r = d->k == 1 ? rstart + j * lodr : d->k * (rstart + j * lodr);
+                    cand.freq = cand.r / fft->T;
+                    cand.metric = d->mvals[j];
+                    cand.nharm = d->Hk;
+                    cand.ducy = NAN;
+                    cs_candlist_push(out, cand);
+                }
+            }
+        }
+        if (progress) {
+            int pct = (int) (100 * (c + 1) / nchunks);
+            if (pct != lastpct) {
+                fprintf(stderr, "\r  %3d%% searched", pct);
+                lastpct = pct;
+            }
+        }
+    }
+    if (progress)
+        fprintf(stderr, "\n");
+    cs_workspace_free(ws);
+    free(starts);
+    cs_free_plans(plans, p->nharms);
+}
+
+/* --- candidate handling ---------------------------------------------------- */
+
+/* Stable sorts: qsort is not stable, so the original position breaks ties
+ * (Julia's sorts are stable, and ties decide which of two equal candidates
+ * survives a collapse). */
+typedef struct {
+    cs_cand c;
+    long idx;
+} cs_idxcand;
+
+static int cmp_r(const void *a, const void *b)
+{
+    const cs_idxcand *x = a, *y = b;
+    if (x->c.r != y->c.r)
+        return x->c.r < y->c.r ? -1 : 1;
+    return (x->idx > y->idx) - (x->idx < y->idx);
+}
+
+static int cmp_freq(const void *a, const void *b)
+{
+    const cs_idxcand *x = a, *y = b;
+    if (x->c.freq != y->c.freq)
+        return x->c.freq < y->c.freq ? -1 : 1;
+    return (x->idx > y->idx) - (x->idx < y->idx);
+}
+
+static int cmp_metric_desc(const void *a, const void *b)
+{
+    const cs_idxcand *x = a, *y = b;
+    if (x->c.metric != y->c.metric)
+        return x->c.metric > y->c.metric ? -1 : 1;
+    return (x->idx > y->idx) - (x->idx < y->idx);
+}
+
+static void stable_sort(cs_candlist *l, int (*cmp)(const void *, const void *))
+{
+    if (l->n < 2)
+        return;
+    cs_idxcand *t = malloc(l->n * sizeof(cs_idxcand));
+    for (long i = 0; i < l->n; i++) {
+        t[i].c = l->c[i];
+        t[i].idx = i;
+    }
+    qsort(t, l->n, sizeof(cs_idxcand), cmp);
+    for (long i = 0; i < l->n; i++)
+        l->c[i] = t[i].c;
+    free(t);
+}
+
+void cs_sort_by_metric(cs_candlist *l)
+{
+    stable_sort(l, cmp_metric_desc);
+}
+
+void cs_remove_duplicates(cs_candlist *l, double dr_tol)
+{
+    if (l->n == 0)
+        return;
+    stable_sort(l, cmp_r);
+    long nk = 0;
+    cs_cand best = l->c[0];
+    double prev_r = best.r;
+    for (long i = 1; i < l->n; i++) {
+        cs_cand c = l->c[i];
+        /* A chain: each candidate within dr_tol of the previous one joins the
+         * current cluster, however far that drifts from its start. */
+        if (c.r - prev_r <= dr_tol) {
+            if (c.metric > best.metric)
+                best = c;
+        } else {
+            l->c[nk++] = best;
+            best = c;
+        }
+        prev_r = c.r;
+    }
+    l->c[nk++] = best;
+    l->n = nk;
+    stable_sort(l, cmp_freq);
+}
+
+/* Whether r1 and r2 are harmonics of a common fundamental: hi/lo ~ n/m with
+ * 1 <= m, n <= numharm, holding hi to tol bins on the shared comb. */
+static int harmonically_related(double r1, double r2, int numharm, double tol)
+{
+    double lo = r1 < r2 ? r1 : r2, hi = r1 < r2 ? r2 : r1;
+    if (!(lo > 0.0))
+        return 0;
+    for (int m = 1; m <= numharm; m++) {
+        double n = nearbyint(m * hi / lo);      /* round half to even, as Julia */
+        if (n < 1 || n > numharm)
+            continue;
+        if (fabs(m * hi - n * lo) <= tol * m)
+            return 1;
+    }
+    return 0;
+}
+
+void cs_remove_harmonics(cs_candlist *l, int numharm, double tol)
+{
+    if (l->n == 0)
+        return;
+    stable_sort(l, cmp_metric_desc);    /* strongest first */
+    long nk = 0;
+    for (long i = 0; i < l->n; i++) {
+        int related = 0;
+        for (long j = 0; j < nk && !related; j++)
+            related = harmonically_related(l->c[i].r, l->c[j].r, numharm, tol);
+        if (!related)
+            l->c[nk++] = l->c[i];
+    }
+    l->n = nk;
+    stable_sort(l, cmp_freq);
+}
+
+/* Exact Fourier interpolation at r with an m-bin kernel, in double
+ * (CoherentSearch.jl's fourier_interp). */
+static void interp_exact(const cs_fft *fft, double r, int m, double *re, double *im)
+{
+    const int m2 = m / 2;
+    const long long fb = (long long) floor(r + 1e-15);
+    const double dr = fmod(r, 1.0);
+    double sr = 0.0, si = 0.0;
+    for (int j = 1 - m2; j <= m2; j++) {
+        double x = dr - j;
+        double sinc = x == 0.0 ? 1.0 : sin(M_PI * x) / (M_PI * x);
+        double cr = sinc * cos(M_PI * x), ci = -sinc * sin(M_PI * x);   /* conj */
+        fcomplex a = fft->amps[fb + j];
+        sr += cr * a.r - ci * a.i;
+        si += cr * a.i + ci * a.r;
+    }
+    *re = sr;
+    *im = si;
+}
+
+/* The width of the best boxcar on a candidate's profile, refolded at its own
+ * r with its own nharm harmonics (stopping at the first that crosses Nyquist)
+ * and a wide m = 64 kernel.  Its noise scale does not matter: it scales every
+ * width's score alike. */
+static double candidate_ducy(const cs_fft *fft, const cs_params *p, double r, int nharm)
+{
+    const int m = 64, m2 = m / 2;
+    double *xr = calloc(nharm + 1, sizeof(double)), *xi = calloc(nharm + 1, sizeof(double));
+    int H = 0;
+    for (int h = 1; h <= nharm; h++) {
+        double rh = r * h;
+        long long rint = (long long) floor(rh + 1e-15) + 1;
+        if (!(rint - m2 >= 0 && rint + m2 <= fft->numamps && rh < (double) (fft->N / 2)))
+            break;
+        interp_exact(fft, rh, m, xr + h, xi + h);
+        H = h;
+    }
+    const int nbins = H >= 1 ? 2 * H : 2;
+    /* Inverse real DFT of the stack (DC zero); the overall scale is irrelevant. */
+    double *prof = calloc(nbins, sizeof(double));
+    for (int i = 0; i < nbins && H >= 1; i++) {
+        double s = 0.0;
+        for (int h = 1; h < H; h++) {
+            double ph = 2.0 * M_PI * h * i / nbins;
+            s += 2.0 * (xr[h] * cos(ph) - xi[h] * sin(ph));
+        }
+        s += xr[H] * ((i % 2) ? -1.0 : 1.0);    /* the profile's own Nyquist term */
+        prof[i] = s / nbins;
+    }
+    int widths[64];
+    int nw = cs_boxcar_widths(nbins, p->boxcar_fsp, p->boxcar_maxfrac, widths);
+    unsigned char *filled = malloc(nbins / 2 + 1);
+    memset(filled, 1, nbins / 2 + 1);
+    double shape[64];
+    cs_boxcar_shape(filled, 1, nbins / 2, widths, nw, shape);
+    /* Prefix sums about the mean (conditioning only), tiled to wrap. */
+    double mean = 0.0;
+    for (int i = 0; i < nbins; i++)
+        mean += prof[i];
+    mean /= nbins;
+    double *psum = malloc((nbins + widths[nw - 1] + 1) * sizeof(double));
+    psum[0] = 0.0;
+    for (int i = 0; i < nbins + widths[nw - 1]; i++)
+        psum[i + 1] = psum[i] + (prof[i < nbins ? i : i - nbins] - mean);
+    const double stot = psum[nbins] - psum[0];
+    double best = -INFINITY;
+    int bestw = widths[0];
+    for (int iw = 0; iw < nw; iw++) {
+        int w = widths[iw];
+        double mx = psum[w] - psum[0];
+        for (int q = 1; q < nbins; q++)
+            if (psum[q + w] - psum[q] > mx)
+                mx = psum[q + w] - psum[q];
+        double cand = (mx - ((double) w / nbins) * stot) * shape[iw];
+        if (cand > best) {      /* strict: the narrowest wins a tie */
+            best = cand;
+            bestw = w;
+        }
+    }
+    free(xr);
+    free(xi);
+    free(prof);
+    free(filled);
+    free(psum);
+    return (double) bestw / nbins;
+}
+
+void cs_measure_ducy(const cs_fft *fft, const cs_params *p, cs_candlist *l)
+{
+    for (long i = 0; i < l->n; i++) {
+        cs_cand *c = l->c + i;
+        c->ducy = (c->nharm >= 1 && c->r > 0.0) ? candidate_ducy(fft, p, c->r, c->nharm) : NAN;
+    }
+}
+
+void cs_write_cohout(const cs_candlist *l, FILE *f)
+{
+    /* The leading column is the rank, and the header says so. */
+    fprintf(f, "#Num    'S/N'      Frequency (Hz)        Period (ms)    #Harm  Ducy(%%)\n");
+    for (long i = 0; i < l->n; i++) {
+        const cs_cand *c = l->c + i;
+        char ducy[32];
+        if (isnan(c->ducy))
+            strcpy(ducy, "-");
+        else
+            snprintf(ducy, sizeof(ducy), "%.2f", 100.0 * c->ducy);
+        fprintf(f, "%-4ld  %8.2f  %18.12f  %18.12f   %3d   %6s\n", i + 1, c->metric, c->freq,
+                1000.0 / c->freq, c->nharm, ducy);
+    }
+}

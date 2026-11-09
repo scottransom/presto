@@ -155,7 +155,7 @@ BINARIES = makedata makeinf mjd2cal realfft quicklook\
 	search_bin swap_endian prepdata\
 	check_parkes_raw bary shiftdata\
 	patchdata readfile toas2dat taperaw\
-	accelsearch prepsubband cal2mjd split_parkes_beams\
+	accelsearch coherentsearch prepsubband cal2mjd split_parkes_beams\
 	dat2sdat sdat2dat downsample rednoise un_sc_td bincand\
 	psrorbit window plotbincand prepfold show_pfd\
 	rfifind zapbirds explorefft exploredat\
@@ -197,6 +197,11 @@ mpiprepsubband: mpiprepsubband_cmd.c mpiprepsubband_cmd.o mpiprepsubband_utils.o
 
 accelsearch: accelsearch_cmd.c accelsearch_cmd.o accel_utils.o accelsearch.o zapping.o libpresto
 	$(CC) $(CLINKFLAGS) $(OMPFLAGS) -o $(PRESTO)/bin/$@ accelsearch_cmd.o accel_utils.o accelsearch.o zapping.o $(PRESTOLINK) $(GLIBLINK) -lm
+
+CSOBJS = cs_interp.o cs_metric.o cs_chunk.o cs_search.o
+
+coherentsearch: coherentsearch_cmd.c coherentsearch_cmd.o coherentsearch.o $(CSOBJS) libpresto
+	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ coherentsearch_cmd.o coherentsearch.o $(CSOBJS) $(PRESTOLINK) $(GLIBLINK) -lm
 
 bary: bary.o libpresto
 	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ bary.o $(PRESTOLINK) -lm

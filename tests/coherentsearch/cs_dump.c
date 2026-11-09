@@ -5,9 +5,12 @@
  * Built but not installed.
  *
  *   cs_dump file.fft outdir t0 n [lofreq [maxdecim]]
+ *   cs_dump -search file.fft outfile threshold
  *
  * Uses the coherent_search defaults otherwise; the global trial grid starts at
- * r_lo = lofreq * T (default lofreq 0.1).
+ * r_lo = lofreq * T (default lofreq 0.1).  The -search form runs the whole
+ * default search (0.1-125 Hz, chunks of 2048) and writes its chunk starts and
+ * every uncollapsed candidate above threshold, at full precision.
  */
 #include <errno.h>
 #include <sys/stat.h>
@@ -30,8 +33,39 @@ static void print_intlist(FILE *f, const char *key, const int *v, int n)
     fprintf(f, "]\n");
 }
 
+static int dump_search(const char *fftnm, const char *outnm, double threshold)
+{
+    cs_params p;
+    cs_default_params(&p, 6);
+    cs_fft fft;
+    cs_read_fft(fftnm, &fft);
+    cs_band band = cs_make_band(&fft, &p, 0.1, 125.0, -1);
+    cs_hplan *plans = cs_build_plans(&p, band.r_lo);
+    long long nchunks;
+    long long *starts = cs_chunk_starts(plans, &fft, &p, band.total, 2048, &nchunks);
+    cs_candlist cands = { 0 };
+    cs_search(&fft, &p, &band, 2048, threshold, 0, &cands);
+    FILE *f = chkfopen((char *) outnm, "w");
+    fprintf(f, "total = %lld\nchunk_starts = [", band.total);
+    for (long long c = 0; c < nchunks; c++)
+        fprintf(f, "%s%lld", c ? ", " : "", starts[c]);
+    fprintf(f, "]\ncands = [\n");
+    for (long i = 0; i < cands.n; i++)
+        fprintf(f, "  [%.17g, %.17g, %.17g, %d],\n", cands.c[i].r, cands.c[i].freq,
+                cands.c[i].metric, cands.c[i].nharm);
+    fprintf(f, "]\n");
+    fclose(f);
+    free(starts);
+    cs_candlist_free(&cands);
+    cs_free_plans(plans, p.nharms);
+    cs_free_fft(&fft);
+    return 0;
+}
+
 int main(int argc, char *argv[])
 {
+    if (argc == 5 && strcmp(argv[1], "-search") == 0)
+        return dump_search(argv[2], argv[3], atof(argv[4]));
     if (argc < 5) {
         fprintf(stderr, "usage: %s file.fft outdir t0 n [lofreq [maxdecim]]\n", argv[0]);
         return 1;

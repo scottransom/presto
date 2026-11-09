@@ -18,6 +18,11 @@ void cs_default_params(cs_params *p, int maxdecim)
     p->boxcar_fsp = 1.5;
     p->boxcar_maxfrac = 0.3;
     p->sigma_measured = 0;
+    cs_set_decimations(p, maxdecim);
+}
+
+void cs_set_decimations(cs_params *p, int maxdecim)
+{
     /* Keep only the factors that still leave >= 2 harmonics to fold. */
     p->ndecim = 0;
     for (int k = 1; k <= (maxdecim < 1 ? 1 : maxdecim) && p->ndecim < CS_MAXDECIM; k++)
@@ -184,21 +189,26 @@ static inline void hstate(const cs_hplan *hp, long long t, long long *res, long 
     *res = T % hp->q;
 }
 
-int cs_harmonic_fits(const cs_hplan *hp, const cs_fft *fft, long long t)
+long long cs_hbin(const cs_hplan *hp, long long t, long long *nyqbin)
 {
-    const int m2 = hp->m / 2;
-    const long long nhalf = fft->N / 2;
     if (hp->P == 0) {
         /* The fallback's arithmetic, reproduced exactly -- including that its
          * Nyquist test floors without the 1e-15 nudge the window uses. */
         double r = (hp->rfloor0 + hp->dr0) + t * hp->dh;
-        long long rf = (long long) floor(r + 1e-15);
-        return rf + 1 - m2 >= 0 && rf + m2 <= fft->numamps - 1 && (long long) floor(r) < nhalf;
+        *nyqbin = (long long) floor(r);
+        return (long long) floor(r + 1e-15);
     }
     long long res, qint;
     hstate(hp, t, &res, &qint);
-    long long fb = hp->rfloor0 + qint + hp->carry[hp->row[res]];
-    return fb + 1 - m2 >= 0 && fb + m2 <= fft->numamps - 1 && hp->rfloor0 + qint < nhalf;
+    *nyqbin = hp->rfloor0 + qint;
+    return hp->rfloor0 + qint + hp->carry[hp->row[res]];
+}
+
+int cs_harmonic_fits(const cs_hplan *hp, const cs_fft *fft, long long t)
+{
+    const int m2 = hp->m / 2;
+    long long nyqbin, fb = cs_hbin(hp, t, &nyqbin);
+    return fb + 1 - m2 >= 0 && fb + m2 <= fft->numamps - 1 && nyqbin < fft->N / 2;
 }
 
 /* The per-trial fallback: weights recomputed in double for every trial. */

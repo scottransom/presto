@@ -265,11 +265,26 @@ dependency (Highway), and C++ in the build for the first time.
    arithmetic as the exact rescore, so it only pays as a SIMD kernel and moves to phase 4.
    The plain per-trial interpolation loop also replaces Julia's trials-axis group kernel
    (`build_group_table`); that is a SIMD layout, likewise phase 4.
-2. **The full search:** the chunk loop with `chunk_starts` (forced splits where a harmonic
-   starts or stops fitting), the σ sanity check, candidate collapse (duplicates and
-   harmonics), `measure_ducy`, the `.cohout` output file, the `coherentsearch` executable
-   with its clig `.cli` and man page, and `src/Makefile`. Pinned to the full-search fixtures
-   (chunk starts, the 1095 raw candidates, `default.cohout`).
+2. **[DONE] The full search** (`src/cs_search.c`, `src/coherentsearch.c`,
+   `clig/coherentsearch_cmd.cli`, `docs/coherentsearch.1`, `src/Makefile`). It covers the
+   chunk loop with `chunk_starts` (forced splits where a harmonic starts or stops fitting),
+   the analytic-σ sanity check, and candidate collapse (duplicates, then harmonics, both
+   with stable sorts as in Julia). Duty cycles come from an m = 64 refold (`measure_ducy`),
+   and the output is the `.cohout` file. Candidates are a plain growable array, not
+   accelsearch's `GSList`: the search collects them and then sorts and collapses them in
+   passes, and phase 3's per-thread lists merge more simply. On the synthetic file the
+   chunk starts are identical, so are the 1095 raw candidates above threshold 6
+   (bit-identical r, metrics within 3.8e-6), and the default `.cohout` is
+   **byte-identical** to the Julia CLI's. 1.3 s single-threaded (foops) for 491k trials ×
+   6 folds. Clean under valgrind.
+   Differences from the Julia CLI: it always writes `<input>.cohout` (beside the input, or
+   in `-outdir`; `-o` for one file) instead of stdout for a single file, PRESTO-style
+   single-dash options, `-measuredsigma` for `--sigma measured`, and `-lobin` takes effect
+   whenever it is given rather than whenever it is not 100. Left out on purpose:
+   `--precision f64`, `--metricstats`, `--normalize` and the GPU (see "Out" above).
+   **Still to add:** known-pulsar labels from PRESTO's pulsar database (as accelsearch does
+   with `comp_psr_to_cand()`), as an extra `.cohout` column, which `sift_candidates.py`
+   already ignores.
 3. **Throughput:** OpenMP, multi-file invocations, wisdom; then PGPLOT plots and the replot
    tool. *Merge point.*
 4. **SIMD:** Highway kernels with dispatch, constant re-tuning, disassembly audits; meson and
@@ -278,8 +293,9 @@ dependency (Highway), and C++ in the build for the first time.
 
 ### Open questions
 
-- The candidate-file format (keep `.cohout`, or something `ACCEL_sift`/`prepfold`-friendly?).
-  The tool's name is decided: **`coherentsearch`**.
+- The candidate-file format: `.cohout` for now (what CoherentSearch.jl and
+  `sift_candidates.py` use); something `ACCEL_sift`/`prepfold`-friendly could follow. The
+  tool's name is decided: **`coherentsearch`**.
 - Whether to accept C++ in libpresto at all, or keep the Highway kernels in a separate small
   library linked only by the executables that use them.
 - Whether `--sigma measured` should warn, or switch automatically, when the σ sanity check

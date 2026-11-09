@@ -140,7 +140,7 @@ install_data(
 # <prefix>/share/man/man1, so `man rfifind` etc. work with no $PRESTO or
 # extra MANPATH setup (conda activation already adds <prefix>/share/man).
 install_man(
-  'docs/accelsearch.1', 'docs/bincand.1', 'docs/downsample.1',
+  'docs/accelsearch.1', 'docs/bincand.1', 'docs/coherentsearch.1', 'docs/downsample.1',
   'docs/mpiprepsubband.1', 'docs/prepdata.1', 'docs/prepfold.1',
   'docs/prepfold_multi.1', 'docs/prepsubband.1', 'docs/readfile.1',
   'docs/realfft.1', 'docs/rednoise.1', 'docs/rfifind.1',

@@ -45,6 +45,8 @@ typedef struct {
 
 /* The coherent_search CLI defaults, with decimations 1..maxdecim. */
 void cs_default_params(cs_params *p, int maxdecim);
+/* Decimation factors 1..maxdecim that leave at least 2 of p->nharms. */
+void cs_set_decimations(cs_params *p, int maxdecim);
 
 /* The trial step hidr/nharms in Fourier bins. */
 static inline double cs_lodr(const cs_params *p)
@@ -87,6 +89,11 @@ typedef struct {
 /* Build the nharms plans for a search whose global trial 0 is at r_lo. */
 cs_hplan *cs_build_plans(const cs_params *p, double r_lo);
 void cs_free_plans(cs_hplan *plans, int nharms);
+
+/* floor(h * r_t) for trial t: the bin the interpolation window is centred
+ * on.  *nyqbin gets the value the Nyquist test uses (identical except on the
+ * fallback path, which nudges the window bin by 1e-15 but not this one). */
+long long cs_hbin(const cs_hplan *hp, long long t, long long *nyqbin);
 
 /* Whether harmonic plan hp has a full m-bin window below Nyquist at trial t. */
 int cs_harmonic_fits(const cs_hplan *hp, const cs_fft *fft, long long t);
@@ -155,5 +162,63 @@ void cs_prepare_decim(cs_workspace *ws, cs_decim *d, const cs_fft *fft,
 
 /* Score decimation d's nvalid profiles into d->mvals with noise scale sigma. */
 void cs_score_decim(cs_decim *d, double sigma);
+
+/* --- the full search and its candidates ----------------------------------- */
+
+typedef struct {
+    double freq;             /* searched spin frequency (Hz): k * fundamental */
+    double metric;           /* boxcar S/N */
+    double r;                /* Fourier frequency (bins) of freq */
+    int nharm;               /* harmonics folded: nharms / k */
+    double ducy;             /* best boxcar width / profile bins, NAN until measured */
+} cs_cand;
+
+typedef struct {
+    cs_cand *c;
+    long n, cap;
+} cs_candlist;
+
+void cs_candlist_push(cs_candlist *l, cs_cand c);
+void cs_candlist_free(cs_candlist *l);
+
+/* The searched band, in global trials. */
+typedef struct {
+    double r_lo, r_hi;       /* Fourier bins: trial 0 is at r_lo */
+    long long total;         /* trials, r_lo + t*lodr for t = 0..total-1 */
+} cs_band;
+
+/* r_lo = lofreq*T unless lobin >= 0 is given; r_hi = hifreq*T. */
+cs_band cs_make_band(const cs_fft *fft, const cs_params *p, double lofreq,
+                     double hifreq, int lobin);
+
+/* First trial of every chunk: the nprof grid plus a split wherever any
+ * harmonic starts or stops fitting.  Returns a malloc'd array. */
+long long *cs_chunk_starts(const cs_hplan *plans, const cs_fft *fft, const cs_params *p,
+                           long long total, int nprof, long long *nchunks);
+
+/* Compare the analytic noise scale with the measured one on up to three
+ * chunks; warn on stderr (naming fname) and return 0 if they differ by more
+ * than 10% anywhere. */
+int cs_sigma_sanity_check(cs_workspace *ws, const cs_hplan *plans, const cs_fft *fft,
+                          const cs_params *p, const cs_band *band, int nprof,
+                          const char *fname);
+
+/* Search the band, appending every trial (all decimations) with metric >
+ * threshold to out, in chunk order.  progress: print a % meter to stderr. */
+void cs_search(const cs_fft *fft, const cs_params *p, const cs_band *band, int nprof,
+               double threshold, int progress, cs_candlist *out);
+
+/* Collapse runs of candidates within dr_tol bins of each other to the
+ * strongest; leaves the list sorted by frequency. */
+void cs_remove_duplicates(cs_candlist *l, double dr_tol);
+/* Drop candidates harmonically related (ratios n/m, m,n <= numharm, within
+ * tol bins) to a stronger one; leaves the list sorted by frequency. */
+void cs_remove_harmonics(cs_candlist *l, int numharm, double tol);
+/* Sort strongest first (stable). */
+void cs_sort_by_metric(cs_candlist *l);
+/* Fill in each candidate's duty cycle from a refold with an m=64 kernel. */
+void cs_measure_ducy(const cs_fft *fft, const cs_params *p, cs_candlist *l);
+/* Write the .cohout table. */
+void cs_write_cohout(const cs_candlist *l, FILE *f);
 
 #endif

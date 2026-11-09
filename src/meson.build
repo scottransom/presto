@@ -137,7 +137,11 @@ executable('reader_equiv_check',
 
 # coherentsearch (C port of CoherentSearch.jl; see ROADMAP.md).  Linked into the
 # executables that use it rather than into libpresto, for now.
-CSOBJS = ['cs_interp.c', 'cs_metric.c', 'cs_chunk.c']
+CSOBJS = ['cs_interp.c', 'cs_metric.c', 'cs_chunk.c', 'cs_search.c']
+
+executable('coherentsearch', ['coherentsearch.c', 'coherentsearch_cmd.c'] + CSOBJS,
+    dependencies: [glib, fftw, gsl, libm],
+    include_directories: inc, link_with: libpresto, install: true, install_rpath: presto_rpath)
 
 # Dumps one chunk's stages for tests/test_coherentsearch.py (not installed).
 executable('cs_dump',

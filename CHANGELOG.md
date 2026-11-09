@@ -1,4 +1,13 @@
 ## Development (unreleased, since v6.1.2):
+ * **New program `coherentsearch`** (in development on the `coherent-search` branch): a
+   coherent harmonic-summing search of normalised `.fft` files, ported to C from
+   CoherentSearch.jl (Ransom 2026, arXiv:2610.11749).  It interpolates every harmonic's
+   complex amplitude exactly, inverse-FFTs the harmonic stack into a profile and scores it
+   with boxcar matched filters, with harmonic decimation (`-maxdecim`) folding fewer
+   harmonics at multiples of each trial for almost nothing extra.  Candidates go to
+   `<input>.cohout`, the format CoherentSearch.jl writes.  Single-threaded for now.  On the
+   synthetic test file its `.cohout` is byte-identical to the Julia code's, and
+   `tests/test_coherentsearch.py` pins every stage to numbers from the Julia package.
 
 ## Version 6.1.2:
  * **A performance and bug-fix release.**  `accelsearch` is ~2.4x faster on x86-64
