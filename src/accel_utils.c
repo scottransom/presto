@@ -1158,8 +1158,13 @@ ffdotpows *subharm_fderivs_vol(int numharm, int harmnum,
                 float *fpdata = (float *) pdata;
                 float *fdata = (float *) tmpdat;
                 float *outpows = ffdot->powers[ii][jj];
-                // multiply data and kernel 
-                // (using floats for better vectorization)
+                // multiply data and kernel
+                // (using floats for better vectorization).  Write plain
+                // multiply-adds rather than fmaf(): the compiler fuses them
+                // into FMA instructions wherever the target has them, but on
+                // a CPU target without FMA (e.g. conda-forge's x86-64
+                // baseline) each fmaf() is an exact-rounding libm call that
+                // also blocks vectorization -- ~70% of accelsearch's runtime.
 #if (defined(__GNUC__) || defined(__GNUG__)) &&         \
     !(defined(__clang__) || defined(__INTEL_COMPILER))
 #pragma GCC ivdep
@@ -1167,8 +1172,8 @@ ffdotpows *subharm_fderivs_vol(int numharm, int harmnum,
                 for (int kk = 0; kk < fftlen * 2; kk += 2) {
                     const float dr = fpdata[kk], di = fpdata[kk + 1];
                     const float kr = fkern[kk], ki = fkern[kk + 1];
-                    fdata[kk] = fmaf(dr, kr, fmaf(di, ki, 0.0));
-                    fdata[kk + 1] = fmaf(di, kr, -fmaf(dr, ki, 0.0));
+                    fdata[kk] = dr * kr + di * ki;
+                    fdata[kk + 1] = di * kr - dr * ki;
                 }
                 // Do the inverse FFT (tmpdat -> tmpout)
                 fftwf_execute_dft(invplan, (fftwf_complex *) tmpdat,
@@ -1182,9 +1187,8 @@ ffdotpows *subharm_fderivs_vol(int numharm, int harmnum,
 #endif
                 for (int kk = 0; kk < ffdot->numrs; kk++) {
                     const int ind = 2 * (kk + offset);
-                    outpows[kk] =
-                        fmaf(fdata[ind], fdata[ind],
-                             fmaf(fdata[ind + 1], fdata[ind + 1], 0.0)) * norm;
+                    outpows[kk] = (fdata[ind] * fdata[ind] +
+                                   fdata[ind + 1] * fdata[ind + 1]) * norm;
                 }
             }
         }

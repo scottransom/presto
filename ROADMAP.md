@@ -70,14 +70,45 @@ the order to pursue them:
 
 0. **Measure the ceiling first (free).** Build PRESTO at the default flags and again with
    `-march=x86-64-v3`, then time `accelsearch`, `prepsubband`, `rfifind` and `prepfold` on real
-   data. That bounds what any SIMD work could buy the existing tools. Expect modest gains,
-   since FFTW dominates most of them.
-1. **conda-forge microarchitecture variants (no code changes).** Add the
-   `x86_64-microarch-level` metapackage to the feedstock's build requirements to produce v1 and
-   v3 builds; the solver chooses one via the `__archspec` virtual package. That gives every
-   auto-vectorized loop in PRESTO AVX2/FMA. Costs: double the x86 build configs; CI cannot
-   guarantee level 4, so no AVX-512 — arguably a feature, given the AVX-512 licence-downclock
-   history below.
+   data. That bounds what any SIMD work could buy the existing tools.
+   - **accelsearch, measured 2026-11-09.** On the Ter5 test file (DM 242, downsampled ×2,
+     5.28 M points, `_red.fft`), on an i7-10510U (Comet Lake, AVX2, no AVX-512), with
+     conda-forge's flags (`-march=nocona -mtune=haswell -O2`), with and without
+     `-march=x86-64-v3`, 1 thread, best of 2–3 runs (`hyperfine`):
+
+     | search | baseline (6.1.1) | baseline + `fmaf` fix | x86-64-v3 + fix |
+     |---|---|---|---|
+     | `-zmax 200` | 73.2 s | 29.9 s (2.45×) | 26.4 s (2.8×) |
+     | `-zmax 50 -wmax 200` | 297.1 s | 126.3 s (2.35×) | ≈124 s |
+
+     **Most of the first-measured v3 gain was a bug, not the CPU level.** A gperftools profile
+     (conda-forge `gperftools` via `LD_PRELOAD`, `go tool pprof`; no root needed) put ~70% of
+     the baseline's time in `subharm_fderivs_vol` and libm: its inner loops called `fmaf()`
+     explicitly, and on a target without hardware FMA (x86-64 baseline) each call is an
+     exact-rounding libm routine that also blocks vectorization. Plain multiply-adds (which
+     the compiler still fuses to FMA where available) fixed it in 6.1.2. ARM always has FMA,
+     so it was never affected. All ACCEL files are byte-identical across the four builds.
+   - **What v3 still buys accelsearch is ~10%.** With the fix, the profile at 1 thread
+     (~27 s) is roughly: FFTW 8.5 s, `search_ffdotpows` 6.9 s, `add_ffdotpows` 5.6 s,
+     `subharm_fderivs_vol` 5.9 s. `gcc -fopt-info-vec` shows that neither `add_ffdotpows`
+     (the `rinds[kk]` gather in the harmonic sum) nor `search_ffdotpows` (the threshold scan,
+     an `omp parallel for collapse(3)` that recomputes indices per element) vectorizes at
+     any level. Those two (~45% of the remaining time) are the next targets; restructuring
+     the scan's loop nest may be enough without explicit SIMD.
+   - **The other tools gain little from v3** (same host and file, 1 thread): `rfifind -time 2`
+     ~20.5 s both ways; `prepsubband` (64 DMs, masked) ~17 s both ways (I/O-bound);
+     `prepfold` on the raw data with a DM/P search 96 → 85 s (1.13×). Outputs agree to float
+     rounding (≤ 2e-7 relative; the rfifind mask is byte-identical).
+   - Watch out when benchmarking: the tools use `DT_RPATH` with the conda env's `lib/` first,
+     which overrides `LD_LIBRARY_PATH`, so install each build into its own prefix or both
+     will silently load the same `libpresto`.
+1. **conda-forge microarchitecture variants — tried and dropped.** Adding the
+   `x86_64-microarch-level` metapackage to the feedstock's build requirements would produce
+   v1 and v3 builds, with the solver choosing via the `__archspec` virtual package
+   (conda-forge/presto-pulsar-feedstock#7 did this). After the `fmaf` fix, v3 gains ~10% on
+   accelsearch and less elsewhere, which does not justify doubling the x86 builds; conda-forge
+   also prefers runtime dispatch to variants. Closed unmerged. Revisit only if a profile shows
+   a large auto-vectorization gap that runtime-dispatched kernels (below) do not cover.
 2. **Google Highway for hand-written kernels.** [Highway](https://github.com/google/highway) is
    portable explicit SIMD with built-in runtime dispatch (`HWY_DYNAMIC_DISPATCH`) across SSE4,
    AVX2, AVX3 (Skylake-X), AVX3_DL, AVX3_ZEN4, AVX3_SPR, NEON, SVE/SVE2 and RVV. On conda-forge
@@ -101,13 +132,13 @@ the order to pursue them:
    unlike `target_clones`, which needs ifunc), but each variant still relies on the
    auto-vectorizer.
 
-**Plan:** do (0) now, (1) on the feedstock independently of the port, and (2) for the new
+**Plan:** (0) is done and (1) dropped; do (2) for the new
 search's hot kernels: the grouped interpolation matvec and the transposed boxcar
 gate/prefix-sum scan. Then adopt Highway kernels in `accelsearch` *only where profiling says
 the non-FFTW loops matter* (see `fourier_interpolation_tradeoffs.md` §5 in CoherentSearch.jl).
-The one plausible `accelsearch` target is the harmonic sum in `add_ffdotpows`, whose
+The profile now names two `accelsearch` targets: the harmonic sum in `add_ffdotpows`, whose
 `inpows[rinds[kk]]` gather is a near-arithmetic index sequence that could become contiguous
-loads.
+loads, and the threshold scan in `search_ffdotpows`.
 
 ### Scope of the port
 

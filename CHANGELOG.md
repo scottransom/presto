@@ -1,4 +1,12 @@
 ## Development (unreleased, since v6.1.1):
+ * **`accelsearch` is ~2.4x faster on x86-64 conda-forge builds** (and any build without
+   hardware FMA, such as the default `-march=nocona`): `-zmax 200` on the Terzan 5 test
+   data went from 73 to 30 s, and a jerk search (`-zmax 50 -wmax 200`) from 297 to 126 s.
+   The inner loops of `subharm_fderivs_vol()` (`accel_utils.c`) called `fmaf()` explicitly;
+   without FMA hardware each call is a slow, exact-rounding libm routine that also blocks
+   vectorization, and they took ~70% of the run time.  They are now plain multiply-adds,
+   which the compiler still fuses into FMA instructions where the CPU has them.  Results are
+   byte-identical.  ARM builds (always FMA) and `-march=native` builds were not affected.
  * CI now also builds on linux-64 with **AddressSanitizer and UndefinedBehaviorSanitizer** and
    runs the test suite under them on every push.  Its first run found only that
    `chkfread()`/`chkfwrite()` passed NULL to `fread()`/`fwrite()` for zero-length transfers
