@@ -215,3 +215,74 @@ float cs_profile_boxcar(const float *prof, int nbins, const int *widths, int nw,
     }
     return best;
 }
+
+/*
+ * The same metric for CS_BC_BATCH profiles at once.  cs_profile_boxcar's
+ * prefix sum is a serial chain only nbins (20-120) long, and its phase scan
+ * ends every width in a horizontal max, so it cannot use vector registers.
+ * Here the profiles are first transposed into a tile with the profile index
+ * innermost; every step of the identical recurrence then runs across
+ * CS_BC_BATCH independent lanes, which the compiler vectorizes with no
+ * reductions at all.  Per profile it is the same float32 arithmetic in the
+ * same order, so the result equals cs_profile_boxcar's (up to FMA
+ * contraction, which the compiler may apply differently to the two).
+ *
+ * profs: CS_BC_BATCH consecutive nbins-bin profiles.  X needs nbins *
+ * CS_BC_BATCH floats, T (nbins + widths[nw-1] + 1) * CS_BC_BATCH, and work
+ * 3 * CS_BC_BATCH; out gets CS_BC_BATCH metrics.
+ */
+void cs_boxcar_batch(const float *restrict profs, int nbins, const int *widths, int nw,
+                     float invsigma, const double *shape, float *restrict X,
+                     float *restrict T, float *restrict work, float *restrict out)
+{
+    enum { B = CS_BC_BATCH };
+    if (!(invsigma > 0.0f)) {
+        for (int b = 0; b < B; b++)
+            out[b] = 0.0f;
+        return;
+    }
+    const int wmax = widths[nw - 1];
+    /* Transpose: X[i][b] = profile b, bin i. */
+    for (int b = 0; b < B; b++)
+        for (int i = 0; i < nbins; i++)
+            X[i * B + b] = profs[(size_t) b * nbins + i];
+    /* Prefix sums down the bins, tiled by wmax so a boxcar can wrap. */
+    for (int b = 0; b < B; b++)
+        T[b] = 0.0f;
+    for (int i = 0; i < nbins + wmax; i++) {
+        const float *restrict x = X + (i < nbins ? i : i - nbins) * B;
+        const float *restrict t0 = T + i * B;
+        float *restrict t1 = T + (i + 1) * B;
+        for (int b = 0; b < B; b++)
+            t1[b] = t0[b] + x[b];
+    }
+    float *restrict stot = work, *restrict mx = work + B, *restrict best = work + 2 * B;
+    const float *restrict tn = T + nbins * B;
+    for (int b = 0; b < B; b++) {
+        stot[b] = tn[b] - T[b];
+        best[b] = -INFINITY;
+    }
+    /* Width outer, phase inner.  (Measured: swapping them, to keep only rows
+     * p .. p+wmax of T live, is slower.) */
+    for (int iw = 0; iw < nw; iw++) {
+        const int w = widths[iw];
+        const float duty = (float) w / (float) nbins;
+        const float invsw = (float) (invsigma * shape[iw]);
+        const float *restrict tw = T + w * B;
+        for (int b = 0; b < B; b++)
+            mx[b] = tw[b] - T[b];
+        for (int p = 1; p < nbins; p++) {
+            const float *restrict hi = T + (p + w) * B, *restrict lo = T + p * B;
+            for (int b = 0; b < B; b++) {
+                float v = hi[b] - lo[b];
+                mx[b] = v > mx[b] ? v : mx[b];
+            }
+        }
+        for (int b = 0; b < B; b++) {
+            float cand = (mx[b] - duty * stot[b]) * invsw;
+            best[b] = cand > best[b] ? cand : best[b];
+        }
+    }
+    for (int b = 0; b < B; b++)
+        out[b] = best[b];
+}

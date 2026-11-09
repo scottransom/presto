@@ -110,7 +110,10 @@ int main(int argc, char *argv[])
     }
 
     /* coherentsearch's batched complex-to-real transforms, for its default
-     * number of harmonics and block size and every decimation factor. */
+     * number of harmonics and block size and every decimation factor.  They
+     * are small, so they always get FFTW_PATIENT (under a second in all; it
+     * makes them ~2x faster than FFTW_ESTIMATE, and FFTW_EXHAUSTIVE is no
+     * better for 20x the planning time). */
     {
         const int nh = CS_DEFAULT_NHARMS, nprof = CS_DEFAULT_BLOCKSIZE;
         fftwf_complex *in = fftwf_malloc(sizeof(fftwf_complex) * (nh + 1) * nprof);
@@ -118,7 +121,7 @@ int main(int argc, char *argv[])
         for (int k = 1; k <= CS_DEFAULT_MAXDECIM; k++) {
             printf("   %d x %d-point complex-to-real (coherentsearch, k=%d)\n", nprof,
                    2 * (nh / k), k);
-            plan = cs_plan_c2r(nh, nprof, k, in, out, planflag);
+            plan = cs_plan_c2r(nh, nprof, k, in, out, FFTW_PATIENT);
             fftwf_destroy_plan(plan);
         }
         fftwf_free(in);

@@ -15,6 +15,9 @@ cs_workspace *cs_workspace_new(const cs_params *p, int nprof)
     ws->ftprofs = gen_cvect((long) nprof * (p->nharms + 1));
     ws->filled = calloc(p->nharms + 1, 1);
     ws->sigbuf = gen_fvect(CS_SIGMA_SAMPLES);
+    ws->nplane = cs_plane_len(p, nprof);
+    ws->re = gen_fvect(ws->nplane);
+    ws->im = gen_fvect(ws->nplane);
     ws->d = calloc(p->ndecim, sizeof(cs_decim));
     ws->wisdom = 1;
     for (int i = 0; i < p->ndecim; i++) {
@@ -26,6 +29,9 @@ cs_workspace *cs_workspace_new(const cs_params *p, int nprof)
         d->profs = gen_fvect((long) nprof * d->nbins);
         d->psum = gen_fvect(d->nbins + d->widths[d->nwidths - 1] + 1);
         d->mvals = gen_fvect(nprof);
+        d->bcX = gen_fvect((long) d->nbins * CS_BC_BATCH);
+        d->bcT = gen_fvect((long) (d->nbins + d->widths[d->nwidths - 1] + 1) * CS_BC_BATCH);
+        d->bcwork = gen_fvect(3 * CS_BC_BATCH);
         d->shape_filled = calloc(p->nharms + 1, 1);
         d->shape_valid = 0;
         /* One batched c2r for all nprof stacks, preserving its input: the
@@ -62,11 +68,16 @@ void cs_workspace_free(cs_workspace *ws)
         vect_free(d->profs);
         vect_free(d->psum);
         vect_free(d->mvals);
+        vect_free(d->bcX);
+        vect_free(d->bcT);
+        vect_free(d->bcwork);
         free(d->shape_filled);
     }
     free(ws->d);
     vect_free(ws->ftprofs);
     vect_free(ws->sigbuf);
+    vect_free(ws->re);
+    vect_free(ws->im);
     free(ws->filled);
     free(ws);
 }
@@ -83,7 +94,8 @@ void cs_fill_chunk(cs_workspace *ws, const cs_hplan *plans, const cs_fft *fft,
     memset(ws->ftprofs, 0, sizeof(fcomplex) * (size_t) ws->nprof * stride);
     ws->filled[0] = 0;
     for (int h = 1; h <= p->nharms; h++)
-        ws->filled[h] = cs_fill_row(plans + h - 1, fft, t0, n, ws->ftprofs + h, stride);
+        ws->filled[h] = cs_fill_row(plans + h - 1, fft, t0, n, ws->ftprofs + h, stride,
+                                    ws->re, ws->im, ws->nplane);
 }
 
 void cs_prepare_decim(cs_workspace *ws, cs_decim *d, const cs_fft *fft,
@@ -117,7 +129,11 @@ void cs_score_decim(cs_decim *d, double sigma)
 {
     const float sig = (float) sigma;
     const float invsigma = sig > 0.0f ? 1.0f / sig : 0.0f;
-    for (int j = 0; j < d->nvalid; j++)
+    int j = 0;
+    for (; j + CS_BC_BATCH <= d->nvalid; j += CS_BC_BATCH)
+        cs_boxcar_batch(d->profs + (size_t) j * d->nbins, d->nbins, d->widths, d->nwidths,
+                        invsigma, d->shape, d->bcX, d->bcT, d->bcwork, d->mvals + j);
+    for (; j < d->nvalid; j++)      /* the leftover partial batch */
         d->mvals[j] = cs_profile_boxcar(d->profs + (size_t) j * d->nbins, d->nbins,
                                         d->widths, d->nwidths, invsigma, d->shape, d->psum);
 }

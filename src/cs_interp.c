@@ -106,6 +106,78 @@ static long long gcdll(long long a, long long b)
     return a < 0 ? -a : a;
 }
 
+/* Tabulate hp's trials-axis group blocks (CoherentSearch.jl's
+ * build_group_table).  Group g starts at residue g*V*s mod q; within it the
+ * k-th trial's window starts delta_k = b_k - b_0 bins after the first one
+ * (0/1 steps plus base_adv per trial), so lane k's m weights sit at rows
+ * delta_k .. delta_k+m-1 of the block and it reads one contiguous slice of
+ * the bin planes. */
+static void build_group_table(cs_hplan *hp)
+{
+    enum { V = CS_GROUP_V };
+    const int m = hp->m;
+    const long long q = hp->q, s = hp->s;
+    const long long gstep = (V * s) % q;
+    hp->ngrp = gstep == 0 ? 1 : (int) (q / gcdll(gstep, q));
+    hp->grow = malloc(q * sizeof(int));
+    for (long long i = 0; i < q; i++)
+        hp->grow[i] = -1;
+    hp->goff = malloc((hp->ngrp + 1) * sizeof(long));
+    hp->gnj = malloc(hp->ngrp * sizeof(int));
+    hp->gA = malloc((size_t) hp->ngrp * V * sizeof(fcomplex));
+    int ps[V], ds[V];
+    /* First pass: sizes. */
+    long total = 0;
+    long long res0 = 0;
+    for (int g = 0; g < hp->ngrp; g++) {
+        long long res = res0, B = 0, B0 = 0;
+        for (int k = 0; k < V; k++) {
+            const int pp = hp->row[res];
+            const long long Bk = B + hp->carry[pp];
+            if (k == 0)
+                B0 = Bk;
+            ps[k] = pp;
+            ds[k] = (int) (Bk - B0);
+            hp->gA[(size_t) g * V + k] = hp->A[pp];
+            res += s;
+            B += hp->base_adv;
+            if (res >= q) {
+                res -= q;
+                B++;
+            }
+        }
+        hp->grow[res0] = g;
+        hp->gnj[g] = m + ds[V - 1];
+        hp->goff[g] = total;
+        total += (long) hp->gnj[g] * V;
+        res0 = (res0 + gstep) % q;
+    }
+    hp->goff[hp->ngrp] = total;
+    hp->gW = calloc(total, sizeof(float));
+    /* Second pass: fill the blocks. */
+    res0 = 0;
+    for (int g = 0; g < hp->ngrp; g++) {
+        long long res = res0, B = 0, B0 = 0;
+        for (int k = 0; k < V; k++) {
+            const int pp = hp->row[res];
+            const long long Bk = B + hp->carry[pp];
+            if (k == 0)
+                B0 = Bk;
+            const int dk = (int) (Bk - B0);
+            float *blk = hp->gW + hp->goff[g];
+            for (int i = 0; i < m; i++)
+                blk[(long) (dk + i) * V + k] = hp->W[(size_t) pp * m + i];
+            res += s;
+            B += hp->base_adv;
+            if (res >= q) {
+                res -= q;
+                B++;
+            }
+        }
+        res0 = (res0 + gstep) % q;
+    }
+}
+
 cs_hplan *cs_build_plans(const cs_params *p, double r_lo)
 {
     const int m = p->m, m2 = p->m / 2;
@@ -165,6 +237,7 @@ cs_hplan *cs_build_plans(const cs_params *p, double r_lo)
             if (res >= q)
                 res -= q;
         }
+        build_group_table(hp);
     }
     return plans;
 }
@@ -178,6 +251,11 @@ void cs_free_plans(cs_hplan *plans, int nharms)
         free(plans[h].W);
         free(plans[h].A);
         free(plans[h].carry);
+        free(plans[h].grow);
+        free(plans[h].goff);
+        free(plans[h].gnj);
+        free(plans[h].gW);
+        free(plans[h].gA);
     }
     free(plans);
 }
@@ -242,9 +320,37 @@ static void fill_row_slow(const cs_hplan *hp, const cs_fft *fft, long long t0, i
     }
 }
 
-int cs_fill_row(const cs_hplan *hp, const cs_fft *fft, long long t0, int n,
-                fcomplex *out, int stride)
+/* One group: the (nj x V) weight block times the nj-long slice of the bin
+ * planes, as V independent accumulators per plane -- no gather and no
+ * horizontal reduce.  (Measured: this plain form beats both a single
+ * V-float GCC vector type, which gcc lowers badly onto 16-byte registers,
+ * and an array of 4-float vectors.) */
+static inline void group_lanes(const float *restrict w, int nj, const float *restrict re,
+                               const float *restrict im, float *restrict ar,
+                               float *restrict ai)
 {
+    enum { V = CS_GROUP_V };
+    float sr[V], si[V];
+    for (int k = 0; k < V; k++)
+        sr[k] = si[k] = 0.0f;
+    for (int j = 0; j < nj; j++) {
+        const float rv = re[j], iv = im[j];
+        const float *restrict wj = w + (long) j * V;
+        for (int k = 0; k < V; k++) {
+            sr[k] += wj[k] * rv;
+            si[k] += wj[k] * iv;
+        }
+    }
+    for (int k = 0; k < V; k++) {
+        ar[k] = sr[k];
+        ai[k] = si[k];
+    }
+}
+
+int cs_fill_row(const cs_hplan *hp, const cs_fft *fft, long long t0, int n,
+                fcomplex *out, int stride, float *re, float *im, long nplane)
+{
+    enum { V = CS_GROUP_V };
     if (n < 1)
         return 0;
     if (!(cs_harmonic_fits(hp, fft, t0) && cs_harmonic_fits(hp, fft, t0 + n - 1)))
@@ -253,31 +359,52 @@ int cs_fill_row(const cs_hplan *hp, const cs_fft *fft, long long t0, int n,
         fill_row_slow(hp, fft, t0, n, out, stride);
         return 1;
     }
-    const int m = hp->m, m2 = hp->m / 2;
-    const fcomplex *amps = fft->amps;
-    long long res, qint;
-    hstate(hp, t0, &res, &qint);
-    for (int j = 0; j < n; j++) {
-        const int pp = hp->row[res];
-        const long long lo = hp->rfloor0 + qint + hp->carry[pp] + 1 - m2;
-        const float *w = hp->W + (size_t) pp * m;
-        const fcomplex *a = amps + lo;
-        float sre = 0.0f, sim = 0.0f;
-        for (int i = 0; i < m; i++) {
-            sre += w[i] * a[i].r;
-            sim += w[i] * a[i].i;
+    const int m2 = hp->m / 2;
+    /* Groups are anchored to the GLOBAL trial grid (multiples of V), so a
+     * trial's arithmetic does not depend on where chunk boundaries fall.  The
+     * end groups may hang off the chunk: they are computed in full and stored
+     * only where they land inside it, reading zeros past the ends of the file. */
+    const long long T_first = (t0 / V) * V, T_last = ((t0 + n - 1) / V) * V + V - 1;
+    long long res, qint, resx, qintx;
+    hstate(hp, T_first, &res, &qint);
+    hstate(hp, T_last, &resx, &qintx);
+    const long long lo = hp->rfloor0 + qint + hp->carry[hp->row[res]] + 1 - m2;
+    const long long hi = hp->rfloor0 + qintx + hp->carry[hp->row[resx]] + m2;
+    const long nw = (long) (hi - lo + 1);
+    if (nw > nplane) {
+        fprintf(stderr, "cs_fill_row: harmonic %d spans %ld bins but the planes hold %ld\n",
+                hp->h, nw, nplane);
+        exit(1);
+    }
+    /* De-interleave the window, zero outside the file. */
+    for (long i = 0; i < nw; i++) {
+        const long long b = lo + i;
+        if (b < 0 || b >= fft->numamps) {
+            re[i] = im[i] = 0.0f;
+        } else {
+            re[i] = fft->amps[b].r;
+            im[i] = fft->amps[b].i;
         }
-        const fcomplex A = hp->A[pp];
-        fcomplex *o = out + (size_t) j * stride;
-        o->r = A.r * sre - A.i * sim;
-        o->i = A.r * sim + A.i * sre;
-        /* Advance one trial: every wrap of the residue past q carries a bin. */
-        qint += hp->base_adv;
-        res += hp->s;
-        if (res >= hp->q) {
-            res -= hp->q;
-            qint++;
+    }
+    float ar[V], ai[V];
+    for (long long T = T_first; T <= T_last; T += V) {
+        const int g = hp->grow[res];
+        const long b0 = (long) (hp->rfloor0 + qint + hp->carry[hp->row[res]] + 1 - m2 - lo);
+        group_lanes(hp->gW + hp->goff[g], hp->gnj[g], re + b0, im + b0, ar, ai);
+        const fcomplex *A = hp->gA + (size_t) g * V;
+        const long long j0 = T - t0;
+        for (int k = 0; k < V; k++) {
+            const long long j = j0 + k;
+            if (j < 0 || j >= n)
+                continue;
+            fcomplex *o = out + (size_t) j * stride;
+            o->r = A[k].r * ar[k] - A[k].i * ai[k];
+            o->i = A[k].r * ai[k] + A[k].i * ar[k];
         }
+        /* Advance V trials: exactly V steps of the per-trial recurrence. */
+        const long long tot = res + V * hp->s;
+        qint += V * hp->base_adv + tot / hp->q;
+        res = tot % hp->q;
     }
     return 1;
 }

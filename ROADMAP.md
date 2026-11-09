@@ -308,8 +308,31 @@ dependency (Highway), and C++ in the build for the first time.
      three places Julia uses SIMD layouts (the batched float32 gate, the trials-axis group
      kernel) and PATIENT wisdom, so phase 4 is where the C catches up.
    *Merge point* once phase 4 brings the speed to at least Julia's.
-4. **SIMD:** Highway kernels with dispatch, constant re-tuning, disassembly audits; meson and
-   feedstock changes for `libhwy` and C++.
+4. **SIMD.** *In progress, plain C first (Highway deferred to see how far that gets).*
+   - **Done:** the two batched layouts from Julia, written as plain C loops that gcc
+     auto-vectorizes at conda-forge's baseline flags (SSE). Both give results
+     **bit-identical** to the scalar code, since each lane does the same float32 operations
+     in the same order, so no gate or exact rescore is needed.
+     - The boxcar scan transposes `CS_BC_BATCH = 64` profiles into a tile and runs the
+       recurrence across them (2.5x on that kernel).
+     - The interpolation uses trials-axis groups of `CS_GROUP_V = 16` (Julia's
+       `build_group_table`): one contiguous matrix-vector product per group.
+   - `makewisdom` now always plans these transforms with PATIENT. EXHAUSTIVE takes 20x
+     longer to plan and is no faster.
+   - **PM0063, full band (foops):** 92.9 → **41.2 s** on 1 thread (Julia 35.2 s), and
+     40.6 → **19.6 s** on 4 (Julia 17.9 s). The `.cohout` is unchanged.
+   - **Measured and rejected:**
+     - V = 32 groups (slower with both SSE and AVX2);
+     - a single V-float GCC vector type, or an array of 4-float vector types, for the
+       group accumulators (slower; gcc lowers them badly);
+     - phase-outer/width-inner boxcar loops;
+     - `-O3` (1.65x *slower*).
+     An `x86-64-v3` build is only ~10% faster, so these kernels are not mainly limited by
+     vector width.
+   - **Profile now:** boxcar ~37%, interpolation ~31%, FFTW ~29% (at PATIENT, so near
+     its floor).
+   - Still open: constant re-tuning on fitzroy and an aarch64 host, disassembly audits,
+     and Highway only if a kernel still needs it.
 5. **Afterwards, optional:** profile `accelsearch` and move any loops worth it onto Highway.
 
 ### Open questions

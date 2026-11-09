@@ -87,7 +87,33 @@ typedef struct {
     float *W;                /* (P, m): 1/(dr - j), j = 1-m/2 .. m/2 */
     fcomplex *A;             /* (P): conj(sin(pi dr) exp(i pi dr)) / pi */
     unsigned char *carry;    /* (P): frac(h r_lo) + res/q wrapped past 1 */
+    /* Trials-axis group tables (see cs_fill_row): a group is CS_GROUP_V
+     * consecutive trials starting at a multiple of CS_GROUP_V.  Its weights
+     * are a (m + delta) x CS_GROUP_V block, with lane k's m weights placed at
+     * its window's offset delta_k from the group's first window; the block
+     * depends only on the residue the group starts at, of which there are
+     * ngrp. */
+    int ngrp;
+    int *grow;               /* (q) residue -> group, -1 if no group starts there */
+    long *goff;              /* (ngrp+1) offsets into gW */
+    int *gnj;                /* (ngrp) m + delta, the group's window length */
+    float *gW;               /* the blocks, row j holding CS_GROUP_V lanes */
+    fcomplex *gA;            /* (ngrp, CS_GROUP_V) per-lane scale */
 } cs_hplan;
+
+/* Trials per interpolation group.  16 keeps the 2 x 16 float accumulators in
+ * SSE's 16 registers; Julia's 32 suits AVX2. */
+#ifndef CS_GROUP_V
+#define CS_GROUP_V 16
+#endif
+
+/* Length of the de-interleaved bin planes cs_fill_row needs for chunks of up
+ * to nprof trials: the top harmonic moves hidr bins per trial, plus the
+ * kernel, the partial end groups and rounding slack. */
+static inline long cs_plane_len(const cs_params *p, int nprof)
+{
+    return (long) ceil((nprof - 1 + 2 * CS_GROUP_V) * p->hidr) + p->m + 4;
+}
 
 /* Build the nharms plans for a search whose global trial 0 is at r_lo. */
 cs_hplan *cs_build_plans(const cs_params *p, double r_lo);
@@ -105,7 +131,7 @@ int cs_harmonic_fits(const cs_hplan *hp, const cs_fft *fft, long long t);
  * (j = 0..n-1).  Returns 0, writing nothing, if the harmonic does not fit at
  * both ends of the range. */
 int cs_fill_row(const cs_hplan *hp, const cs_fft *fft, long long t0, int n,
-                fcomplex *out, int stride);
+                fcomplex *out, int stride, float *re, float *im, long nplane);
 
 /* --- the metric -------------------------------------------------------- */
 
@@ -125,6 +151,16 @@ float cs_block_sigma(const float *profs, int nbins, int n, float *buf);
 float cs_profile_boxcar(const float *prof, int nbins, const int *widths, int nw,
                         float invsigma, const double *shape, float *psum);
 
+/* The same for CS_BC_BATCH profiles at once, vectorized across profiles
+ * (see cs_metric.c for the buffer sizes).  64 keeps the k = 1 prefix-sum
+ * tile (127 x 64 floats) within a 32 KB L1; measured ~8% faster than 128. */
+#ifndef CS_BC_BATCH
+#define CS_BC_BATCH 64
+#endif
+void cs_boxcar_batch(const float *restrict profs, int nbins, const int *widths, int nw,
+                     float invsigma, const double *shape, float *restrict X,
+                     float *restrict T, float *restrict work, float *restrict out);
+
 /* --- one chunk ------------------------------------------------------------ */
 
 typedef struct {
@@ -134,6 +170,7 @@ typedef struct {
     fftwf_plan plan;         /* c2r of the stride-k rows of ftprofs */
     float *profs;            /* (nprof, nbins) */
     float *psum;
+    float *bcX, *bcT, *bcwork;  /* cs_boxcar_batch tiles */
     float *mvals;            /* (nprof) metrics of the last scored chunk */
     int nvalid;              /* trials scored (k*r below Nyquist) */
     double sigma_analytic;
@@ -148,6 +185,8 @@ typedef struct {
     fcomplex *ftprofs;       /* (nprof, nharms+1); row 0 (DC) always zero */
     unsigned char *filled;   /* (nharms+1), by harmonic number */
     float *sigbuf;           /* CS_SIGMA_SAMPLES */
+    float *re, *im;          /* cs_fill_row's bin planes, cs_plane_len() long */
+    long nplane;
     cs_decim *d;             /* ndecim, d[0].k == 1 */
 } cs_workspace;
 
