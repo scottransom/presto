@@ -65,8 +65,9 @@ locally, configure `build-pixi` the same way (see `.github/workflows/ci.yml`), t
 `pixi run build` and `LD_PRELOAD=$($CC -print-file-name=libasan.so) pixi run test`
 inside `pixi run bash`; reconfigure with `-Db_sanitize=none` afterwards. The test list is **explicit** in the `test` task in
 `pixi.toml`: `tests/test_barycenter.py`, `tests/test_binary_calcs.py`,
-`tests/test_maximize_rz.py`, `tests/test_pipeline_synthetic.py`, `tests/test_sifting.py`, the
-fftfit suite in
+`tests/test_maximize_rz.py`, `tests/test_pipeline_synthetic.py`, `tests/test_sifting.py`,
+`tests/test_coherentsearch.py` (reference numbers for the coherentsearch port; see
+`tests/coherentsearch/README.md`), the fftfit suite in
 `python/fftfit_src/` (needs `hypothesis`), and `tests/test_presto_python.py`. Add a new test
 to that list when you add it.
 

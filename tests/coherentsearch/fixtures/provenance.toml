@@ -1,0 +1,13 @@
+cases = ["low", "slowpsr", "fastpsr", "nyqedge"]
+coherentsearch_jl = "v1.0.0-3-gd20fd9c"
+fftw = "3.3.11"
+hidr = 0.5
+hifreq = 125.0
+input = "synth_cs.fft"
+julia = "1.12.7"
+lofreq = 0.1
+m = 16
+maxdecim = 6
+nharms = 60
+sigma_cap = 8192
+threshold = 8.0

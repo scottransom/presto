@@ -240,6 +240,16 @@ dependency (Highway), and C++ in the build for the first time.
 
 ### Phases
 
+0. **[DONE] Reference numbers from Julia** (`tests/coherentsearch/`, `tests/test_coherentsearch.py`,
+   in `pixi run test`). A committed 256 KB synthetic `.fft` with two pulsars;
+   `gen_fixtures.jl` dumps CoherentSearch.jl's own numbers stage by stage for four 160-trial
+   chunks at the CLI defaults: filled harmonics, interpolated stacks, profiles, and for each k
+   = 1–6 the width banks, analytic and measured σ, shape factors and every per-trial metric
+   (exact Float64 path, plus the Float32 production path, which is within 2.4e-6). It also
+   dumps a full search's 295 chunk starts, its 1095 raw candidates above threshold 6 and the
+   default `.cohout`. `cs_oracle.py`, a plain NumPy statement of the algorithm, reproduces
+   all of it (metrics to 3e-14). It is the specification the C code follows, and the C
+   dump mode will be checked against the same fixtures.
 1. **k = 1 only, single-threaded, scalar C:** interpolation, base transform, analytic σ,
    gate and exact rescore. Pinned against Julia per-trial metrics.
 2. **The full search:** decimation ladder, pruned widths, measured σ, candidate collapse,
@@ -252,8 +262,8 @@ dependency (Highway), and C++ in the build for the first time.
 
 ### Open questions
 
-- The tool's name (`coherentsearch`, `cohsearch`, …) and its candidate-file format (keep
-  `.cohout`, or something `ACCEL_sift`/`prepfold`-friendly?).
+- The candidate-file format (keep `.cohout`, or something `ACCEL_sift`/`prepfold`-friendly?).
+  The tool's name is decided: **`coherentsearch`**.
 - Whether to accept C++ in libpresto at all, or keep the Highway kernels in a separate small
   library linked only by the executables that use them.
 - Whether `--sigma measured` should warn, or switch automatically, when the σ sanity check

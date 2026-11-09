@@ -1,0 +1,67 @@
+filled = [1, 2, 3, 4, 5]
+lodr = 0.008333333333333333
+n = 160
+name = "nyqedge"
+r_lo = 3.2768
+rstart = 5460.743466666666
+t0 = 654896
+
+[k1]
+Hk = 60
+nbins = 120
+nvalid = 160
+shape = [1.0, 0.5018878079433983, 0.33669367023009106, 0.25473359968763126, 0.17406400847096498]
+sigma_analytic = 3.1622776601683795
+sigma_measured = 2.899383338653885
+sigma_measured_prod = 2.899383068084717
+widths = [1, 2, 3, 4, 6]
+
+[k2]
+Hk = 30
+nbins = 60
+nvalid = 160
+shape = [0.5017169600298246, 0.336392872159037, 0.25431655702655054, 0.1734435967299395]
+sigma_analytic = 2.0
+sigma_measured = 1.8710166395739192
+sigma_measured_prod = 1.871016502380371
+widths = [2, 3, 4, 6]
+
+[k3]
+Hk = 20
+nbins = 40
+nvalid = 160
+shape = [0.5015460992414128, 0.33609189932884675, 0.25389896722846955, 0.17282100786879184]
+sigma_analytic = 1.4142135623730951
+sigma_measured = 1.9187499148233875
+sigma_measured_prod = 1.9187500476837158
+widths = [2, 3, 4, 6]
+
+[k4]
+Hk = 15
+nbins = 30
+nvalid = 160
+shape = [0.5027541397817582, 0.3382612127177164, 0.2569929831676694, 0.1778344435488519]
+sigma_analytic = 1.4142135623730951
+sigma_measured = 1.731000738266194
+sigma_measured_prod = 1.7310006618499756
+widths = [2, 3, 4, 6]
+
+[k5]
+Hk = 12
+nbins = 24
+nvalid = 160
+shape = [0.5043144802900764, 0.34108137740210887, 0.26105238444010315, 0.18459191128251454]
+sigma_analytic = 1.4142135623730951
+sigma_measured = 1.5653325236542306
+sigma_measured_prod = 1.5653325319290161
+widths = [2, 3, 4, 6]
+
+[k6]
+Hk = 10
+nbins = 20
+nvalid = 71
+shape = [0.0, 0.0, 0.0, 0.0]
+sigma_analytic = 0.0
+sigma_measured = 0.0
+sigma_measured_prod = 0.0
+widths = [2, 3, 4, 6]
