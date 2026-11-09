@@ -327,7 +327,7 @@ int getpoly(double mjd, double duration, double *dm, FILE * fp, char *pname)
   Recovers Earth-Doppler-shift factor and polyco frequency 13 Feb 1997.
 */
 
-    char name0[15], testname[15], date0[15], binpha[16];
+    char name0[15], testname[15], date0[15], binpha[17];
     char obsstr[16];
     char dummy[3][30];
     char buffer[160];
@@ -355,6 +355,10 @@ int getpoly(double mjd, double duration, double *dm, FILE * fp, char *pname)
             sscanf(buffer, "%lf%lf%15s%d%d", &rphase[j], &f0[j], obsstr, &nblk0,
                    &ncoeff0);
             fgets(buffer, 80, fp);
+            /* %16c writes no NUL, and nothing at all if the line is short */
+            /* (as in tempo2 polycos), so start from a blank string.      */
+            memset(binpha, ' ', 16);
+            binpha[16] = '\0';
             sscanf(buffer, "%f%16c", &r, binpha);
             for (k = 0; k < ncoeff0 / 3; k++) {
                 fgets(buffer, 80, fp);

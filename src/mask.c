@@ -376,17 +376,21 @@ static int merge_no_dupes(int *arr1, int len1, int *arr2, int len2, int *merged,
 {
     int ptr1 = 0, ptr2 = 0, count = 0;
 
+    /* Note: the tail loops must not look at merged[count-1] while count == 0
+       (e.g. when there are no overall zapped channels, so len1 == 0).  That
+       read past the start of 'merged', and the garbage found there decided
+       which channels were masked (different between platforms and runs). */
     while (1) {
         if (ptr1 == len1) {
-            while ((ptr2 < len2) && (merged[count-1] < lenout - 1)) {
-                if (arr2[ptr2] > merged[count-1])
+            while ((ptr2 < len2) && (count == 0 || merged[count-1] < lenout - 1)) {
+                if (count == 0 || arr2[ptr2] > merged[count-1])
                     merged[count++] = arr2[ptr2++];
                 else ptr2++;
             }
             break;
         } else if (ptr2 == len2) {
-            while ((ptr1 < len1) && (merged[count-1] < lenout - 1)) {
-                if (arr1[ptr1] > merged[count-1])
+            while ((ptr1 < len1) && (count == 0 || merged[count-1] < lenout - 1)) {
+                if (count == 0 || arr1[ptr1] > merged[count-1])
                     merged[count++] = arr1[ptr1++];
                 else ptr1++;
             }

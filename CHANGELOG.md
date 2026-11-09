@@ -1,4 +1,14 @@
 ## Development (unreleased, since v6.1.1):
+ * Fixed an out-of-bounds read in the rfifind-mask code (`merge_no_dupes()` in `mask.c`)
+   that could change **which channels get masked**.  When a mask zaps no channels for the
+   whole observation (common), merging in each interval's channels read the int just before
+   the output buffer, and that garbage value decided whether the interval's bad channels
+   were masked.  Linux usually got the right answer by luck; macOS often did not, so masked
+   folds and dedispersions of raw data differed run to run.  Every program that applies a
+   `-mask` to raw data was affected (prepdata, prepsubband, prepfold, mpiprepsubband).
+   Found by the new real-data CI, then located with valgrind.  Also fixed an uninitialized
+   read of the binary-phase field when parsing tempo2 polycos (`getpoly()` in
+   `polycos.c`), which did not affect results.
  * `single_pulse_search.py` now skips blocks with no variance (data dropouts, padding, or
    fully masked intervals), with or without `-b`.  It used to divide them by their ~zero
    standard deviation: exact zeros gave NaNs, which silently blanked the search of the whole
