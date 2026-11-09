@@ -435,6 +435,13 @@ def main():
             std_stds = np.std(sort_stds[locut:hicut])
             median_stds = sort_stds[(locut+hicut)//2]
             print("    pseudo-median block standard deviation = %.2f" % (median_stds))
+            # Blocks with (essentially) no variance hold padding or data
+            # dropouts (e.g. masked or zeroed intervals), which de-trend to
+            # exact zeros or to rounding noise.  Never normalize or search
+            # them, even with -b: dividing by their tiny std gave NaNs (which
+            # silently blanked the search of the whole surrounding chunk) or
+            # amplified rounding noise into many spurious wide "pulses".
+            dead_blocks = np.flatnonzero(stds <= 1e-3 * np.median(stds))
             if (opts.badblocks):
                 lo_std = median_stds - 4.0 * std_stds
                 hi_std = median_stds + 4.0 * std_stds
@@ -446,6 +453,11 @@ def main():
                 stds[bad_blocks] = median_stds
             else:
                 bad_blocks = []
+            if len(dead_blocks):
+                print("    skipping %d blocks with no variance (padding or dropouts)" % \
+                      len(dead_blocks))
+                stds[dead_blocks] = median_stds
+                bad_blocks = np.union1d(bad_blocks, dead_blocks).astype(int)
             print("  Now searching...")
 
             # Now normalize all of the data, one block at a time

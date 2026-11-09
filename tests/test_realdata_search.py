@@ -322,7 +322,10 @@ def test_single_pulse_search_ter5A(obs: dict) -> None:
 
     Above 6 sigma, the DM-242 events are phase-locked to Ter5A's ephemeris, and the events
     at DMs well away from it are not.  (The many events above ~8 sigma appear at every DM
-    and are RFI, so they dilute the signal at higher thresholds.)
+    and are RFI, so they dilute the signal at higher thresholds.)  The data have periodic
+    dropouts (~6% of 1000-sample blocks are constant, from 273 s on), so this also checks
+    that single_pulse_search.py skips dead blocks: before that fix, macOS found ~8x more
+    events (wide-boxcar noise from rounding residuals), and Z at DM 242 fell to 5-7.
     """
     for dm in DMS:
         assert (obs["dir"] / f"{base(dm)}.singlepulse").exists()
@@ -333,6 +336,6 @@ def test_single_pulse_search_ter5A(obs: dict) -> None:
         for dm in DMS
     }
     info = f"Z by DM: {zs}; events by DM: {counts}"
-    assert zs[242.0] > 15.0, info  # measured 30.4
+    assert zs[242.0] > 15.0, info  # measured 30.6
     for dm in (234.0, 238.0, 248.0):
-        assert zs[dm] < 8.0, info  # measured 0.9, 1.3, 0.5 (2.5-3.9 at DM 240, 244)
+        assert zs[dm] < 8.0, info  # measured 0.9, 1.0, 0.9 (2.2-4.2 at DM 240, 244)

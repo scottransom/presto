@@ -1,4 +1,11 @@
 ## Development (unreleased, since v6.1.1):
+ * `single_pulse_search.py` now skips blocks with no variance (data dropouts, padding, or
+   fully masked intervals), with or without `-b`.  It used to divide them by their ~zero
+   standard deviation: exact zeros gave NaNs, which silently blanked the search of the whole
+   surrounding 8000-sample chunk, and rounding residuals (more common on macOS) were
+   amplified into many spurious wide pulses.  On the Terzan 5 test data (~6% dead blocks)
+   macOS found ~8x as many events as Linux; now both find the same.  Found by the new
+   real-data tests.
  * **Weekly real-data tests in CI** (`.github/workflows/realdata.yml`, `pixi run
    test-realdata`), on linux-64, linux-aarch64 and osx-arm64.  They use the 173 MB Terzan 5
    GBT PSRFITS file, which now lives on the repo's `test-data-v1` GitHub release rather
