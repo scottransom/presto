@@ -19,6 +19,7 @@ coherentsearch \- Search normalised FFTs for pulsars by coherently summing many 
 .\" cligPart SYNOPSIS
 .SH SYNOPSIS
 .B coherentsearch
+[-ncpus ncpus]
 [-threshold threshold]
 [-nharms nharms]
 [-maxdecim maxdecim]
@@ -36,6 +37,9 @@ coherentsearch \- Search normalised FFTs for pulsars by coherently summing many 
 [-blocksize blocksize]
 [-o outfile]
 [-outdir outdir]
+[-plot]
+[-plotpng]
+[-replot]
 [-noprogress]
 [-verbose]
 [--] infile ...
@@ -43,6 +47,12 @@ coherentsearch \- Search normalised FFTs for pulsars by coherently summing many 
 
 .\" cligPart OPTIONS
 .SH OPTIONS
+.IP -ncpus
+Number of processors to use with OpenMP,
+.br
+1 Int value between 1 and oo.
+.br
+Default: `1'
 .IP -threshold
 S/N cutoff for candidates,
 .br
@@ -127,6 +137,12 @@ Output candidate file name (single input file only; default: <input>.cohout besi
 Write each <input>.cohout into this directory instead,
 .br
 1 String value
+.IP -plot
+Plot the candidates' pulse profiles to <input>_cohout.ps.
+.IP -plotpng
+Also render the plots as PNG pages (<input>_cohout_01.png, _02.png, ...) with Ghostscript.
+.IP -replot
+Do not search: plot the candidates already in <input>.cohout.
 .IP -noprogress
 Do not print a progress meter.
 .IP -verbose
@@ -168,6 +184,18 @@ warns if the data disagree, and
 .B -measuredsigma
 estimates the scale from the data instead.
 .PP
+.B -ncpus
+searches independent chunks of trial frequencies in parallel; the
+results do not depend on the number of threads.  The small batched FFTs
+are fastest with FFTW wisdom from
+.BR makewisdom ,
+which covers the default
+.B -nharms
+and
+.BR -blocksize ;
+without it they are planned with FFTW_ESTIMATE, which is slower but
+equally deterministic.
+.PP
 Candidates above
 .B -threshold
 are collapsed (near-identical frequencies, then harmonically related
@@ -177,6 +205,23 @@ are written to
 .IR <input>.cohout ,
 with each one's S/N, frequency, period, number of harmonics summed and
 best-matching duty cycle.
+.B -plot
+also draws every reported candidate's pulse profile to
+.IR <input>_cohout.ps ,
+refolded at the
+full
+.B -nharms
+depth with a wide interpolation kernel, 15 to a page;
+.B -plotpng
+also renders those pages as PNGs with Ghostscript
+.RB ( gs ),
+as
+.BR prepfold (1)
+does.
+.B -replot
+redraws them from an existing
+.I .cohout
+file without searching again.
 .PP
 Example:
 .RS

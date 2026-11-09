@@ -10,6 +10,10 @@
 ****/
 
 typedef struct s_Cmdline {
+  /***** -ncpus: Number of processors to use with OpenMP */
+  int ncpusP;
+  int ncpus;
+  int ncpusC;
   /***** -threshold: S/N cutoff for candidates */
   int thresholdP;
   double threshold;
@@ -72,6 +76,12 @@ typedef struct s_Cmdline {
   int outdirP;
   char *outdir;
   int outdirC;
+  /***** -plot: Plot the candidates' pulse profiles to <input>_cohout.ps */
+  int plotP;
+  /***** -plotpng: Also render the plots as PNG pages (<input>_cohout_01.png, _02.png, ...) with Ghostscript */
+  int plotpngP;
+  /***** -replot: Do not search: plot the candidates already in <input>.cohout */
+  int replotP;
   /***** -noprogress: Do not print a progress meter */
   int noprogressP;
   /***** -verbose: Report the trial grid and chunking before searching */

@@ -5,7 +5,7 @@
  * Built but not installed.
  *
  *   cs_dump file.fft outdir t0 n [lofreq [maxdecim]]
- *   cs_dump -search file.fft outfile threshold
+ *   cs_dump -search file.fft outfile threshold [nthreads]
  *
  * Uses the coherent_search defaults otherwise; the global trial grid starts at
  * r_lo = lofreq * T (default lofreq 0.1).  The -search form runs the whole
@@ -33,7 +33,8 @@ static void print_intlist(FILE *f, const char *key, const int *v, int n)
     fprintf(f, "]\n");
 }
 
-static int dump_search(const char *fftnm, const char *outnm, double threshold)
+static int dump_search(const char *fftnm, const char *outnm, double threshold,
+                       int nthreads)
 {
     cs_params p;
     cs_default_params(&p, 6);
@@ -44,7 +45,9 @@ static int dump_search(const char *fftnm, const char *outnm, double threshold)
     long long nchunks;
     long long *starts = cs_chunk_starts(plans, &fft, &p, band.total, 2048, &nchunks);
     cs_candlist cands = { 0 };
-    cs_search(&fft, &p, &band, 2048, threshold, 0, &cands);
+    cs_searcher *srch = cs_searcher_new(&p, 2048, nthreads);
+    cs_search(srch, &fft, &band, threshold, 0, &cands);
+    cs_searcher_free(srch);
     FILE *f = chkfopen((char *) outnm, "w");
     fprintf(f, "total = %lld\nchunk_starts = [", band.total);
     for (long long c = 0; c < nchunks; c++)
@@ -64,8 +67,8 @@ static int dump_search(const char *fftnm, const char *outnm, double threshold)
 
 int main(int argc, char *argv[])
 {
-    if (argc == 5 && strcmp(argv[1], "-search") == 0)
-        return dump_search(argv[2], argv[3], atof(argv[4]));
+    if (argc >= 5 && strcmp(argv[1], "-search") == 0)
+        return dump_search(argv[2], argv[3], atof(argv[4]), argc > 5 ? atoi(argv[5]) : 1);
     if (argc < 5) {
         fprintf(stderr, "usage: %s file.fft outdir t0 n [lofreq [maxdecim]]\n", argv[0]);
         return 1;
@@ -106,7 +109,7 @@ int main(int argc, char *argv[])
     double *mv = malloc(sizeof(double) * n);
     for (int i = 0; i < ws->ndecim; i++) {
         cs_decim *d = ws->d + i;
-        cs_prepare_decim(ws, d, &fft, &p, rstart, n);
+        cs_prepare_decim(ws, d, &fft, &p, rstart, n, 1);
         char name[64];
         if (d->k == 1)
             writebin(outdir, "profs_k1.f32", d->profs, sizeof(float) * (size_t) n * d->nbins);

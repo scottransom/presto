@@ -16,6 +16,7 @@ cs_workspace *cs_workspace_new(const cs_params *p, int nprof)
     ws->filled = calloc(p->nharms + 1, 1);
     ws->sigbuf = gen_fvect(CS_SIGMA_SAMPLES);
     ws->d = calloc(p->ndecim, sizeof(cs_decim));
+    ws->wisdom = 1;
     for (int i = 0; i < p->ndecim; i++) {
         cs_decim *d = ws->d + i;
         d->k = p->decims[i];
@@ -27,15 +28,19 @@ cs_workspace *cs_workspace_new(const cs_params *p, int nprof)
         d->mvals = gen_fvect(nprof);
         d->shape_filled = calloc(p->nharms + 1, 1);
         d->shape_valid = 0;
-        /* One batched c2r for all nprof stacks: element j of stack b is
-         * ftprofs[b*(nharms+1) + j*k].  The decimated passes read ftprofs
-         * after the base pass, so the input must survive. */
-        int nb = d->nbins;
-        d->plan = fftwf_plan_many_dft_c2r(1, &nb, nprof,
-                                          (fftwf_complex *) ws->ftprofs, NULL,
-                                          d->k, p->nharms + 1,
-                                          d->profs, NULL, 1, d->nbins,
-                                          FFTW_ESTIMATE | FFTW_PRESERVE_INPUT);
+        /* One batched c2r for all nprof stacks, preserving its input: the
+         * decimated passes read ftprofs after the base pass.  A plan from
+         * wisdom (makewisdom stores the default geometry) is ~1.8x faster
+         * than FFTW_ESTIMATE's.  Measuring here instead would make results
+         * depend on timings, i.e. differ in the last bits from run to run,
+         * so without wisdom fall back to ESTIMATE, which is deterministic. */
+        d->plan = cs_plan_c2r(p->nharms, nprof, d->k, (fftwf_complex *) ws->ftprofs,
+                              d->profs, FFTW_MEASURE | FFTW_WISDOM_ONLY);
+        if (!d->plan) {
+            ws->wisdom = 0;
+            d->plan = cs_plan_c2r(p->nharms, nprof, d->k, (fftwf_complex *) ws->ftprofs,
+                                  d->profs, FFTW_ESTIMATE);
+        }
         if (!d->plan) {
             fprintf(stderr, "coherentsearch: FFTW could not plan the k=%d transform\n", d->k);
             exit(1);
@@ -82,7 +87,7 @@ void cs_fill_chunk(cs_workspace *ws, const cs_hplan *plans, const cs_fft *fft,
 }
 
 void cs_prepare_decim(cs_workspace *ws, cs_decim *d, const cs_fft *fft,
-                      const cs_params *p, double rstart, int n)
+                      const cs_params *p, double rstart, int n, int want_measured)
 {
     fftwf_execute(d->plan);
     if (d->k == 1) {
@@ -97,7 +102,8 @@ void cs_prepare_decim(cs_workspace *ws, cs_decim *d, const cs_fft *fft,
         d->nvalid = nv;
     }
     d->sigma_analytic = cs_analytic_sigma(ws->filled, d->k, d->Hk);
-    d->sigma_measured = cs_block_sigma(d->profs, d->nbins, d->nvalid, ws->sigbuf);
+    d->sigma_measured = want_measured ? cs_block_sigma(d->profs, d->nbins, d->nvalid,
+                                                       ws->sigbuf) : 0.0f;
     /* The shape factors depend only on which harmonics are filled, which
      * changes a handful of times in a whole search. */
     if (!d->shape_valid || memcmp(d->shape_filled, ws->filled, ws->nharms + 1) != 0) {

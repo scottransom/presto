@@ -10,6 +10,8 @@ Commandline full_cmd_line
 
 # Options (in order you want them to appear)
 
+Int -ncpus   ncpus      {Number of processors to use with OpenMP} \
+	-r 1 oo  -d 1
 Double -threshold threshold {S/N cutoff for candidates} \
 	-r 0.0 oo  -d 8.0
 Int -nharms  nharms     {Number of harmonics to sum coherently (60 is divisible by 2-6, so it decimates evenly)} \
@@ -39,6 +41,9 @@ Int -blocksize blocksize {Trial fundamentals per chunk} \
 	-r 1 oo  -d 2048
 String -o outfile       {Output candidate file name (single input file only; default: <input>.cohout beside it)}
 String -outdir outdir   {Write each <input>.cohout into this directory instead}
+Flag -plot plot         {Plot the candidates' pulse profiles to <input>_cohout.ps}
+Flag -plotpng plotpng   {Also render the plots as PNG pages (<input>_cohout_01.png, _02.png, ...) with Ghostscript}
+Flag -replot replot     {Do not search: plot the candidates already in <input>.cohout}
 Flag -noprogress noprogress {Do not print a progress meter}
 Flag -verbose verbose   {Report the trial grid and chunking before searching}
 
@@ -78,6 +83,18 @@ warns if the data disagree, and
 .B -measuredsigma
 estimates the scale from the data instead.
 .PP
+.B -ncpus
+searches independent chunks of trial frequencies in parallel; the
+results do not depend on the number of threads.  The small batched FFTs
+are fastest with FFTW wisdom from
+.BR makewisdom ,
+which covers the default
+.B -nharms
+and
+.BR -blocksize ;
+without it they are planned with FFTW_ESTIMATE, which is slower but
+equally deterministic.
+.PP
 Candidates above
 .B -threshold
 are collapsed (near-identical frequencies, then harmonically related
@@ -87,6 +104,23 @@ are written to
 .IR <input>.cohout ,
 with each one's S/N, frequency, period, number of harmonics summed and
 best-matching duty cycle.
+.B -plot
+also draws every reported candidate's pulse profile to
+.IR <input>_cohout.ps ,
+refolded at the
+full
+.B -nharms
+depth with a wide interpolation kernel, 15 to a page;
+.B -plotpng
+also renders those pages as PNGs with Ghostscript
+.RB ( gs ),
+as
+.BR prepfold (1)
+does.
+.B -replot
+redraws them from an existing
+.I .cohout
+file without searching again.
 .PP
 Example:
 .RS

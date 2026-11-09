@@ -17,6 +17,7 @@ layout.
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import sys
 import tomllib
@@ -297,14 +298,29 @@ def test_c_full_search(tmp_path, search_meta):
     assert c["total"] == search_meta["total"]
     assert c["chunk_starts"] == search_meta["chunk_starts"]
     jc = np.loadtxt(FIX / "search" / "raw_cands_thresh6.txt", ndmin=2)
-    # Trials are keyed by their (bit-identical) Fourier frequency and fold depth.
-    jd = {(r, int(h)): m for r, _f, m, h in jc}
-    cd = {(r, int(h)): m for r, _f, m, h in c["cands"]}
-    # A trial within float32 rounding of the threshold could legitimately land on
-    # either side; none does on this file, so demand the identical set.
-    assert set(cd) == set(jd)
-    worst = max(abs(cd[k] - jd[k]) for k in jd)
-    assert worst < 2e-5, worst  # measured 3.8e-6
+    r_lo, lodr = search_meta["r_lo"], search_meta["lodr"]
+
+    def by_trial(rows) -> dict:
+        """Key each candidate by (global trial, harmonics folded).  Not by r itself:
+        where the compiler fuses r_lo + t*lodr into an FMA (aarch64, Apple
+        Silicon) r moves by an ulp from Julia's unfused value."""
+        out = {}
+        for r, _f, m, h in rows:
+            k = PARAMS.nharms // int(h)
+            t = int(round((r / k - r_lo) / lodr))
+            assert abs(r - k * (r_lo + t * lodr)) <= 1e-12 * r
+            out[(t, int(h))] = m
+        return out
+
+    jd, cd = by_trial(jc), by_trial(c["cands"])
+    # A trial within float32 rounding of the threshold may land on either side.
+    for key in set(jd) ^ set(cd):
+        m = jd.get(key, cd.get(key))
+        assert abs(m - 6.0) < 1e-4, (key, m)
+    common = set(jd) & set(cd)
+    assert len(common) >= len(jd) - 2, (len(common), len(jd))
+    worst = max(abs(cd[k] - jd[k]) for k in common)
+    assert worst < 2e-5, worst  # measured 3.8e-6 (linux-64)
 
 
 def test_c_cohout(tmp_path):
@@ -331,3 +347,45 @@ def test_c_cohout(tmp_path):
             float(r[1]), abs=0.0101
         )  # S/N, printed %.2f
         assert g[2:] == r[2:]  # frequency, period, harmonics, duty cycle
+
+
+def test_c_threads_deterministic(tmp_path):
+    """The raw candidates (order and values) do not depend on -ncpus."""
+    exe = _cs_dump()
+    outs = []
+    for nt in (1, 3):
+        out = tmp_path / f"search{nt}.toml"
+        subprocess.run(
+            [str(exe), "-search", str(HERE / PROV["input"]), str(out), "6.0", str(nt)],
+            check=True,
+        )
+        outs.append(out.read_bytes())
+    assert outs[0] == outs[1]
+
+
+def test_c_plots(tmp_path):
+    """-plotpng writes the .ps plus (via Ghostscript) one PNG per 15 candidates, and
+    -replot redraws them from the .cohout without searching again."""
+    exe = _cs_dump().parent / "coherentsearch"
+    for ext in (".fft", ".inf"):
+        (tmp_path / f"synth_cs{ext}").write_bytes(
+            (HERE / f"synth_cs{ext}").read_bytes()
+        )
+    args = [str(exe), "-noprogress", "-ncpus", "2", "-threshold", "6", "-noharmremove"]
+    subprocess.run([*args, "-plotpng", "synth_cs.fft"], cwd=tmp_path, check=True)
+    ncand = sum(
+        1
+        for ln in (tmp_path / "synth_cs.cohout").read_text().splitlines()
+        if not ln.startswith("#")
+    )
+    assert (tmp_path / "synth_cs_cohout.ps").read_bytes()[:4] == b"%!PS"
+    if shutil.which("gs"):
+        pngs = sorted(tmp_path.glob("synth_cs_cohout_*.png"))
+        assert len(pngs) == -(-ncand // 15) > 1
+        assert all(p.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n" for p in pngs)
+    (tmp_path / "synth_cs_cohout.ps").unlink()
+    before = (tmp_path / "synth_cs.cohout").read_bytes()
+    subprocess.run([*args, "-replot", "synth_cs.fft"], cwd=tmp_path, check=True)
+    assert (tmp_path / "synth_cs.cohout").read_bytes() == before  # read, not rewritten
+    ps = tmp_path / "synth_cs_cohout.ps"
+    assert ps.read_bytes()[:4] == b"%!PS"

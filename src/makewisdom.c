@@ -5,6 +5,7 @@
 #include "meminfo.h"
 #include "misc_utils.h"
 #include "fftw3.h"
+#include "cs_fftplan.h"
 
 #ifdef USEDMALLOC
 #include "dmalloc.h"
@@ -106,6 +107,22 @@ int main(int argc, char *argv[])
         plan = fftwf_plan_dft_1d(fftlen, inout, inout, FFTW_BACKWARD, planflag);
         fftwf_destroy_plan(plan);
         fftwf_free(inout);
+    }
+
+    /* coherentsearch's batched complex-to-real transforms, for its default
+     * number of harmonics and block size and every decimation factor. */
+    {
+        const int nh = CS_DEFAULT_NHARMS, nprof = CS_DEFAULT_BLOCKSIZE;
+        fftwf_complex *in = fftwf_malloc(sizeof(fftwf_complex) * (nh + 1) * nprof);
+        float *out = fftwf_malloc(sizeof(float) * 2 * nh * nprof);
+        for (int k = 1; k <= CS_DEFAULT_MAXDECIM; k++) {
+            printf("   %d x %d-point complex-to-real (coherentsearch, k=%d)\n", nprof,
+                   2 * (nh / k), k);
+            plan = cs_plan_c2r(nh, nprof, k, in, out, planflag);
+            fftwf_destroy_plan(plan);
+        }
+        fftwf_free(in);
+        fftwf_free(out);
     }
 
     /* Write to an explicit path if given, else to the PRESTO data directory

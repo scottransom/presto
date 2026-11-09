@@ -5,9 +5,13 @@
    complex amplitude exactly, inverse-FFTs the harmonic stack into a profile and scores it
    with boxcar matched filters, with harmonic decimation (`-maxdecim`) folding fewer
    harmonics at multiples of each trial for almost nothing extra.  Candidates go to
-   `<input>.cohout`, the format CoherentSearch.jl writes.  Single-threaded for now.  On the
-   synthetic test file its `.cohout` is byte-identical to the Julia code's, and
-   `tests/test_coherentsearch.py` pins every stage to numbers from the Julia package.
+   `<input>.cohout`, the format CoherentSearch.jl writes.  `-ncpus` runs chunks in
+   parallel with output identical for any thread count, `-plot`/`-plotpng` draw the
+   candidates' pulse profiles (`-replot` redraws them from a `.cohout`), and `makewisdom`
+   now also stores FFTW plans for its transforms.  On the synthetic test file its
+   `.cohout` is byte-identical to the Julia code's, and `tests/test_coherentsearch.py`
+   pins every stage to numbers from the Julia package.  Not yet as fast as the Julia
+   code (no SIMD kernels yet).
 
 ## Version 6.1.2:
  * **A performance and bug-fix release.**  `accelsearch` is ~2.4x faster on x86-64

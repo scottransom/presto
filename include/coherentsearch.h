@@ -25,6 +25,7 @@
 #define COHERENTSEARCH_H
 
 #include "presto.h"
+#include "cs_fftplan.h"
 
 #define CS_MAXDECIM 64          /* most decimation factors in one search */
 #define CS_SIGMA_SAMPLES 8192   /* bins pooled for the measured noise scale */
@@ -60,6 +61,8 @@ typedef struct {
     long long numamps;
     long long N;             /* time-series length, from the .inf */
     double T;                /* observation length (s) */
+    double dm;               /* from the .inf (0 if absent) */
+    char object[100];        /* from the .inf */
 } cs_fft;
 
 /* Read basename.fft and basename.inf (filenm may end in .fft). */
@@ -141,11 +144,13 @@ typedef struct {
 
 typedef struct {
     int nharms, nprof, ndecim;
+    int wisdom;              /* every transform was planned from FFTW wisdom */
     fcomplex *ftprofs;       /* (nprof, nharms+1); row 0 (DC) always zero */
     unsigned char *filled;   /* (nharms+1), by harmonic number */
     float *sigbuf;           /* CS_SIGMA_SAMPLES */
     cs_decim *d;             /* ndecim, d[0].k == 1 */
 } cs_workspace;
+
 
 cs_workspace *cs_workspace_new(const cs_params *p, int nprof);
 void cs_workspace_free(cs_workspace *ws);
@@ -155,10 +160,10 @@ void cs_fill_chunk(cs_workspace *ws, const cs_hplan *plans, const cs_fft *fft,
                    const cs_params *p, long long t0, int n);
 
 /* Inverse-FFT decimation d's profiles for the current chunk, find its valid
- * trials (rstart is the chunk's first fundamental) and both noise scales, and
- * refresh its shape factors. */
+ * trials (rstart is the chunk's first fundamental), the analytic noise scale
+ * and, if want_measured, the measured one, and refresh its shape factors. */
 void cs_prepare_decim(cs_workspace *ws, cs_decim *d, const cs_fft *fft,
-                      const cs_params *p, double rstart, int n);
+                      const cs_params *p, double rstart, int n, int want_measured);
 
 /* Score decimation d's nvalid profiles into d->mvals with noise scale sigma. */
 void cs_score_decim(cs_decim *d, double sigma);
@@ -203,10 +208,23 @@ int cs_sigma_sanity_check(cs_workspace *ws, const cs_hplan *plans, const cs_fft 
                           const cs_params *p, const cs_band *band, int nprof,
                           const char *fname);
 
+/* Everything a search needs that does not depend on the input file: one
+ * workspace (with its FFTW plans) per thread, built serially up front since
+ * FFTW planning is not thread-safe.  Reuse it for every file of a run. */
+typedef struct {
+    cs_params p;
+    int nprof, nthreads;
+    cs_workspace **ws;
+} cs_searcher;
+
+cs_searcher *cs_searcher_new(const cs_params *p, int nprof, int nthreads);
+void cs_searcher_free(cs_searcher *s);
+
 /* Search the band, appending every trial (all decimations) with metric >
- * threshold to out, in chunk order.  progress: print a % meter to stderr. */
-void cs_search(const cs_fft *fft, const cs_params *p, const cs_band *band, int nprof,
-               double threshold, int progress, cs_candlist *out);
+ * threshold to out, in chunk order whatever the number of threads.
+ * progress: print a % meter to stderr. */
+void cs_search(cs_searcher *s, const cs_fft *fft, const cs_band *band, double threshold,
+               int progress, cs_candlist *out);
 
 /* Collapse runs of candidates within dr_tol bins of each other to the
  * strongest; leaves the list sorted by frequency. */
@@ -216,9 +234,24 @@ void cs_remove_duplicates(cs_candlist *l, double dr_tol);
 void cs_remove_harmonics(cs_candlist *l, int numharm, double tol);
 /* Sort strongest first (stable). */
 void cs_sort_by_metric(cs_candlist *l);
+/* A candidate's pulse profile: the first nharm harmonics of r (stopping at
+ * the first whose m = 64 kernel crosses Nyquist or the end of the data),
+ * exactly interpolated and inverse-FFTed.  prof needs 2*nharm (at least 2)
+ * doubles; returns its length 2H (2 if no harmonic fits). */
+int cs_candidate_profile(const cs_fft *fft, double r, int nharm, double *prof);
 /* Fill in each candidate's duty cycle from a refold with an m=64 kernel. */
 void cs_measure_ducy(const cs_fft *fft, const cs_params *p, cs_candlist *l);
 /* Write the .cohout table. */
 void cs_write_cohout(const cs_candlist *l, FILE *f);
+/* Read a .cohout table (r = freq * T), keeping at most maxcands rows. */
+void cs_read_cohout(const char *filenm, double T, long maxcands, cs_candlist *l);
+
+/* Plot the candidates' profiles (best first, as in l), 3 x 5 per portrait
+ * page, to <stem>.ps and, with png, also to <stem>_01.png, _02.png, ...
+ * (rendered from the .ps by Ghostscript, if it is available).
+ * fftname labels the pages; profiles are folded with nharms harmonics.
+ * (cs_plot.c, PGPLOT) */
+void cs_plot_candidates(const cs_fft *fft, const cs_candlist *l, int nharms, double threshold,
+                        const char *fftname, const char *stem, int png);
 
 #endif

@@ -4,6 +4,9 @@
  * remove_duplicates, remove_harmonics, measure_ducy and write_candidates).
  */
 #include "coherentsearch.h"
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 void cs_candlist_push(cs_candlist *l, cs_cand c)
 {
@@ -183,51 +186,112 @@ int cs_sigma_sanity_check(cs_workspace *ws, const cs_hplan *plans, const cs_fft 
 
 /* --- the search ------------------------------------------------------------ */
 
-void cs_search(const cs_fft *fft, const cs_params *p, const cs_band *band, int nprof,
-               double threshold, int progress, cs_candlist *out)
+cs_searcher *cs_searcher_new(const cs_params *p, int nprof, int nthreads)
+{
+    cs_searcher *s = calloc(1, sizeof(cs_searcher));
+    s->p = *p;
+    s->nprof = nprof;
+    s->nthreads = nthreads < 1 ? 1 : nthreads;
+#ifndef _OPENMP
+    s->nthreads = 1;
+#endif
+    s->ws = malloc(s->nthreads * sizeof(cs_workspace *));
+    for (int t = 0; t < s->nthreads; t++)
+        s->ws[t] = cs_workspace_new(p, nprof);
+    return s;
+}
+
+void cs_searcher_free(cs_searcher *s)
+{
+    if (!s)
+        return;
+    for (int t = 0; t < s->nthreads; t++)
+        cs_workspace_free(s->ws[t]);
+    free(s->ws);
+    free(s);
+}
+
+/* One chunk: fill, transform and score every decimation, appending the
+ * trials above threshold to out. */
+static void search_chunk(cs_workspace *ws, const cs_hplan *plans, const cs_fft *fft,
+                         const cs_params *p, double r_lo, long long i0, int n,
+                         double threshold, cs_candlist *out)
+{
+    const double lodr = cs_lodr(p);
+    const double rstart = r_lo + i0 * lodr;
+    cs_fill_chunk(ws, plans, fft, p, i0, n);
+    for (int di = 0; di < ws->ndecim; di++) {
+        cs_decim *d = ws->d + di;
+        cs_prepare_decim(ws, d, fft, p, rstart, n, p->sigma_measured);
+        cs_score_decim(d, p->sigma_measured ? d->sigma_measured : d->sigma_analytic);
+        for (int j = 0; j < d->nvalid; j++) {
+            if (d->mvals[j] > threshold) {
+                cs_cand cand;
+                cand.r = d->k == 1 ? rstart + j * lodr : d->k * (rstart + j * lodr);
+                cand.freq = cand.r / fft->T;
+                cand.metric = d->mvals[j];
+                cand.nharm = d->Hk;
+                cand.ducy = NAN;
+                cs_candlist_push(out, cand);
+            }
+        }
+    }
+}
+
+void cs_search(cs_searcher *s, const cs_fft *fft, const cs_band *band, double threshold,
+               int progress, cs_candlist *out)
 {
     if (band->total < 1)
         return;
-    const double lodr = cs_lodr(p);
+    const cs_params *p = &s->p;
     /* The phase tables key off the global trial index, so they are built once
-     * against r_lo and shared by every chunk. */
+     * against r_lo and shared, read-only, by every thread. */
     cs_hplan *plans = cs_build_plans(p, band->r_lo);
     long long nchunks;
-    long long *starts = cs_chunk_starts(plans, fft, p, band->total, nprof, &nchunks);
-    cs_workspace *ws = cs_workspace_new(p, nprof);
+    long long *starts = cs_chunk_starts(plans, fft, p, band->total, s->nprof, &nchunks);
+    /* Each chunk keeps its own candidates and they are joined in chunk order,
+     * so the output does not depend on the number of threads. */
+    cs_candlist *found = calloc(nchunks, sizeof(cs_candlist));
+    long long done = 0;
     int lastpct = -1;
-    for (long long c = 0; c < nchunks; c++) {
-        const long long i0 = starts[c];
-        const int n = (int) ((c < nchunks - 1 ? starts[c + 1] : band->total) - i0);
-        const double rstart = band->r_lo + i0 * lodr;
-        cs_fill_chunk(ws, plans, fft, p, i0, n);
-        for (int di = 0; di < ws->ndecim; di++) {
-            cs_decim *d = ws->d + di;
-            cs_prepare_decim(ws, d, fft, p, rstart, n);
-            cs_score_decim(d, p->sigma_measured ? d->sigma_measured : d->sigma_analytic);
-            for (int j = 0; j < d->nvalid; j++) {
-                if (d->mvals[j] > threshold) {
-                    cs_cand cand;
-                    cand.r = d->k == 1 ? rstart + j * lodr : d->k * (rstart + j * lodr);
-                    cand.freq = cand.r / fft->T;
-                    cand.metric = d->mvals[j];
-                    cand.nharm = d->Hk;
-                    cand.ducy = NAN;
-                    cs_candlist_push(out, cand);
+    const int nt = (int) (s->nthreads < nchunks ? s->nthreads : nchunks);
+#ifdef _OPENMP
+#pragma omp parallel num_threads(nt)
+#endif
+    {
+        int tid = 0;
+#ifdef _OPENMP
+        tid = omp_get_thread_num();
+#endif
+        cs_workspace *ws = s->ws[tid];
+        /* Round-robin: whole chunks, one at a time per thread. */
+        for (long long c = tid; c < nchunks; c += nt) {
+            const long long i0 = starts[c];
+            const int n = (int) ((c < nchunks - 1 ? starts[c + 1] : band->total) - i0);
+            search_chunk(ws, plans, fft, p, band->r_lo, i0, n, threshold, found + c);
+            long long ndone;
+#ifdef _OPENMP
+#pragma omp atomic capture
+#endif
+            ndone = ++done;
+            /* One thread owns the meter, so lines do not interleave. */
+            if (progress && tid == 0) {
+                int pct = (int) (100 * ndone / nchunks);
+                if (pct != lastpct) {
+                    fprintf(stderr, "\r  %3d%% searched", pct);
+                    lastpct = pct;
                 }
-            }
-        }
-        if (progress) {
-            int pct = (int) (100 * (c + 1) / nchunks);
-            if (pct != lastpct) {
-                fprintf(stderr, "\r  %3d%% searched", pct);
-                lastpct = pct;
             }
         }
     }
     if (progress)
-        fprintf(stderr, "\n");
-    cs_workspace_free(ws);
+        fprintf(stderr, "\r  100%% searched\n");
+    for (long long c = 0; c < nchunks; c++) {
+        for (long i = 0; i < found[c].n; i++)
+            cs_candlist_push(out, found[c].c[i]);
+        cs_candlist_free(found + c);
+    }
+    free(found);
     free(starts);
     cs_free_plans(plans, p->nharms);
 }
@@ -366,11 +430,7 @@ static void interp_exact(const cs_fft *fft, double r, int m, double *re, double 
     *im = si;
 }
 
-/* The width of the best boxcar on a candidate's profile, refolded at its own
- * r with its own nharm harmonics (stopping at the first that crosses Nyquist)
- * and a wide m = 64 kernel.  Its noise scale does not matter: it scales every
- * width's score alike. */
-static double candidate_ducy(const cs_fft *fft, const cs_params *p, double r, int nharm)
+int cs_candidate_profile(const cs_fft *fft, double r, int nharm, double *prof)
 {
     const int m = 64, m2 = m / 2;
     double *xr = calloc(nharm + 1, sizeof(double)), *xi = calloc(nharm + 1, sizeof(double));
@@ -384,17 +444,29 @@ static double candidate_ducy(const cs_fft *fft, const cs_params *p, double r, in
         H = h;
     }
     const int nbins = H >= 1 ? 2 * H : 2;
-    /* Inverse real DFT of the stack (DC zero); the overall scale is irrelevant. */
-    double *prof = calloc(nbins, sizeof(double));
-    for (int i = 0; i < nbins && H >= 1; i++) {
+    /* Inverse real DFT of the stack, DC held at zero (normalised like irfft). */
+    for (int i = 0; i < nbins; i++) {
         double s = 0.0;
         for (int h = 1; h < H; h++) {
             double ph = 2.0 * M_PI * h * i / nbins;
             s += 2.0 * (xr[h] * cos(ph) - xi[h] * sin(ph));
         }
-        s += xr[H] * ((i % 2) ? -1.0 : 1.0);    /* the profile's own Nyquist term */
+        if (H >= 1)
+            s += xr[H] * ((i % 2) ? -1.0 : 1.0);    /* the profile's own Nyquist term */
         prof[i] = s / nbins;
     }
+    free(xr);
+    free(xi);
+    return nbins;
+}
+
+/* The width of the best boxcar on a candidate's profile, refolded at its own
+ * r with its own nharm harmonics.  Its noise scale does not matter: it scales
+ * every width's score alike. */
+static double candidate_ducy(const cs_fft *fft, const cs_params *p, double r, int nharm)
+{
+    double *prof = malloc((2 * nharm + 2) * sizeof(double));
+    const int nbins = cs_candidate_profile(fft, r, nharm, prof);
     int widths[64];
     int nw = cs_boxcar_widths(nbins, p->boxcar_fsp, p->boxcar_maxfrac, widths);
     unsigned char *filled = malloc(nbins / 2 + 1);
@@ -425,8 +497,6 @@ static double candidate_ducy(const cs_fft *fft, const cs_params *p, double r, in
             bestw = w;
         }
     }
-    free(xr);
-    free(xi);
     free(prof);
     free(filled);
     free(psum);
@@ -455,4 +525,26 @@ void cs_write_cohout(const cs_candlist *l, FILE *f)
         fprintf(f, "%-4ld  %8.2f  %18.12f  %18.12f   %3d   %6s\n", i + 1, c->metric, c->freq,
                 1000.0 / c->freq, c->nharm, ducy);
     }
+}
+
+void cs_read_cohout(const char *filenm, double T, long maxcands, cs_candlist *l)
+{
+    FILE *f = chkfopen((char *) filenm, "r");
+    char line[1024];
+    while (fgets(line, sizeof(line), f) && l->n < maxcands) {
+        if (line[0] == '#')
+            continue;
+        long rank;
+        cs_cand c;
+        double period;
+        char ducy[64];
+        int nf = sscanf(line, "%ld %lf %lf %lf %d %63s", &rank, &c.metric, &c.freq, &period,
+                        &c.nharm, ducy);
+        if (nf < 5 || !(c.freq > 0.0))
+            continue;
+        c.r = c.freq * T;
+        c.ducy = (nf == 6 && strcmp(ducy, "-") != 0) ? atof(ducy) / 100.0 : NAN;
+        cs_candlist_push(l, c);
+    }
+    fclose(f);
 }

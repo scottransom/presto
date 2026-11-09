@@ -285,8 +285,29 @@ dependency (Highway), and C++ in the build for the first time.
    **Still to add:** known-pulsar labels from PRESTO's pulsar database (as accelsearch does
    with `comp_psr_to_cand()`), as an extra `.cohout` column, which `sift_candidates.py`
    already ignores.
-3. **Throughput:** OpenMP, multi-file invocations, wisdom; then PGPLOT plots and the replot
-   tool. *Merge point.*
+3. **[DONE] Throughput and plots.**
+   - **OpenMP** (`-ncpus`) over whole chunks, round-robin, with one workspace per thread
+     built up front. Each chunk keeps its own candidates and they are joined in chunk
+     order, so output is byte-identical for any thread count (checked by a test).
+   - **Multi-file runs** reuse the workspaces and FFTW plans.
+   - **Wisdom:** the batched c2r plans come from FFTW wisdom when it exists, and
+     `makewisdom` now stores them for the default `-nharms`/`-blocksize`, sharing
+     `include/cs_fftplan.h`. Otherwise they use FFTW_ESTIMATE, never run-time MEASURE,
+     whose timing-dependent choices would change results in the last bits from run to
+     run. Wisdom makes the transforms 1.8x faster.
+   - **Plots:** `-plot` draws PGPLOT pages of the candidates' profiles, refolded at full
+     depth with an m = 64 kernel, 15 to a portrait page; this is `src/cs_plot.c`.
+     `-plotpng` renders the PostScript into PNGs with Ghostscript, as prepfold does,
+     because PGPLOT's PNG driver draws poorly (and valgrind finds uninitialised reads
+     inside it). `-replot` redraws from an existing `.cohout`, which stands in for a
+     separate replot tool.
+   - **Timings (foops):** on PM0063 (8.4 M points, 0.1–125 Hz), C and Julia give the
+     same single candidate (S/N 11.65, 7.1185 Hz) from the same 108 trials. C takes
+     **92.9 s on 1 thread and 40.6 s on 4**, against Julia's 35.2 s and 17.9 s. The C
+     profile is 45% boxcar scan, 30% interpolation and 24% FFTW. Those are exactly the
+     three places Julia uses SIMD layouts (the batched float32 gate, the trials-axis group
+     kernel) and PATIENT wisdom, so phase 4 is where the C catches up.
+   *Merge point* once phase 4 brings the speed to at least Julia's.
 4. **SIMD:** Highway kernels with dispatch, constant re-tuning, disassembly audits; meson and
    feedstock changes for `libhwy` and C++.
 5. **Afterwards, optional:** profile `accelsearch` and move any loops worth it onto Highway.
@@ -313,6 +334,16 @@ can link against it from the conda package, and the recipe declares no `run_expo
 that up: install the headers under `include/presto/` (names like `mask.h`, `median.h`,
 `vectors.h` are too generic for a shared `include/`), give the library a `soversion:`, and only
 then add `run_exports` in the feedstock. Relevant to the C++/Highway question above.
+
+### OpenBLAS threads spin in every PRESTO tool
+
+libpresto links GSL, which on conda-forge pulls in OpenBLAS (pthreads build). OpenBLAS
+starts its worker threads at load time, and they burn CPU even though PRESTO's tools never
+call BLAS. In `coherentsearch` on the synthetic file it was ~0.8 s of CPU for a 1.2 s
+run, and `OPENBLAS_NUM_THREADS=1` removes it. That makes it worse with `-ncpus`, since the
+spinning threads compete for cores. Options: set `OPENBLAS_NUM_THREADS=1` in the
+activation scripts or the docs, link GSL against its own `gslcblas` instead, or check
+whether anything in libpresto needs a fast BLAS at all.
 
 ### Raise the minimum Python version to 3.12 (decided, next release)
 

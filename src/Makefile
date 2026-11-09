@@ -200,8 +200,8 @@ accelsearch: accelsearch_cmd.c accelsearch_cmd.o accel_utils.o accelsearch.o zap
 
 CSOBJS = cs_interp.o cs_metric.o cs_chunk.o cs_search.o
 
-coherentsearch: coherentsearch_cmd.c coherentsearch_cmd.o coherentsearch.o $(CSOBJS) libpresto
-	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ coherentsearch_cmd.o coherentsearch.o $(CSOBJS) $(PRESTOLINK) $(GLIBLINK) -lm
+coherentsearch: coherentsearch_cmd.c coherentsearch_cmd.o coherentsearch.o cs_plot.o $(CSOBJS) libpresto
+	$(CC) $(CLINKFLAGS) $(OMPFLAGS) -o $(PRESTO)/bin/$@ coherentsearch_cmd.o coherentsearch.o cs_plot.o $(CSOBJS) $(PRESTOLINK) $(PGPLOTLINK) $(GLIBLINK) -lm
 
 bary: bary.o libpresto
 	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ bary.o $(PRESTOLINK) -lm

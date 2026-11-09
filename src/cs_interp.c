@@ -38,6 +38,7 @@ void cs_read_fft(const char *filenm, cs_fft *fft)
     if (len > 4 && strcmp(base + len - 4, ".fft") == 0)
         base[len - 4] = '\0';
     infodata idata;
+    memset(&idata, 0, sizeof(idata));
     readinf(&idata, base);
     char *fftnm = calloc(strlen(base) + 8, 1);
     sprintf(fftnm, "%s.fft", base);
@@ -48,6 +49,8 @@ void cs_read_fft(const char *filenm, cs_fft *fft)
     fclose(f);
     fft->N = (long long) idata.N;
     fft->T = idata.N * idata.dt;
+    fft->dm = idata.dm;
+    snprintf(fft->object, sizeof(fft->object), "%s", idata.object);
     free(fftnm);
     free(base);
 }

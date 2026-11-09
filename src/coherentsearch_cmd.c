@@ -21,6 +21,10 @@
 char *Program;
 
 static Cmdline cmd = {
+    /***** -ncpus: Number of processors to use with OpenMP */
+    /* ncpusP = */ 1,
+    /* ncpus = */ 1,
+    /* ncpusC = */ 1,
     /***** -threshold: S/N cutoff for candidates */
     /* thresholdP = */ 1,
     /* threshold = */ 8.0,
@@ -83,6 +87,12 @@ static Cmdline cmd = {
     /* outdirP = */ 0,
     /* outdir = */ NULL,
     /* outdirC = */ 0,
+    /***** -plot: Plot the candidates' pulse profiles to <input>_cohout.ps */
+    /* plotP = */ 0,
+    /***** -plotpng: Also render the plots as PNG pages (<input>_cohout_01.png, _02.png, ...) with Ghostscript */
+    /* plotpngP = */ 0,
+    /***** -replot: Do not search: plot the candidates already in <input>.cohout */
+    /* replotP = */ 0,
     /***** -noprogress: Do not print a progress meter */
     /* noprogressP = */ 0,
     /***** -verbose: Report the trial grid and chunking before searching */
@@ -284,6 +294,18 @@ void showOptionValues(void)
 
     printf("Full command line is:\n`%s'\n", cmd.full_cmd_line);
 
+    /***** -ncpus: Number of processors to use with OpenMP */
+    if (!cmd.ncpusP) {
+        printf("-ncpus not found.\n");
+    } else {
+        printf("-ncpus found:\n");
+        if (!cmd.ncpusC) {
+            printf("  no values\n");
+        } else {
+            printf("  value = `%d'\n", cmd.ncpus);
+        }
+    }
+
     /***** -threshold: S/N cutoff for candidates */
     if (!cmd.thresholdP) {
         printf("-threshold not found.\n");
@@ -473,6 +495,27 @@ void showOptionValues(void)
         }
     }
 
+    /***** -plot: Plot the candidates' pulse profiles to <input>_cohout.ps */
+    if (!cmd.plotP) {
+        printf("-plot not found.\n");
+    } else {
+        printf("-plot found:\n");
+    }
+
+    /***** -plotpng: Also render the plots as PNG pages (<input>_cohout_01.png, _02.png, ...) with Ghostscript */
+    if (!cmd.plotpngP) {
+        printf("-plotpng not found.\n");
+    } else {
+        printf("-plotpng found:\n");
+    }
+
+    /***** -replot: Do not search: plot the candidates already in <input>.cohout */
+    if (!cmd.replotP) {
+        printf("-replot not found.\n");
+    } else {
+        printf("-replot found:\n");
+    }
+
     /***** -noprogress: Do not print a progress meter */
     if (!cmd.noprogressP) {
         printf("-noprogress not found.\n");
@@ -501,8 +544,11 @@ void showOptionValues(void)
 
 void usage(void)
 {
-    fputs("   [-threshold threshold] [-nharms nharms] [-maxdecim maxdecim] [-lofreq lofreq] [-lobin lobin] [-hifreq hifreq] [-hidr hidr] [-m m] [-measuredsigma] [-ncands ncands] [-drtol drtol] [-numharm numharm] [-noremove] [-noharmremove] [-blocksize blocksize] [-o outfile] [-outdir outdir] [-noprogress] [-verbose] [--] infile ...\n", stderr);
+    fputs("   [-ncpus ncpus] [-threshold threshold] [-nharms nharms] [-maxdecim maxdecim] [-lofreq lofreq] [-lobin lobin] [-hifreq hifreq] [-hidr hidr] [-m m] [-measuredsigma] [-ncands ncands] [-drtol drtol] [-numharm numharm] [-noremove] [-noharmremove] [-blocksize blocksize] [-o outfile] [-outdir outdir] [-plot] [-plotpng] [-replot] [-noprogress] [-verbose] [--] infile ...\n", stderr);
     fputs("      Search normalised FFTs for pulsars by coherently summing many harmonics and scoring the folded profiles with boxcar matched filters.\n", stderr);
+    fputs("            -ncpus: Number of processors to use with OpenMP\n", stderr);
+    fputs("                    1 int value between 1 and oo\n", stderr);
+    fputs("                    default: `1'\n", stderr);
     fputs("        -threshold: S/N cutoff for candidates\n", stderr);
     fputs("                    1 double value between 0.0 and oo\n", stderr);
     fputs("                    default: `8.0'\n", stderr);
@@ -545,6 +591,9 @@ void usage(void)
     fputs("                    1 char* value\n", stderr);
     fputs("           -outdir: Write each <input>.cohout into this directory instead\n", stderr);
     fputs("                    1 char* value\n", stderr);
+    fputs("             -plot: Plot the candidates' pulse profiles to <input>_cohout.ps\n", stderr);
+    fputs("          -plotpng: Also render the plots as PNG pages (<input>_cohout_01.png, _02.png, ...) with Ghostscript\n", stderr);
+    fputs("           -replot: Do not search: plot the candidates already in <input>.cohout\n", stderr);
     fputs("       -noprogress: Do not print a progress meter\n", stderr);
     fputs("          -verbose: Report the trial grid and chunking before searching\n", stderr);
     fputs("            infile: Input '.fft' file(s), each with a matching '.inf' file.  They should be normalised (e.g. by rednoise) so that Fourier powers have mean 1\n", stderr);
@@ -567,6 +616,15 @@ Cmdline *parseCmdline(int argc, char **argv)
         if (0 == strcmp("--", argv[i])) {
             while (++i < argc)
                 argv[cmd.argc++] = argv[i];
+            continue;
+        }
+
+        if (0 == strcmp("-ncpus", argv[i])) {
+            int keep = i;
+            cmd.ncpusP = 1;
+            i = getIntOpt(argc, argv, i, &cmd.ncpus, 1);
+            cmd.ncpusC = i - keep;
+            checkIntHigher("-ncpus", &cmd.ncpus, cmd.ncpusC, 1);
             continue;
         }
 
@@ -710,6 +768,21 @@ Cmdline *parseCmdline(int argc, char **argv)
             cmd.outdirP = 1;
             i = getStringOpt(argc, argv, i, &cmd.outdir, 1);
             cmd.outdirC = i - keep;
+            continue;
+        }
+
+        if (0 == strcmp("-plot", argv[i])) {
+            cmd.plotP = 1;
+            continue;
+        }
+
+        if (0 == strcmp("-plotpng", argv[i])) {
+            cmd.plotpngP = 1;
+            continue;
+        }
+
+        if (0 == strcmp("-replot", argv[i])) {
+            cmd.replotP = 1;
             continue;
         }
 
