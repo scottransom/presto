@@ -53,7 +53,7 @@ releases usually show up on conda-forge within a day or two of being tagged on G
 ## Building from source
 
 Build PRESTO yourself if you want to hack on the code, need `mpiprepsubband`, or want to
-compile with `-march=native` for the fastest possible `accelsearch` (see **Optimization flags**
+compile with `-march=native` for a slightly faster `accelsearch` (see **Optimization flags**
 below).
 
 ### Easiest route: build with [pixi](https://pixi.sh)
@@ -153,8 +153,10 @@ What *does* help is letting the compiler use your CPU's vector instructions:
 
     meson setup build --prefix=$CONDA_PREFIX -Dc_args=-march=native
 
-On a modern x86-64 machine (i.e. one with AVX2 and FMA) that makes `accelsearch` roughly
-1.5-2x faster. Three caveats:
+On a modern x86-64 machine (i.e. one with AVX2 and FMA) that makes `accelsearch` about 10%
+faster (`-zmax 200`: 30 s → 26 s on a Comet Lake laptop). Before v6.1.2 the gain was ~2.4x,
+but most of that came from a bug: explicit `fmaf()` calls that were very slow without FMA
+hardware, which hurt every build that did not use `-march`. Three caveats:
   * **Only use this for builds you will run on the machine that compiled them.** A binary built
     with `-march=native` will die with an illegal-instruction error on an older CPU, so don't do
     this for a shared cluster install, a container, or a package you distribute.

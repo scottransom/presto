@@ -1,4 +1,12 @@
-## Development (unreleased, since v6.1.1):
+## Development (unreleased, since v6.1.2):
+
+## Version 6.1.2:
+ * **A performance and bug-fix release.**  `accelsearch` is ~2.4x faster on x86-64
+   conda-forge builds.  An out-of-bounds read in the rfifind-mask code could change which
+   channels were masked (most often on macOS), and `single_pulse_search.py` produced
+   spurious events or blank chunks from zero-variance blocks.  `presto.filterbank` now
+   handles 1/2/4-bit and signed 8-bit files, and CI gained sanitizer, unsigned-char and
+   weekly real-data jobs.
  * **`accelsearch` is ~2.4x faster on x86-64 conda-forge builds** (and any build without
    hardware FMA, such as the default `-march=nocona`): `-zmax 200` on the Terzan 5 test
    data went from 73 to 30 s, and a jerk search (`-zmax 50 -wmax 200`) from 297 to 126 s.

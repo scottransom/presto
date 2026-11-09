@@ -1,5 +1,5 @@
 project('PRESTO', 'c',
-  version: '6.1.1',
+  version: '6.1.2',
   license: 'GPL-2.0',
   meson_version: '>= 1.3.0',
   default_options: [
@@ -14,7 +14,8 @@ project('PRESTO', 'c',
 # The optimization level is not the interesting knob:  what actually speeds up
 # the compute-bound tools is letting the compiler use the vector instructions
 # of the machine you are on.  Adding '-Dc_args=-march=native' to 'meson setup'
-# makes accelsearch roughly 1.5-2x faster on a modern x86-64 CPU (AVX2+FMA).
+# makes accelsearch ~10% faster on a modern x86-64 CPU (AVX2+FMA); before
+# v6.1.2 it was ~2.4x, but mostly because of a since-fixed fmaf() slowdown.
 # Only do that for builds you will run on that same machine, though -- see the
 # notes in INSTALL.md.
 # Can also set install prefix as option via e.g. 'prefix=/home/sransom'

@@ -8,6 +8,18 @@ PRESTO is a large suite of pulsar search and analysis software developed primari
 
 **PRESTO has discovered well over 1500 pulsars, including ~500 recycled and/or binary pulsars!**
 
+## Version 6.1.2:
+ * **`accelsearch` is ~2.4x faster** on x86-64 conda-forge builds (and any build for a CPU
+   target without FMA instructions). Results are unchanged.
+ * Bug fix: masked raw data (`-mask` in prepdata, prepsubband, prepfold and mpiprepsubband)
+   could have the wrong channels masked because of an out-of-bounds read. It mostly
+   happened on macOS, where repeated runs could differ.
+ * Bug fix: `single_pulse_search.py` now skips blocks with no variance (dropouts, padding,
+   fully masked intervals) instead of turning them into spurious events or NaNs.
+ * Bug fix: the C tools can now read SIGPROC filterbank files whose header strings (e.g. a
+   long `rawdatafile` path) are over 80 characters.
+ * `presto.filterbank` reads and writes 1-, 2- and 4-bit and signed 8-bit SIGPROC files.
+
 ## Version 6.1.1:
  * Bug fix (#231): `prepfold -accelcand` with a nonzero `-start` now propagates jerk
    (`-wmax`) candidates correctly to the new fold start. Before, `f` and `f-dot` could be

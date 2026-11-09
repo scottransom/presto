@@ -231,8 +231,8 @@ This departs from the usual direct-to-`master` workflow (see CLAUDE.md), because
 the "very large-scale change" that rule reserves branches for: a new executable, a new
 dependency (Highway), and C++ in the build for the first time.
 
-- CI (above), the `-march=x86-64-v3` measurement, and the feedstock microarch change go to
-  `master` (or the feedstock) as usual — none of them needs the port.
+- CI (above) and the `-march=x86-64-v3` measurement went to `master` as usual (done, and
+  the feedstock microarch change was dropped) — neither needed the port.
 - The port lives on a branch, e.g. `coherent-search`, rebased on `master` periodically so it
   runs under CI from day one.
 - Merge into `master` via a PR once phase 3 below passes its pins on all CI platforms; a
