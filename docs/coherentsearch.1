@@ -204,7 +204,11 @@ ones), and the strongest
 are written to
 .IR <input>.cohout ,
 with each one's S/N, frequency, period, number of harmonics summed and
-best-matching duty cycle.
+best-matching duty cycle.  Candidates whose frequency matches a harmonic
+of a known pulsar near the observation's position (from PRESTO's pulsar
+database, as in
+.BR accelsearch (1))
+are labelled in an extra column, and in the plots.
 .B -plot
 also draws every reported candidate's pulse profile to
 .IR <input>_cohout.ps ,

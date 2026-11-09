@@ -252,10 +252,9 @@ int comp_psr_to_cand(fourierprops * cand, infodata * idata, char *output, int fu
 /*   the results of the search in *output.                          */
 {
     int ii, jj;
-    static infodata *old_idata;
     double theor, theoz, sidedr = 20.0;
     double r_criteria, z_criteria, rdiff, zdiff, difft = 0;
-    static double T, beam2, ra, dec, epoch;
+    double T, beam2, ra, dec, epoch;
     char tmp1[80], tmp2[80], tmp3[80], shortout[128], psrname[20];
     rzwerrs rzws;
 
@@ -264,25 +263,16 @@ int comp_psr_to_cand(fourierprops * cand, infodata * idata, char *output, int fu
     if (!have_database)
         np = read_database();
 
-    /* If calling for the first time for a certain data set, */
-    /* initialize some values.                               */
+    /* The observation's beam, position, length and mid-epoch.  These used */
+    /* to be cached keyed on the *idata pointer, which gave stale values    */
+    /* when a caller reused one infodata for several files (as a            */
+    /* multi-file coherentsearch run does); they are cheap to recompute.    */
 
-    if (idata != old_idata) {
-        /* Convert the beam width to radians */
-
-        beam2 = 2.0 * ARCSEC2RAD * idata->fov;
-
-        /* Convert RA and DEC to radians  (Use J2000) */
-
-        ra = hms2rad(idata->ra_h, idata->ra_m, idata->ra_s);
-        dec = dms2rad(idata->dec_d, idata->dec_m, idata->dec_s);
-        T = idata->N * idata->dt;
-        epoch = (double) idata->mjd_i + idata->mjd_f + T / (2.0 * SECPERDAY);
-
-        /* Set up old_idata for next time */
-
-        old_idata = idata;
-    }
+    beam2 = 2.0 * ARCSEC2RAD * idata->fov;
+    ra = hms2rad(idata->ra_h, idata->ra_m, idata->ra_s);
+    dec = dms2rad(idata->dec_d, idata->dec_m, idata->dec_s);
+    T = idata->N * idata->dt;
+    epoch = (double) idata->mjd_i + idata->mjd_f + T / (2.0 * SECPERDAY);
     /* Calculate the measured r, z, w's and their derivatives */
 
     calc_rzwerrs(cand, T, &rzws);

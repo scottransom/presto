@@ -282,9 +282,18 @@ dependency (Highway), and C++ in the build for the first time.
    single-dash options, `-measuredsigma` for `--sigma measured`, and `-lobin` takes effect
    whenever it is given rather than whenever it is not 100. Left out on purpose:
    `--precision f64`, `--metricstats`, `--normalize` and the GPU (see "Out" above).
-   **Still to add:** known-pulsar labels from PRESTO's pulsar database (as accelsearch does
-   with `comp_psr_to_cand()`), as an extra `.cohout` column, which `sift_candidates.py`
-   already ignores.
+   **Known-pulsar labels (added after phase 4's first round):** `cs_identify_known()`
+   runs `comp_psr_to_cand()` on each reported candidate, with accelsearch's matching (a
+   catalogue pulsar's harmonics 1–40 within 5 bins, or 0.1% for binaries, plus ±20-bin
+   "SL" sidelobe matches, within 10 beam diameters of the pointing). A "Known PSR"
+   column appears in the `.cohout` only when something matches (`sift_candidates.py`
+   reads just the first six columns), and the plots show the name in bold red.
+   On PM0063 the candidate is labelled PSR J1020-6026. On the Terzan 5 test
+   observation (four DMs, 236–242) it labels Ter5A and its 2nd–6th harmonics, Ter5C
+   and Ter5N. With short observations the sidelobe matches are loose (±20 bins is
+   ±0.6 Hz at T = 33 s). That Ter5 data also trips the analytic-σ warning (a factor
+   of 2.35 at 0.1 Hz), with spurious 0.11–0.12 Hz candidates. Julia reports the
+   identical numbers, so it is the rednoised spectrum's lowest bins, not the port.
 3. **[DONE] Throughput and plots.**
    - **OpenMP** (`-ncpus`) over whole chunks, round-robin, with one workspace per thread
      built up front. Each chunk keeps its own candidates and they are joined in chunk
@@ -331,8 +340,35 @@ dependency (Highway), and C++ in the build for the first time.
      vector width.
    - **Profile now:** boxcar ~37%, interpolation ~31%, FFTW ~29% (at PATIENT, so near
      its floor).
-   - Still open: constant re-tuning on fitzroy and an aarch64 host, disassembly audits,
-     and Highway only if a kernel still needs it.
+   - **eiger** (Xeon w5-3433, Sapphire Rapids, AVX-512; `-march=native` system gcc 14.2),
+     PM0063 full band. Identical `.cohout` from both codes at every thread count:
+
+     | threads | C | Julia |
+     |---|---|---|
+     | 1 | 20.2 s | 19.4 s |
+     | 4 | 5.80 s | 5.74 s |
+     | 8 | 3.25 s | 3.54 s |
+     | 16 | 1.87 s | 2.54 s |
+
+     Interleaved runs (0.1–30 Hz, 1 thread, ±1%) on that machine: baseline flags 6.43 s
+     and native 6.44 s, with batch sizes 32 / 64 / 128 at 6.59 / 6.44 / 7.56 s, and
+     `CS_GROUP_V = 32` at 5.72 s. So wider vectors alone buy nothing, but AVX-512's 32
+     registers fit 32-trial groups. `CS_GROUP_V` is now 32 when `__AVX512F__` is
+     defined and 16 otherwise; conda-forge's baseline builds keep 16.
+   - **fitzroy** (Xeon Silver 4114, Skylake-SP, AVX-512; `-march=native` gcc 14.2; a
+     RAID resync was running, so ±5%), 0.1–30 Hz, 1 thread: baseline flags 12.6 s;
+     native 11.2 s with V = 16 and 10.9 s with V = 32; batch sizes 32 and 128 at 11.9
+     and 12.2 s. So V = 32 under AVX-512 and a batch size of 64 hold here too. Full band
+     against Julia, identical output:
+
+     | threads | C | Julia |
+     |---|---|---|
+     | 1 | 38.6 s | 45.3 s |
+     | 10 | 4.94 s | 6.38 s |
+     | 20 | 2.81 s | 5.08 s |
+
+   - Still open: an aarch64 host (NEON has 32 registers, so V = 32 may win there too),
+     disassembly audits, and Highway only if a kernel still needs it.
 5. **Afterwards, optional:** profile `accelsearch` and move any loops worth it onto Highway.
 
 ### Open questions
@@ -357,6 +393,17 @@ can link against it from the conda package, and the recipe declares no `run_expo
 that up: install the headers under `include/presto/` (names like `mask.h`, `median.h`,
 `vectors.h` are too generic for a shared `include/`), give the library a `soversion:`, and only
 then add `run_exports` in the feedstock. Relevant to the C++/Highway question above.
+
+### Make the pulsar-database code more robust
+
+`src/database.c` (`read_database`, `comp_psr_to_cand`, `comp_bin_to_cand`,
+`comp_rawbin_to_cand`) is very handy for searches of fields with many known pulsars, such as
+globular clusters, but it is old code. It keeps the whole catalogue in a static array of
+fixed size `NP`, matches by pointer-keyed statics (one such cache was removed for
+coherentsearch), writes into caller buffers of implied size, and exits if `pulsars.cat`
+is missing. Worth a cleanup: a loaded-catalogue struct instead of statics, explicit
+buffer lengths, an error return instead of `exit`, and perhaps an option to drop the
+loose sidelobe matches.
 
 ### OpenBLAS threads spin in every PRESTO tool
 

@@ -50,6 +50,7 @@ void cs_read_fft(const char *filenm, cs_fft *fft)
     fft->N = (long long) idata.N;
     fft->T = idata.N * idata.dt;
     fft->dm = idata.dm;
+    fft->idata = idata;
     snprintf(fft->object, sizeof(fft->object), "%s", idata.object);
     free(fftnm);
     free(base);

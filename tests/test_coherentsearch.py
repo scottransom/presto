@@ -389,3 +389,58 @@ def test_c_plots(tmp_path):
     assert (tmp_path / "synth_cs.cohout").read_bytes() == before  # read, not rewritten
     ps = tmp_path / "synth_cs_cohout.ps"
     assert ps.read_bytes()[:4] == b"%!PS"
+
+
+# The synthetic data relabelled as a GBT pointing at PSR B1804-08 (J1807-0847,
+# P = 163.727 ms, isolated), whose fundamental lies 0.25 bins from the synthetic
+# 6.1153 Hz pulsar.  The small beam keeps every other catalogue pulsar (e.g.
+# J1809-0743, ~1 deg away) outside comp_psr_to_cand's 10-beam search radius.
+KNOWN_INF = """\
+ Data file name without suffix          =  known
+ Telescope used                         =  GBT
+ Instrument used                        =  None
+ Object being observed                  =  B1804-08 field
+ J2000 Right Ascension (hh:mm:ss.ssss)  =  18:07:38.0319
+ J2000 Declination     (dd:mm:ss.ssss)  =  -08:47:43.2979
+ Data observed by                       =  Unknown
+ Epoch of observation (MJD)             =  60000.000000000000000
+ Barycentered?           (1 yes, 0 no)  =  1
+ Number of bins in the time series      =  65536
+ Width of each time series bin (sec)    =  0.0005
+ Any breaks in the data? (1 yes, 0 no)  =  0
+ Type of observation (EM band)          =  Radio
+ Beam diameter (arcsec)                 =  100
+ Dispersion measure (cm-3 pc)           =  112.4
+ Central freq of low channel (MHz)      =  1400
+ Total bandwidth (MHz)                  =  100
+ Number of channels                     =  1
+ Channel bandwidth (MHz)                =  100
+ Data analyzed by                       =  test
+ Any additional notes:
+    Synthetic data relabelled as a B1804-08 observation.
+"""
+
+
+def test_c_known_pulsar(tmp_path):
+    """Candidates matching a catalogue pulsar near the pointing are labelled, and
+    the label survives -replot (which recomputes it)."""
+    exe = _cs_dump().parent / "coherentsearch"
+    (tmp_path / "known.fft").write_bytes((HERE / "synth_cs.fft").read_bytes())
+    (tmp_path / "known.inf").write_text(KNOWN_INF)
+    subprocess.run([str(exe), "-noprogress", "known.fft"], cwd=tmp_path, check=True)
+    lines = (tmp_path / "known.cohout").read_text().splitlines()
+    assert lines[0].endswith("Known PSR")
+    assert lines[1].split()[2] == "6.115323893229"
+    assert lines[1].endswith("PSR B1804-08")
+    assert len(lines[2].split()) == 6  # the 88.84 Hz pulsar matches nothing
+    # PGPLOT draws text as strokes, so the name is not greppable in the .ps;
+    # check that -replot found the match again instead.
+    res = subprocess.run(
+        [str(exe), "-replot", "known.fft"],
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert "1 of them match known pulsars" in res.stderr
+    assert (tmp_path / "known_cohout.ps").is_file()

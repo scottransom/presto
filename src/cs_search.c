@@ -232,6 +232,7 @@ static void search_chunk(cs_workspace *ws, const cs_hplan *plans, const cs_fft *
                 cand.metric = d->mvals[j];
                 cand.nharm = d->Hk;
                 cand.ducy = NAN;
+                cand.note[0] = '\0';
                 cs_candlist_push(out, cand);
             }
         }
@@ -511,10 +512,54 @@ void cs_measure_ducy(const cs_fft *fft, const cs_params *p, cs_candlist *l)
     }
 }
 
+int cs_identify_known(const cs_fft *fft, cs_candlist *l)
+{
+    const infodata *id = &fft->idata;
+    /* Same guards as accelsearch: real data with a position. */
+    if (strncmp(id->telescope, "None", 4) == 0 || id->telescope[0] == '\0')
+        return 0;
+    if (hms2rad(id->ra_h, id->ra_m, id->ra_s) == 0.0 ||
+        dms2rad(id->dec_d, id->dec_m, id->dec_s) == 0.0)
+        return 0;
+    char *dbnm = presto_data_path("pulsars.cat");
+    FILE *db = fopen(dbnm, "rb");
+    if (!db) {
+        fprintf(stderr, "coherentsearch: no pulsar database (%s), so no known-pulsar "
+                "labels\n", dbnm);
+        free(dbnm);
+        return 0;
+    }
+    fclose(db);
+    free(dbnm);
+    infodata idcopy = *id;      /* comp_psr_to_cand takes a non-const pointer */
+    int nfound = 0;
+    for (long i = 0; i < l->n; i++) {
+        fourierprops props;
+        memset(&props, 0, sizeof(props));
+        /* Only r matters for the match (z always matches); give the rest
+         * harmless values for the error estimates it also computes. */
+        props.r = l->c[i].r;
+        props.rerr = props.zerr = props.werr = 1.0;
+        props.pow = props.rawpow = props.locpow = 1.0;
+        char out[256] = "";
+        if (comp_psr_to_cand(&props, &idcopy, out, 0)) {
+            snprintf(l->c[i].note, sizeof(l->c[i].note), "%s", out);
+            nfound++;
+        } else {
+            l->c[i].note[0] = '\0';
+        }
+    }
+    return nfound;
+}
+
 void cs_write_cohout(const cs_candlist *l, FILE *f)
 {
+    int anynote = 0;
+    for (long i = 0; i < l->n; i++)
+        anynote |= l->c[i].note[0] != '\0';
     /* The leading column is the rank, and the header says so. */
-    fprintf(f, "#Num    'S/N'      Frequency (Hz)        Period (ms)    #Harm  Ducy(%%)\n");
+    fprintf(f, "#Num    'S/N'      Frequency (Hz)        Period (ms)    #Harm  Ducy(%%)%s\n",
+            anynote ? "   Known PSR" : "");
     for (long i = 0; i < l->n; i++) {
         const cs_cand *c = l->c + i;
         char ducy[32];
@@ -522,8 +567,11 @@ void cs_write_cohout(const cs_candlist *l, FILE *f)
             strcpy(ducy, "-");
         else
             snprintf(ducy, sizeof(ducy), "%.2f", 100.0 * c->ducy);
-        fprintf(f, "%-4ld  %8.2f  %18.12f  %18.12f   %3d   %6s\n", i + 1, c->metric, c->freq,
+        fprintf(f, "%-4ld  %8.2f  %18.12f  %18.12f   %3d   %6s", i + 1, c->metric, c->freq,
                 1000.0 / c->freq, c->nharm, ducy);
+        if (c->note[0])
+            fprintf(f, "   %s", c->note);
+        fprintf(f, "\n");
     }
 }
 
@@ -544,6 +592,7 @@ void cs_read_cohout(const char *filenm, double T, long maxcands, cs_candlist *l)
             continue;
         c.r = c.freq * T;
         c.ducy = (nf == 6 && strcmp(ducy, "-") != 0) ? atof(ducy) / 100.0 : NAN;
+        c.note[0] = '\0';      /* recomputed by cs_identify_known */
         cs_candlist_push(l, c);
     }
     fclose(f);

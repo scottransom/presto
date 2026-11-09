@@ -84,8 +84,7 @@ void cs_plot_candidates(const cs_fft *fft, const cs_candlist *l, int nharms, dou
         cpgslw(1);
         cpgsch(0.75);
         snprintf(txt, sizeof(txt),
-                 "object=%s   DM=%.2f   T=%.1f s   N=%lld   nharms=%d   metric=boxcar   "
-                 "threshold=%.1f", fft->object[0] ? fft->object : "?", fft->dm, fft->T,
+                 "object=%s   DM=%.2f   T=%.1f s   N=%lld   nharms=%d   threshold=%.1f", fft->object[0] ? fft->object : "?", fft->dm, fft->T,
                  fft->N, nharms, threshold);
         cpgtext(0.03, 0.955, txt);
         snprintf(txt, sizeof(txt), "%s        Page %ld of %ld", date, page + 1, npages);
@@ -109,10 +108,12 @@ void cs_plot_candidates(const cs_fft *fft, const cs_candlist *l, int nharms, dou
                 ymax = y[i] > ymax ? y[i] : ymax;
             }
             float pad = 0.05f * (ymax - ymin > 0 ? ymax - ymin : 1.0f);
+            /* Room above the (centred) peak for a known pulsar's name. */
+            const float toppad = c->note[0] ? 5.0f * pad : pad;
             const float x0 = left + col * cw + 0.025f, x1 = left + (col + 1) * cw - 0.015f;
             const float y1 = top - row * ch - 0.035f, y0 = top - (row + 1) * ch + 0.01f;
             cpgsvp(x0, x1, y0, y1);
-            cpgswin(0.0, 1.0, ymin - pad, ymax + pad);
+            cpgswin(0.0, 1.0, ymin - pad, ymax + toppad);
             cpgsci(1);
             cpgsch(0.7);
             cpgbox(row == lastrow ? "BCNST" : "BCST", 0.5, 5, "BC", 0.0, 0);
@@ -129,6 +130,13 @@ void cs_plot_candidates(const cs_fft *fft, const cs_candlist *l, int nharms, dou
             cpgslw(2);
             cpgline(nb + 1, x, y);
             cpgslw(1);
+            if (c->note[0]) {       /* a known pulsar: its name, bold and red */
+                cpgsci(2);
+                cpgslw(5);
+                cpgsch(0.65);
+                cpgmtxt("T", -1.3, 0.03, 0.0, c->note);
+                cpgslw(1);
+            }
         }
     }
     cpgclos();

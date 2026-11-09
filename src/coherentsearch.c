@@ -112,8 +112,11 @@ int main(int argc, char *argv[])
             char *cohnm = cohout_name(cmd, infile);
             cs_candlist cands = { 0 };
             cs_read_cohout(cohnm, fft.T, cmd->ncands, &cands);
+            const int nknown = cs_identify_known(&fft, &cands);
             fprintf(stderr, "coherentsearch: replotting %ld candidates from %s\n", cands.n,
                     cohnm);
+            if (nknown)
+                fprintf(stderr, "  %d of them match known pulsars\n", nknown);
             plot(cmd, &fft, &cands, &p, infile);
             free(cohnm);
             cs_candlist_free(&cands);
@@ -157,6 +160,7 @@ int main(int argc, char *argv[])
         if (cands.n > cmd->ncands)
             cands.n = cmd->ncands;
         cs_measure_ducy(&fft, &p, &cands);
+        const int nknown = cs_identify_known(&fft, &cands);
 
         char *outnm = cohout_name(cmd, infile);
         FILE *out = chkfopen(outnm, "w");
@@ -164,6 +168,8 @@ int main(int argc, char *argv[])
         fclose(out);
         fprintf(stderr, "  %ld trials above S/N %g -> %ld candidates in %s (%.1f s)\n",
                 nraw, p.threshold, cands.n, outnm, seconds_since(&t0));
+        if (nknown)
+            fprintf(stderr, "  %d of them match known pulsars\n", nknown);
         if (cmd->plotP || cmd->plotpngP)
             plot(cmd, &fft, &cands, &p, infile);
         free(outnm);

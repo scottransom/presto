@@ -63,6 +63,7 @@ typedef struct {
     double T;                /* observation length (s) */
     double dm;               /* from the .inf (0 if absent) */
     char object[100];        /* from the .inf */
+    infodata idata;          /* the whole .inf (position etc. for cs_identify_known) */
 } cs_fft;
 
 /* Read basename.fft and basename.inf (filenm may end in .fft). */
@@ -101,10 +102,17 @@ typedef struct {
     fcomplex *gA;            /* (ngrp, CS_GROUP_V) per-lane scale */
 } cs_hplan;
 
-/* Trials per interpolation group.  16 keeps the 2 x 16 float accumulators in
- * SSE's 16 registers; Julia's 32 suits AVX2. */
+/* Trials per interpolation group: the kernel keeps 2 x CS_GROUP_V float
+ * accumulators live, so the best size follows the register file.  Measured
+ * (PM0063, 1 thread): with 16 vector registers (SSE, AVX2) 16 beats 32 on a
+ * Comet Lake laptop; with AVX-512's 32 registers 32 is 11% faster on a
+ * Sapphire Rapids Xeon.  Results are identical either way. */
 #ifndef CS_GROUP_V
+#if defined(__AVX512F__)
+#define CS_GROUP_V 32
+#else
 #define CS_GROUP_V 16
+#endif
 #endif
 
 /* Length of the de-interleaved bin planes cs_fill_row needs for chunks of up
@@ -215,6 +223,7 @@ typedef struct {
     double r;                /* Fourier frequency (bins) of freq */
     int nharm;               /* harmonics folded: nharms / k */
     double ducy;             /* best boxcar width / profile bins, NAN until measured */
+    char note[24];           /* known pulsar it matches (cs_identify_known), or "" */
 } cs_cand;
 
 typedef struct {
@@ -280,7 +289,11 @@ void cs_sort_by_metric(cs_candlist *l);
 int cs_candidate_profile(const cs_fft *fft, double r, int nharm, double *prof);
 /* Fill in each candidate's duty cycle from a refold with an m=64 kernel. */
 void cs_measure_ducy(const cs_fft *fft, const cs_params *p, cs_candlist *l);
-/* Write the .cohout table. */
+/* Label candidates that match a known pulsar in PRESTO's database (by
+ * harmonic number, as accelsearch does), if the .inf has a real telescope and
+ * position and the database is installed.  Returns the number labelled. */
+int cs_identify_known(const cs_fft *fft, cs_candlist *l);
+/* Write the .cohout table (with a "Known PSR" column if any are labelled). */
 void cs_write_cohout(const cs_candlist *l, FILE *f);
 /* Read a .cohout table (r = freq * T), keeping at most maxcands rows. */
 void cs_read_cohout(const char *filenm, double T, long maxcands, cs_candlist *l);

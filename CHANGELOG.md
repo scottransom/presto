@@ -10,8 +10,14 @@
    candidates' pulse profiles (`-replot` redraws them from a `.cohout`), and `makewisdom`
    now also stores FFTW plans for its transforms.  On the synthetic test file its
    `.cohout` is byte-identical to the Julia code's, and `tests/test_coherentsearch.py`
-   pins every stage to numbers from the Julia package.  Not yet as fast as the Julia
-   code (no SIMD kernels yet).
+   pins every stage to numbers from the Julia package.  Candidates matching a known
+   pulsar near the pointing (PRESTO's pulsar database, as in accelsearch) are labelled
+   in the `.cohout` and the plots.
+ * `comp_psr_to_cand()` (the known-pulsar check behind accelsearch's candidate notes) no
+   longer caches the observation's position keyed on the `infodata` pointer, which would
+   have matched every file after the first against the first file's position whenever a
+   caller reused one `infodata` for several files.  accelsearch was not affected (one file
+   per run).
 
 ## Version 6.1.2:
  * **A performance and bug-fix release.**  `accelsearch` is ~2.4x faster on x86-64
