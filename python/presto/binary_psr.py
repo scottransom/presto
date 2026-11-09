@@ -27,8 +27,9 @@ def myasarray(a) -> np.ndarray:
     numpy.ndarray
         `a` as an array (a length-1 array if `a` was a scalar or empty).
     """
-    if type(a) in [float, int, complex]:
-        a = np.asarray([a])
+    a = np.asarray(a)
+    if a.ndim == 0:  # Python or NumPy scalar
+        a = a.reshape(1)
     if len(a) == 0:
         a = np.asarray([a])
     return a

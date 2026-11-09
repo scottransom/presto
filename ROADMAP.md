@@ -171,14 +171,25 @@ benefits everything, so it goes straight to `master`:
    prepsubband (4 DM trials), realfft, rednoise, `accelsearch -zmax 0` and prepfold (on the
    `.dat` and on the raw filterbank). Results are checked against the injected values with
    tolerances, not bytes. 1-, 2- and 4-bit files are checked channel by channel against both
-   readers, and the pulsar must still be found at those depths. Runs in ~6 s. Not yet
-   covered: PSRFITS (no writer), rfifind, and `accelsearch` with `-zmax > 0`.
+   readers, and the pulsar must still be found at those depths. Runs in ~6 s. PSRFITS,
+   rfifind and `accelsearch` with `-zmax > 0` are not covered here, but the real-data tests
+   (item 5) cover all three.
 4. **[DONE]** The aarch64 signed-8-bit check is a permanent test (the round-trip of every
    sample format through `prepdata -dm 0`), and CI also builds on linux-64 with
    `-funsigned-char`. With the pre-6.1.1 `char` code put back, that job fails exactly the
    signed test, so the bug class is caught on x86 too.
-5. **Optionally the prepfold suite** (`tests/prepfold/prepfold_tests.sh`, ~100 MB fixture), on
-   a schedule rather than every push.
+5. **[DONE] Scheduled real-data tests** (`.github/workflows/realdata.yml`, `pixi run
+   test-realdata`, ~7 min): weekly and on demand, on linux-64, linux-aarch64 and osx-arm64.
+   The 173 MB Terzan 5 PSRFITS file lives on the repo's `test-data-v1` release, not in git
+   (`tests/prepfold/get_test_data.sh` fetches and checksums it; new data go under a new tag).
+   `tests/test_realdata_search.py` runs rfifind → prepsubband → realfft → rednoise →
+   accelsearch → sifting → prepfold and `single_pulse_search.py`, checked against the
+   Ter5A/Ter5N timing solutions (Doppler-shifted f and z, DM, and Ter5A's single pulses
+   phase-locked to its ephemeris). Then come the `prepfold_tests.sh` and
+   `prepfold_multi_tests.sh` regression suites. Possible additions: a second
+   dataset in another format (e.g. the 4-bit `GBT_Lband_PSR.fil` from the tutorial, on the
+   same release), `-zmax > 0` folding of a `.dat` from an accelerated candidate, and the
+   `-ncpus` determinism check from `tests/prepfold/determinism_check.sh`.
 
 The feedstock's own tests remain the release-time check; CI catches problems before they get
 there.

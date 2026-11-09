@@ -1,0 +1,55 @@
+# Weekly real-data tests (`pixi run test-realdata`) on the 173 MB Terzan 5
+# PSRFITS file: the full search pipeline in tests/test_realdata_search.py, then
+# the prepfold and prepfold_multi suites in tests/prepfold/.  The data are not
+# in the repo; tests/prepfold/get_test_data.sh fetches them from the
+# `test-data-v1` release of this repo and checks their SHA-256.  Too slow
+# (~7 min) to run on every push, so it runs on a schedule and on demand
+# (Actions tab -> "Real-data tests" -> "Run workflow").  GitHub disables
+# scheduled workflows after 60 days without repository activity.
+name: Real-data tests
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"   # Mondays 06:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  realdata:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: linux-64, os: ubuntu-24.04 }
+          - { name: linux-aarch64, os: ubuntu-24.04-arm }
+          - { name: osx-arm64, os: macos-15 }
+    env:
+      MPLBACKEND: Agg
+    steps:
+      - uses: actions/checkout@v7
+      - uses: prefix-dev/setup-pixi@v0.11.2
+        with:
+          pixi-version: v0.83.0
+          cache: true
+          locked: true
+      - name: Build and run the real-data suites
+        run: pixi run test-realdata
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: realdata-logs-${{ matrix.name }}
+          path: |
+            tests/prepfold/output.txt
+            tests/prepfold/multi_output.txt
+            tests/prepfold/*.bestprof
+            build-pixi/meson-logs/
+          if-no-files-found: ignore

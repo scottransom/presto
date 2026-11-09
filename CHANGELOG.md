@@ -1,4 +1,16 @@
 ## Development (unreleased, since v6.1.1):
+ * **Weekly real-data tests in CI** (`.github/workflows/realdata.yml`, `pixi run
+   test-realdata`), on linux-64, linux-aarch64 and osx-arm64.  They use the 173 MB Terzan 5
+   GBT PSRFITS file, which now lives on the repo's `test-data-v1` GitHub release rather
+   than in git; `tests/prepfold/get_test_data.sh` fetches it and checks its SHA-256.  The
+   new `tests/test_realdata_search.py` runs rfifind, prepsubband, realfft, rednoise,
+   accelsearch, sifting, prepfold and single_pulse_search.py.  It checks Ter5A and Ter5N
+   against the Doppler-shifted frequencies and accelerations their timing solutions
+   predict, and checks that Ter5A's single pulses are phase-locked to its ephemeris at its
+   DM.  The task then runs the existing prepfold and prepfold_multi regression suites.
+ * `binary_psr` methods taking an MJD (`calc_anoms`, `most_recent_peri`, `calc_omega`,
+   and so everything built on them) now accept NumPy scalars such as `np.float64`, which
+   used to raise `TypeError`.
  * `presto.filterbank` now reads and writes **1-, 2- and 4-bit** SIGPROC filterbank files,
    such as the 4-bit `GBT_Lband_PSR.fil` from the tutorial.  Samples unpack to `uint8`, and
    new `pack_bits`/`unpack_bits` helpers use the SIGPROC order (first channel in the lowest

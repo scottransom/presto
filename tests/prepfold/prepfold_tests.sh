@@ -31,7 +31,7 @@ check_fold() {
 
 # Download the file if needed
 echo "Getting test data (if needed)."
-curl -C - -o Ter5_080912_short2bits.fits https://www.cv.nrao.edu/~sransom/Ter5_080912_short2bits.fits >> output.txt 2>&1
+sh "${_SCRIPT_DIR}/get_test_data.sh" || exit 1
 
 # Dedisperse the data for Ter5N's DM. Do not barycenter.
 echo "Processing."
@@ -89,6 +89,7 @@ reader_check_bin=""
 for cand in \
     "${PRESTO}/build/src/reader_equiv_check" \
     "${_SCRIPT_DIR}/../../build/src/reader_equiv_check" \
+    "${_SCRIPT_DIR}/../../build-pixi/src/reader_equiv_check" \
     "$(command -v reader_equiv_check 2>/dev/null)"; do
     [ -n "$cand" ] && [ -x "$cand" ] && { reader_check_bin="$cand"; break; }
 done

@@ -75,6 +75,26 @@ sample by sample, and checks 1/2/4-bit files channel by channel against both the
 readers (via `prepsubband -sub`). Use `synthpulsar.py`
 for any new test that needs raw data.
 
+**Real-data tests** run separately: `pixi run test-realdata` (~7 min), which GitHub Actions
+(`.github/workflows/realdata.yml`) runs weekly (Mondays) and on demand (`workflow_dispatch`),
+not on every push. They use the 173 MB Terzan 5 GBT PSRFITS file
+`Ter5_080912_short2bits.fits` (2-bit, 64 channels, 859 s). It is **not in git**: it is an
+asset on the repo's `test-data-v1` GitHub release (a pre-release, kept off "Latest"), and
+`tests/prepfold/get_test_data.sh` downloads it into `tests/prepfold/` (gitignored) and checks
+its SHA-256. The tag is versioned on purpose: to change or add data, upload to a new tag
+(`test-data-v2`, ...) and update the script's tag and checksum, never replace an asset in
+place, so older commits still fetch the data their references were made from. The task runs:
+- `tests/test_realdata_search.py` (pytest; skips if the file is absent): rfifind →
+  prepsubband (DMs 234–248, barycentered, masked) → realfft → rednoise → `accelsearch -zmax 50`
+  → sifting → prepfold, plus `single_pulse_search.py`. The truth is the par files in
+  `tests/prepfold/`: `binary_psr` predicts the Doppler-shifted frequency and z of Ter5A
+  (bright, z ≈ −5) and Ter5N (weak, DM 238), and Ter5A's single pulses at DM 242 must be
+  phase-locked to its ephemeris (Rayleigh test). As for the synthetic test, thresholds sit
+  below measured values recorded at each assert.
+- the `tests/prepfold/` shell suites `prepfold_tests.sh` (`.bestprof` regressions against
+  `goodfolds/`, `reader_equiv_check`, the cmd-layout check) and `prepfold_multi_tests.sh`
+  (multi == many singles). See `tests/prepfold/README.md`.
+
 **`tests/test_presto_python.py` is one of the most important tests**: it exercises the SWIG
 wrappings of crucial C routines (FFTs, folding, etc.). It is a plain script with top-level
 asserts, not pytest functions; a failure exits 1.

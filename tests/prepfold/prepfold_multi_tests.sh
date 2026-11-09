@@ -40,8 +40,7 @@ compare() {     # $1 = multi .bestprof, $2 = single .bestprof
 
 # --- Test data (mirror prepfold_tests.sh) ------------------------------------
 echo "Getting test data (if needed)."
-curl -C - -o Ter5_080912_short2bits.fits \
-    https://www.cv.nrao.edu/~sransom/Ter5_080912_short2bits.fits >> "$LOG" 2>&1
+sh "${_SCRIPT_DIR}/get_test_data.sh" || exit 1
 if [ ! -f Ter5_080912_DM242.30.sub00 ]; then
     echo "Making PRESTO subbands (DM 242.3)."
     prepsubband -sub -nsub 32 -subdm 242.3 -nobary -o Ter5_080912 \
