@@ -40,16 +40,26 @@ jobs:
           pixi-version: v0.83.0
           cache: true
           locked: true
-      - name: Build and run the real-data suites
-        run: pixi run test-realdata
-      - name: Upload logs on failure
+      - name: Search pipeline (tests/test_realdata_search.py)
+        run: pixi run test-realdata-search
+      - name: prepfold and prepfold_multi suites
+        if: ${{ !cancelled() }}
+        run: pixi run test-realdata-prepfold
+      - name: Upload logs and pipeline outputs on failure
         if: failure()
         uses: actions/upload-artifact@v7
         with:
           name: realdata-logs-${{ matrix.name }}
+          # The small pipeline products, not the .dat/.fft/.sub files (~170 MB)
           path: |
             tests/prepfold/output.txt
             tests/prepfold/multi_output.txt
             tests/prepfold/*.bestprof
+            build-pixi/pytest-realdata/**/*.inf
+            build-pixi/pytest-realdata/**/*.singlepulse
+            build-pixi/pytest-realdata/**/*_ACCEL_*
+            build-pixi/pytest-realdata/**/*.bestprof
+            build-pixi/pytest-realdata/**/*.polycos
+            build-pixi/pytest-realdata/**/*_rfifind.*
             build-pixi/meson-logs/
           if-no-files-found: ignore

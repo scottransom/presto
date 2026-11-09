@@ -327,8 +327,12 @@ def test_single_pulse_search_ter5A(obs: dict) -> None:
     for dm in DMS:
         assert (obs["dir"] / f"{base(dm)}.singlepulse").exists()
     assert (obs["dir"] / "ter5_singlepulse.ps").exists()
-    assert rayleigh_z(obs, 242.0) > 15.0  # measured 30.4
+    zs = {dm: rayleigh_z(obs, dm) for dm in DMS}
+    counts = {
+        dm: len(np.loadtxt(obs["dir"] / f"{base(dm)}.singlepulse", ndmin=2))
+        for dm in DMS
+    }
+    info = f"Z by DM: {zs}; events by DM: {counts}"
+    assert zs[242.0] > 15.0, info  # measured 30.4
     for dm in (234.0, 238.0, 248.0):
-        assert (
-            rayleigh_z(obs, dm) < 8.0
-        )  # measured 0.9, 1.3, 0.5 (2.5-3.9 at DM 240, 244)
+        assert zs[dm] < 8.0, info  # measured 0.9, 1.3, 0.5 (2.5-3.9 at DM 240, 244)

@@ -75,7 +75,9 @@ sample by sample, and checks 1/2/4-bit files channel by channel against both the
 readers (via `prepsubband -sub`). Use `synthpulsar.py`
 for any new test that needs raw data.
 
-**Real-data tests** run separately: `pixi run test-realdata` (~7 min), which GitHub Actions
+**Real-data tests** run separately: `pixi run test-realdata` (~7 min; it is just
+`test-realdata-search` plus `test-realdata-prepfold`, which CI runs as separate steps so one
+failing does not hide the other), which GitHub Actions
 (`.github/workflows/realdata.yml`) runs weekly (Mondays) and on demand (`workflow_dispatch`),
 not on every push. They use the 173 MB Terzan 5 GBT PSRFITS file
 `Ter5_080912_short2bits.fits` (2-bit, 64 channels, 859 s). It is **not in git**: it is an

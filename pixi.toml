@@ -87,11 +87,19 @@ pytest tests/test_barycenter.py tests/test_binary_calcs.py \
 # GitHub release): the full search pipeline (tests/test_realdata_search.py),
 # then the prepfold/prepfold_multi regression suites in tests/prepfold/.
 # ~7 min; CI runs it weekly (.github/workflows/realdata.yml), not on every push.
-test-realdata = { cmd = """
-sh tests/prepfold/get_test_data.sh \
-  && pytest tests/test_realdata_search.py \
-  && meson compile -C build-pixi reader_equiv_check \
+get-test-data = "sh tests/prepfold/get_test_data.sh"
+# Its pytest temp dir is build-pixi/pytest-realdata, which CI uploads on failure.
+test-realdata-search = { cmd = """
+pytest --basetemp=build-pixi/pytest-realdata tests/test_realdata_search.py
+""", depends-on = [
+    "build",
+    "get-test-data",
+] }
+test-realdata-prepfold = { cmd = """
+meson compile -C build-pixi reader_equiv_check \
   && cd tests/prepfold && sh prepfold_tests.sh && sh prepfold_multi_tests.sh
 """, depends-on = [
     "build",
+    "get-test-data",
 ] }
+test-realdata = { depends-on = ["test-realdata-search", "test-realdata-prepfold"] }
