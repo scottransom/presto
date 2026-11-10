@@ -8,6 +8,20 @@ PRESTO is a large suite of pulsar search and analysis software developed primari
 
 **PRESTO has discovered well over 1500 pulsars, including ~500 recycled and/or binary pulsars!**
 
+## Version 6.2.0:
+ * **New program `coherentsearch`**: a coherent harmonic-summing search, ported to C from
+   CoherentSearch.jl ([Ransom 2026](https://arxiv.org/abs/2610.11749)). It is much more sensitive than
+   incoherent harmonic summing to slow pulsars with narrow pulses. Run it on `rednoise`d
+   `.fft` files; it labels known pulsars, plots candidate profiles (`-plot`), and has a
+   `-deep` pass for very narrow pulses. **Re-run `makewisdom`** after upgrading, since it
+   now plans `coherentsearch`'s FFTs too.
+ * **New script `coherent_sift.py`** sifts `coherentsearch` candidates across DMs (and
+   observations), flagging harmonics, known pulsars and RFI-like signals.
+ * Plots from `prepfold`, `rfifind` and `coherentsearch` now work with long output names
+   (PGPLOT silently truncated file names past 90 characters).
+ * **Python >=3.12 is now required.**
+ * Running many PRESTO jobs at once? Set `OPENBLAS_NUM_THREADS=1` (see below).
+
 ## Version 6.1.2:
  * **`accelsearch` is ~2.4x faster** on x86-64 conda-forge builds (and any build for a CPU
    target without FMA instructions). Results are unchanged.

@@ -39,7 +39,7 @@ requirements:
     - ninja
     - pkgconf
   host:
-    - python
+    - python >=3.12
     - pip
     # the 'mesonpy' PEP517 backend must import under the host python
     - meson-python
@@ -73,7 +73,7 @@ requirements:
     - libblas
     - libcblas
   run:
-    - python
+    - python >=3.12
     - scipy
     - astropy-base
     - matplotlib-base

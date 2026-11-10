@@ -14,14 +14,13 @@ _or_ an updated version is available in the same directory
 where this file was found:  ftp://cfa-ftp.harvard.edu/pub/ransom
 """
 
-import sys
 import numpy as np
 from presto import ppgplot as ppg
 
 
-# Check if string in Py2 and Py3 compatible way
 def isstr(var):
-    return isinstance(var, str if sys.version_info[0] >= 3 else basestring)
+    """Whether var is a string."""
+    return isinstance(var, str)
 
 
 # True if we have an /XWIN or /XSERVE device open yet

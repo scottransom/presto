@@ -1,4 +1,52 @@
-## Development (unreleased, since v6.1.2):
+## Development (unreleased, since v6.2.0):
+
+## Version 6.2.0:
+ * **The coherent harmonic-summing search release.**  The new `coherentsearch` (with its
+   sifter, `coherent_sift.py`) searches for slow pulsars with narrow pulses far more
+   sensitively than incoherent harmonic summing.  Also: plots from `prepfold`, `rfifind`
+   and `coherentsearch` work with long output names, Python >=3.12 is now required, and
+   the build uses `pkgconf`.
+ * **New program `coherentsearch`**: a coherent harmonic-summing search of normalised
+   (e.g. `rednoise`d) `.fft` files, ported to C from CoherentSearch.jl (Ransom 2026,
+   [arXiv:2610.11749](https://arxiv.org/abs/2610.11749)).  For every trial frequency it
+   interpolates each harmonic's complex amplitude exactly, inverse-FFTs the harmonic
+   stack into a pulse profile and scores it with boxcar matched filters, so it is far more
+   sensitive than incoherent summing to slow pulsars whose power is spread over dozens of
+   harmonics.  Harmonic decimation (`-maxdecim`) also folds fewer harmonics at multiples
+   of each trial, for almost nothing extra.  It has no acceleration search.
+   - Candidates go to `<input>.cohout` (the format CoherentSearch.jl writes), labelled
+     when they match a known pulsar near the pointing (PRESTO's pulsar database, as in
+     accelsearch).  Progress and a summary of the search and of each sifting step go to
+     stdout, in accelsearch's style.
+   - `-ncpus` searches in parallel, with output identical for any thread count.  It
+     defaults to 1, so that many DMs can be searched at once instead.
+   - `-plot` draws the candidates' pulse profiles to PostScript and, if Ghostscript is
+     available, PNGs.  `-replot` redraws them from an existing `.cohout`, and `-rewrite`
+     re-labels known pulsars in one in place (including files CoherentSearch.jl wrote)
+     without searching, reading only the `.inf`.
+   - Comb-like candidates, whose profile is dominated by one high harmonic (usually a
+     bright pulsar landing on a high harmonic of a slow trial), are dropped and counted
+     unless `-noperiodic` is given.
+   - `-deep` runs the paper's deep pass for slow pulsars with very narrow pulses
+     (`-nharms 120 -maxdecim 12 -hifreq 5`, any of which can still be given) into
+     `<input>_deep.cohout`.  Run after a default search, it drops candidates harmonically
+     related to stronger ones in that search's `.cohout`.
+   - It warns if the input does not look normalised (from the median power of bins
+     10000-19999).
+   - `makewisdom` now plans its FFTs too, which makes them ~1.8x faster: **re-run
+     `makewisdom` after upgrading.**
+   On the synthetic test file its output is byte-identical to the Julia code's;
+   `tests/test_coherentsearch.py` pins every stage to numbers from the Julia package, and
+   the weekly real-data tests check it on Terzan 5 (Ter5A, C and N) and on the slow Parkes
+   pulsar J1020-6026.
+ * **New script `coherent_sift.py`** (ported from CoherentSearch.jl's
+   `sift_candidates.py`): sifts `.cohout` files across DMs and, optionally, many
+   observations.  It groups each signal's detections, flags harmonics, known pulsars,
+   deep-pass signals and edge-peaked or broadband (RFI-like) ones, ranks the rest by
+   pulsar-likeness, and can write a self-contained HTML summary.
+ * **Python >=3.12 is now required** (`requires-python` in `python/pyproject.toml`, and
+   the conda recipe).  NumPy, SciPy, astropy and matplotlib already follow SPEC 0, which
+   retired 3.11 in October 2025.
  * **`prepfold` and `rfifind` plots work with long output names.**  PGPLOT keeps only
    the first 90 characters of a plot's file name and silently drops the rest, so a long
    `-o` path (or a deep output directory) wrote the `.ps` under a truncated name, or
@@ -6,41 +54,11 @@
    a short temporary file and moved into place (`pgplot_device()` in `misc_utils.c`),
    as are `coherentsearch`'s.  `cpgstart_ps()` (used by `window`, `psrorbit` and
    `plotbincand`) no longer overflows a 100-byte stack buffer on long names.
- * **New program `coherentsearch`** (in development on the `coherent-search` branch): a
-   coherent harmonic-summing search of normalised `.fft` files, ported to C from
-   CoherentSearch.jl (Ransom 2026, arXiv:2610.11749).  It interpolates every harmonic's
-   complex amplitude exactly, inverse-FFTs the harmonic stack into a profile and scores it
-   with boxcar matched filters, with harmonic decimation (`-maxdecim`) folding fewer
-   harmonics at multiples of each trial for almost nothing extra.  Candidates go to
-   `<input>.cohout`, the format CoherentSearch.jl writes.  `-ncpus` runs chunks in
-   parallel with output identical for any thread count, `-plot` draws the
-   candidates' pulse profiles to PostScript and, if Ghostscript is available, PNGs
-   (`-replot` redraws them from a `.cohout`), and `makewisdom`
-   now also stores FFTW plans for its transforms.  On the synthetic test file its
-   `.cohout` is byte-identical to the Julia code's, and `tests/test_coherentsearch.py`
-   pins every stage to numbers from the Julia package.  Candidates matching a known
-   pulsar near the pointing (PRESTO's pulsar database, as in accelsearch) are labelled
-   in the `.cohout` and the plots.  Candidates whose profile is a comb of identical
-   peaks (the strongest harmonic is the 7th or higher, with over 8x the power of each of
-   harmonics 1-4: usually a bright pulsar landing on a high harmonic of a slow trial)
-   are dropped and counted, unless `-noperiodic` is given.  `-deep` runs the paper's
-   deep pass for slow pulsars with very narrow pulses (`-nharms 120 -maxdecim 12
-   -hifreq 5`, any of which can still be given explicitly) into `<input>_deep.cohout`,
-   beside the default search's file, and `makewisdom` now plans its transforms too.
-   Run after a default search, it drops candidates harmonically related to stronger ones
-   in that search's `.cohout` (such as subharmonics of a bright pulsar above its band).
-   Its progress and summary go to stdout in accelsearch's style: the search setup, how
-   long it took, and how many candidates each sifting step removed.  Its check that the
-   input is normalised now takes the median power of bins 10000-19999 straight from the
-   FFT, instead of comparing noise scales on a few search chunks.  The old check sampled
-   the lowest frequencies and warned falsely on well-normalised real data.
-   New `-rewrite` re-checks an existing `.cohout` (including one CoherentSearch.jl wrote)
-   against the pulsar database and labels the matches in place, without searching and
-   reading only the `.inf`.  With `-replot`, the plots get the labels too.
-   New `coherent_sift.py` (ported from CoherentSearch.jl's `sift_candidates.py`) sifts
-   `.cohout` files across DMs and observations: it groups detections, flags harmonics,
-   known pulsars, deep-pass signals and edge-peaked or broadband (RFI-like) ones, ranks
-   the rest by pulsar-likeness, and can write an HTML summary.
+ * The build uses `pkgconf` instead of the deprecated `pkg-config` (pixi environment and
+   conda recipe).
+ * `README.md` now recommends `export OPENBLAS_NUM_THREADS=1` when running many PRESTO jobs
+   at once: GSL loads OpenBLAS, which starts (and briefly spins) a thread per core in every
+   process although PRESTO never uses it.  The pixi environment sets it.
  * `comp_psr_to_cand()` (the known-pulsar check behind accelsearch's candidate notes) no
    longer caches the observation's position keyed on the `infodata` pointer, which would
    have matched every file after the first against the first file's position whenever a

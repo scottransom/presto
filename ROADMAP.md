@@ -28,7 +28,12 @@ The prerequisite work that made clean packaging possible is also complete:
 - **Dead code removed:** `dftfold`, `a2x`, `cand_output.c`, `solvopt.c`/`apprgrdn.c`, the
   unbuildable legacy C tests.
 
-## Next major goal: a coherent harmonic search in PRESTO
+The next big goal, a C port of CoherentSearch.jl, **shipped in v6.2.0** as `coherentsearch`
+(plus `coherent_sift.py`), merged from the `coherent-search` branch on 2026-11-10. What is
+left of it is optional: Highway kernels (phase 4's open items and phase 5 below) and
+backporting the C version's additions to Julia (see "Other open items").
+
+## The coherent harmonic search in PRESTO (shipped in v6.2.0)
 
 ### What and why
 
@@ -236,7 +241,9 @@ dependency (Highway), and C++ in the build for the first time.
 - The port lives on a branch, e.g. `coherent-search`, rebased on `master` periodically so it
   runs under CI from day one.
 - Merge into `master` via a PR once phase 3 below passes its pins on all CI platforms; a
-  release with the new tool follows.
+  release with the new tool follows. **Done:** fast-forwarded into `master` on 2026-11-10
+  (0050861) once CI and the real-data tests passed on every platform, and released as
+  v6.2.0.
 
 ### Phases
 
@@ -453,21 +460,6 @@ Still open, for the conda-forge package:
   not be enough, since libgsl's own NEEDED entry still pulls in `libcblas.so.3`. Check
   whether anything in libpresto needs a fast BLAS, and whether the GSL routines it uses
   touch BLAS at all.
-
-### Raise the minimum Python version to 3.12 (decided, next release)
-
-`python/pyproject.toml` declares `requires-python = '>=3.9'`, and `INSTALL.md` still says
-">=3.8" in one place. NumPy, SciPy, astropy and matplotlib follow
-[SPEC 0](https://scientific-python.org/specs/spec-0000/), which retires a Python version three
-years after release, so 3.11 (October 2022) is already past due and 3.12 puts PRESTO in step
-with its dependencies. conda-forge will drop 3.10 at the next rerender regardless. For the next
-release:
-  * set `requires-python = '>=3.12'` in `python/pyproject.toml`,
-  * fix the stale ">=3.8" line in `INSTALL.md` (and check for others),
-  * add `python >=3.12` to `requirements/host` and `requirements/run` in the feedstock recipe —
-    a bare `python` builds for whatever conda-forge's global pinning offers, so the recipe, not
-    `requires-python`, is what narrows the matrix,
-  * confirm nothing in the package still guards on older versions.
 
 ### FFTFIT uncertainty calibration
 

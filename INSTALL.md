@@ -85,7 +85,7 @@ As always, there are a set of essential packages required to build PRESTO. This 
 
 Setting the `PRESTO` environment variable is now **optional** — the installed tools locate their runtime data (the pulsar catalog, etc.) automatically in `{prefix}/share/presto`. It is still handy as a shorthand for the commands below (which use `$PRESTO`) and works as an override when running from an uninstalled source tree, so you may want to point it at the top-level PRESTO git checkout. Either way, make sure that `$PRESTO/lib` and `$PRESTO/bin` are **not** in your `PATH` or `LD_LIBRARY_PATH` or `PYTHONPATH` environment variables as we have required in the past. It is probably a good idea to clean your earlier compiles, as well.
 
-From your activated Python virtual or [Conda](https://docs.conda.io/) environment, make sure that you have `meson`, `meson-python`, `ninja`, and a recent `pip` installed (also Python >=3.9, which is what `python/pyproject.toml` requires):
+From your activated Python virtual or [Conda](https://docs.conda.io/) environment, make sure that you have `meson`, `meson-python`, `ninja`, and a recent `pip` installed (also Python >=3.12, which is what `python/pyproject.toml` requires):
 
 `pip install meson meson-python ninja` or `conda install meson meson-python ninja`
 
@@ -356,13 +356,13 @@ If you are using **MacOS**, Paul Ray has been running PRESTO a lot and knows sev
 
 - PRESTO should build almost "out of the box" on a Mac, once you have the external packages installed and after setting a few environment variables.
 
-- For MacPorts, which has worked well, this should install all the important packages. **This assumes you use Python 3.11 and gcc13.  You may use different versions.**:
+- For MacPorts, which has worked well, this should install all the important packages. **This assumes you use Python 3.12 and gcc13.  You may use different versions (Python must be >=3.12).**:
     ~~~
-    % sudo port install mp-gcc13 python311 py311-ipython pip311 virtualenv311 virtualenvwrapper311
+    % sudo port install mp-gcc13 python312 py312-ipython pip312 virtualenv312 virtualenvwrapper312
     % sudo port select --set gcc mp-gcc13
-    % sudo port select --set python python311
-    % sudo port select --set virtualenv virtualenv311
-    % sudo port select --set  virtualenvwrapper virtualenvwrapper311
+    % sudo port select --set python python312
+    % sudo port select --set virtualenv virtualenv312
+    % sudo port select --set  virtualenvwrapper virtualenvwrapper312
     % sudo port install pgplot cfitsio gsl glib2 fftw-3 fftw-3-single
     ~~~
 - tempo2 (only needed for polycos) is available from conda-forge for both osx-64 and osx-arm64.
