@@ -13,7 +13,7 @@
 schema_version: 1
 
 context:
-  version: "6.0.1"
+  version: "6.2.0"
 
 package:
   # 'presto' is taken on bioconda by an unrelated tool (immcantation's
@@ -25,11 +25,16 @@ package:
 
 source:
   - url: https://github.com/scottransom/presto/archive/refs/tags/v${{ version }}.tar.gz
-    sha256: 953f4f709091f1d86c71ff4838e6469781e8a98984e2c5bca11e029bbeb9e407
+    sha256: 67ff5aa00049a19912a667cc3ce1dad5fe8537334ff0a3bb195c6477f51c0998
 
 build:
   number: 0
-  skip: win
+  # PRESTO needs Python >=3.12 (python/pyproject.toml).  Skip older variants
+  # rather than constrain python in host/run, which would drop it from the
+  # build variant and build one unpinned package for every python job.
+  skip:
+    - win
+    - match(python, "<3.12")
 
 requirements:
   build:
@@ -39,7 +44,7 @@ requirements:
     - ninja
     - pkgconf
   host:
-    - python >=3.12
+    - python
     - pip
     # the 'mesonpy' PEP517 backend must import under the host python
     - meson-python
@@ -73,7 +78,7 @@ requirements:
     - libblas
     - libcblas
   run:
-    - python >=3.12
+    - python
     - scipy
     - astropy-base
     - matplotlib-base
