@@ -14,6 +14,8 @@ typedef struct s_Cmdline {
   int ncpusP;
   int ncpus;
   int ncpusC;
+  /***** -deep: Deep pass for slow, very narrow pulses: -nharms 120 -maxdecim 12 -hifreq 5 unless those are given, writing <input>_deep.cohout */
+  int deepP;
   /***** -threshold: S/N cutoff for candidates */
   int thresholdP;
   double threshold;
@@ -64,6 +66,8 @@ typedef struct s_Cmdline {
   int noremoveP;
   /***** -noharmremove: Do not collapse harmonically related candidates */
   int noharmremoveP;
+  /***** -noperiodic: Keep candidates whose profile is dominated by one high harmonic (harmonic 7 or above, with over 8x the power of each of harmonics 1-4) */
+  int noperiodicP;
   /***** -blocksize: Trial fundamentals per chunk */
   int blocksizeP;
   int blocksize;
@@ -76,10 +80,8 @@ typedef struct s_Cmdline {
   int outdirP;
   char *outdir;
   int outdirC;
-  /***** -plot: Plot the candidates' pulse profiles to <input>_cohout.ps */
+  /***** -plot: Plot the candidates' pulse profiles to <input>_cohout.ps (and, with Ghostscript, to <input>_cohout_01.png, _02.png, ...) */
   int plotP;
-  /***** -plotpng: Also render the plots as PNG pages (<input>_cohout_01.png, _02.png, ...) with Ghostscript */
-  int plotpngP;
   /***** -replot: Do not search: plot the candidates already in <input>.cohout */
   int replotP;
   /***** -noprogress: Do not print a progress meter */

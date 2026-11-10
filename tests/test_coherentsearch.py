@@ -364,7 +364,7 @@ def test_c_threads_deterministic(tmp_path):
 
 
 def test_c_plots(tmp_path):
-    """-plotpng writes the .ps plus (via Ghostscript) one PNG per 15 candidates, and
+    """-plot writes the .ps plus (via Ghostscript) one PNG per 15 candidates, and
     -replot redraws them from the .cohout without searching again."""
     exe = _cs_dump().parent / "coherentsearch"
     for ext in (".fft", ".inf"):
@@ -372,7 +372,7 @@ def test_c_plots(tmp_path):
             (HERE / f"synth_cs{ext}").read_bytes()
         )
     args = [str(exe), "-noprogress", "-ncpus", "2", "-threshold", "6", "-noharmremove"]
-    subprocess.run([*args, "-plotpng", "synth_cs.fft"], cwd=tmp_path, check=True)
+    subprocess.run([*args, "-plot", "synth_cs.fft"], cwd=tmp_path, check=True)
     ncand = sum(
         1
         for ln in (tmp_path / "synth_cs.cohout").read_text().splitlines()
@@ -444,3 +444,133 @@ def test_c_known_pulsar(tmp_path):
     )
     assert "1 of them match known pulsars" in res.stderr
     assert (tmp_path / "known_cohout.ps").is_file()
+
+
+def test_c_remove_periodic(tmp_path):
+    """A strong sinusoid lands on high harmonics of slow trials, which fold it into
+    combs of identical peaks; those are dropped (and counted) unless -noperiodic."""
+    exe = _cs_dump().parent / "coherentsearch"
+    n, dt, r0 = 2**18, 1e-3, 6000
+    rng = np.random.default_rng(20261110)
+    amps = (rng.standard_normal(n // 2) + 1j * rng.standard_normal(n // 2)) / np.sqrt(2)
+    amps[r0] += np.sqrt(3000.0)  # a sinusoid at 22.89 Hz, power 3000
+    amps[0] = 0.0
+    amps.astype(np.complex64).tofile(tmp_path / "comb.fft")
+    (tmp_path / "comb.inf").write_text(
+        " Data file name without suffix          =  comb\n"
+        " Telescope used                         =  None (Artificial Data Set)\n"
+        f" Number of bins in the time series      =  {n}\n"
+        f" Width of each time series bin (sec)    =  {dt}\n"
+        " Any breaks in the data? (1 yes, 0 no)  =  0\n"
+        " Data analyzed by                       =  test_coherentsearch.py\n"
+        " Any additional notes:\n"
+        "    White noise plus one strong sinusoid.\n"
+    )
+    # 0.3-1.5 Hz puts the sinusoid on harmonics 16-76 of the slowest fundamentals.
+    args = [str(exe), "-noprogress", "-lofreq", "0.3", "-hifreq", "1.5"]
+
+    def search(*extra: str) -> tuple[list[list[str]], str]:
+        res = subprocess.run(
+            [*args, *extra, "comb.fft"],
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        rows = [
+            ln.split()
+            for ln in (tmp_path / "comb.cohout").read_text().splitlines()
+            if not ln.startswith("#")
+        ]
+        return rows, res.stderr
+
+    kept, err = search()
+    every, _ = search("-noperiodic")
+    combs = [r for r in every if int(r[4]) == 60]
+    assert len(combs) >= 4, every  # measured 6
+    assert not any(int(r[4]) == 60 for r in kept), kept
+    assert f"{len(every) - len(kept)} removed as periodic" in err, err
+    # f0/3 (folded with 10 harmonics; its strongest is the 3rd) is not a comb.
+    assert any(abs(float(r[2]) * 3 - r0 / (n * dt)) < 1e-3 for r in kept), kept
+
+
+def test_c_deep(tmp_path):
+    """-deep sets -nharms 120 -maxdecim 12 -hifreq 5 unless they are given, and
+    writes <input>_deep.cohout beside (not over) the default search's file."""
+    exe = _cs_dump().parent / "coherentsearch"
+    for ext in (".fft", ".inf"):
+        (tmp_path / f"synth_cs{ext}").write_bytes(
+            (HERE / f"synth_cs{ext}").read_bytes()
+        )
+
+    def header(*extra: str) -> str:
+        res = subprocess.run(
+            [str(exe), "-noprogress", *extra, "synth_cs.fft"],
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        return res.stderr.splitlines()[0]
+
+    assert header("-deep").endswith(
+        "deep pass, 120 harmonics, k = 1..12, 0.1000-5.0000 Hz"
+    )
+    assert (tmp_path / "synth_cs_deep.cohout").is_file()
+    assert not (tmp_path / "synth_cs.cohout").exists()
+    # Explicit options win, in either order.
+    assert header("-hifreq", "8", "-deep", "-maxdecim", "4").endswith(
+        "deep pass, 120 harmonics, k = 1..4, 0.1000-8.0000 Hz"
+    )
+    assert header("-deep", "-nharms", "60").endswith(
+        "deep pass, 60 harmonics, k = 1..12, 0.1000-5.0000 Hz"
+    )
+    # The last (-hifreq 5) run still finds the synthetic 6.1153 Hz pulsar, at
+    # decimation k >= 2.
+    rows = [
+        ln.split()
+        for ln in (tmp_path / "synth_cs_deep.cohout").read_text().splitlines()
+        if not ln.startswith("#")
+    ]
+    assert any(abs(float(r[2]) - 6.1153) < 1e-3 for r in rows), rows
+
+
+def test_c_deep_after_default(tmp_path):
+    """A -deep pass drops candidates harmonically related to stronger ones in the
+    default search's .cohout (here the 88.84 Hz pulsar's subharmonic at 44.42 Hz),
+    and says so when there is no such file yet."""
+    exe = _cs_dump().parent / "coherentsearch"
+    for ext in (".fft", ".inf"):
+        (tmp_path / f"synth_cs{ext}").write_bytes(
+            (HERE / f"synth_cs{ext}").read_bytes()
+        )
+
+    def search(*extra: str) -> str:
+        return subprocess.run(
+            [str(exe), "-noprogress", *extra, "synth_cs.fft"],
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stderr
+
+    def freqs(name: str) -> list[float]:
+        return [
+            float(ln.split()[2])
+            for ln in (tmp_path / name).read_text().splitlines()
+            if not ln.startswith("#")
+        ]
+
+    def has(fs: list[float], f0: float) -> bool:
+        return any(abs(f - f0) < 1e-3 for f in fs)
+
+    err = search("-deep")
+    assert "NOTE: no synth_cs.cohout from a default search" in err, err
+    assert has(freqs("synth_cs_deep.cohout"), 44.4214)
+    search()
+    assert has(freqs("synth_cs.cohout"), 88.8414)
+    err = search("-deep")
+    assert "removed as harmonics of stronger candidates in synth_cs.cohout" in err, err
+    deep = freqs("synth_cs_deep.cohout")
+    assert not has(deep, 44.4214), deep
+    assert has(deep, 6.1153), deep  # the deep fold beats the default one here

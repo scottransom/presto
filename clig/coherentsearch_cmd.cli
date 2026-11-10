@@ -12,6 +12,7 @@ Commandline full_cmd_line
 
 Int -ncpus   ncpus      {Number of processors to use with OpenMP} \
 	-r 1 oo  -d 1
+Flag -deep deep         {Deep pass for slow, very narrow pulses: -nharms 120 -maxdecim 12 -hifreq 5 unless those are given, writing <input>_deep.cohout}
 Double -threshold threshold {S/N cutoff for candidates} \
 	-r 0.0 oo  -d 8.0
 Int -nharms  nharms     {Number of harmonics to sum coherently (60 is divisible by 2-6, so it decimates evenly)} \
@@ -37,12 +38,12 @@ Int -numharm numharm    {Highest harmonic number when collapsing harmonically re
 	-r 1 1024  -d 16
 Flag -noremove noremove {Do not collapse near-identical candidates}
 Flag -noharmremove noharmremove {Do not collapse harmonically related candidates}
+Flag -noperiodic noperiodic {Keep candidates whose profile is dominated by one high harmonic (harmonic 7 or above, with over 8x the power of each of harmonics 1-4)}
 Int -blocksize blocksize {Trial fundamentals per chunk} \
 	-r 1 oo  -d 2048
 String -o outfile       {Output candidate file name (single input file only; default: <input>.cohout beside it)}
 String -outdir outdir   {Write each <input>.cohout into this directory instead}
-Flag -plot plot         {Plot the candidates' pulse profiles to <input>_cohout.ps}
-Flag -plotpng plotpng   {Also render the plots as PNG pages (<input>_cohout_01.png, _02.png, ...) with Ghostscript}
+Flag -plot plot         {Plot the candidates' pulse profiles to <input>_cohout.ps (and, with Ghostscript, to <input>_cohout_01.png, _02.png, ...)}
 Flag -replot replot     {Do not search: plot the candidates already in <input>.cohout}
 Flag -noprogress noprogress {Do not print a progress meter}
 Flag -verbose verbose   {Report the trial grid and chunking before searching}
@@ -98,7 +99,13 @@ equally deterministic.
 Candidates above
 .B -threshold
 are collapsed (near-identical frequencies, then harmonically related
-ones), and the strongest
+ones).  Those whose refolded profile is dominated by a single high
+harmonic (the strongest is harmonic 7 or above, with over 8 times the
+power of each of harmonics 1 to 4) are then dropped, unless
+.B -noperiodic
+is given.  Such a profile is a comb of identical peaks: almost always a
+strong signal, such as a bright pulsar or its harmonics, landing on a high
+harmonic of a slow trial.  The strongest
 .B -ncands
 are written to
 .IR <input>.cohout ,
@@ -114,11 +121,12 @@ also draws every reported candidate's pulse profile to
 refolded at the
 full
 .B -nharms
-depth with a wide interpolation kernel, 15 to a page;
-.B -plotpng
-also renders those pages as PNGs with Ghostscript
-.RB ( gs ),
-as
+depth with a wide interpolation kernel, 15 to a page.  If Ghostscript
+.RB ( gs )
+is available, those pages are also rendered as PNGs
+.RI ( <input>_cohout_01.png ,
+.IR _02.png ,
+\&...), as
 .BR prepfold (1)
 does.
 .B -replot
@@ -126,12 +134,40 @@ redraws them from an existing
 .I .cohout
 file without searching again.
 .PP
+.B -deep
+runs the deep pass recommended in the paper for slow pulsars with very
+narrow pulses (duty cycles below about 1%), which the default 120-bin
+profiles do not resolve: fundamentals up to 5 Hz folded with 120
+harmonics (240-bin profiles) and decimation factors up to 12.  It costs
+roughly a third as much as the default search.  Any of
+.BR -nharms ,
+.B -maxdecim
+or
+.B -hifreq
+given explicitly overrides the deep value.  Its candidates go to
+.I <input>_deep.cohout
+(and its plots to
+.IR <input>_deep_cohout.ps ),
+so that it can be run beside a default search of the same file; the two
+candidate lists together are the paper's \(lqdefault plus deep pass\(rq
+search.  If that default search's
+.I <input>.cohout
+exists (in the same directory), deep candidates harmonically related to a
+stronger candidate in it are dropped, such as the subharmonics of a
+bright pulsar whose own frequency lies above the deep band (unless
+.B -noharmremove
+is given).  So we
+recommend running
+.B -deep
+after a regular search of the same file.
+.PP
 Example:
 .RS
 .nf
 realfft mypulsar_DM10.00.dat
 rednoise mypulsar_DM10.00.fft
 coherentsearch mypulsar_DM10.00_red.fft
+coherentsearch -deep mypulsar_DM10.00_red.fft
 .fi
 .RE
 }

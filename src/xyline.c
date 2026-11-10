@@ -5,16 +5,11 @@ int nice_output_2(char *output, double val, double err, int len);
 
 void cpgstart_ps(const char *filenm, const char *orientation)
 {
-    char tmp[100];
-    if (0 == strcmp(orientation, "portrait")) {
-        sprintf(tmp, "%s/VCPS", filenm);
-        if (cpgopen(tmp) <= 0)
-            exit(EXIT_FAILURE);
-    } else {
-        sprintf(tmp, "%s/CPS", filenm);
-        if (cpgopen(tmp) <= 0)
-            exit(EXIT_FAILURE);
-    }
+    char *tmp = malloc(strlen(filenm) + 6);
+    sprintf(tmp, "%s/%s", filenm, 0 == strcmp(orientation, "portrait") ? "VCPS" : "CPS");
+    if (cpgopen(tmp) <= 0)
+        exit(EXIT_FAILURE);
+    free(tmp);
 }
 
 void cpgstart_x(const char *orientation)

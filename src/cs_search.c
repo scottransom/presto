@@ -411,6 +411,22 @@ void cs_remove_harmonics(cs_candlist *l, int numharm, double tol)
     stable_sort(l, cmp_freq);
 }
 
+long cs_remove_harmonics_of(cs_candlist *l, const cs_candlist *ref, int numharm, double tol)
+{
+    long nk = 0;
+    for (long i = 0; i < l->n; i++) {
+        int related = 0;
+        for (long j = 0; j < ref->n && !related; j++)
+            related = ref->c[j].metric > l->c[i].metric &&
+                harmonically_related(l->c[i].r, ref->c[j].r, numharm, tol);
+        if (!related)
+            l->c[nk++] = l->c[i];
+    }
+    const long nremoved = l->n - nk;
+    l->n = nk;
+    return nremoved;
+}
+
 /* Exact Fourier interpolation at r with an m-bin kernel, in double
  * (CoherentSearch.jl's fourier_interp). */
 static void interp_exact(const cs_fft *fft, double r, int m, double *re, double *im)
@@ -431,10 +447,12 @@ static void interp_exact(const cs_fft *fft, double r, int m, double *re, double 
     *im = si;
 }
 
-int cs_candidate_profile(const cs_fft *fft, double r, int nharm, double *prof)
+/* The exactly interpolated (m = 64) complex amplitudes of harmonics
+ * 1..nharm of r into xr[h], xi[h], stopping at the first whose kernel
+ * crosses Nyquist or the end of the data.  Returns the last one filled. */
+static int candidate_harmonics(const cs_fft *fft, double r, int nharm, double *xr, double *xi)
 {
     const int m = 64, m2 = m / 2;
-    double *xr = calloc(nharm + 1, sizeof(double)), *xi = calloc(nharm + 1, sizeof(double));
     int H = 0;
     for (int h = 1; h <= nharm; h++) {
         double rh = r * h;
@@ -444,6 +462,13 @@ int cs_candidate_profile(const cs_fft *fft, double r, int nharm, double *prof)
         interp_exact(fft, rh, m, xr + h, xi + h);
         H = h;
     }
+    return H;
+}
+
+int cs_candidate_profile(const cs_fft *fft, double r, int nharm, double *prof)
+{
+    double *xr = calloc(nharm + 1, sizeof(double)), *xi = calloc(nharm + 1, sizeof(double));
+    const int H = candidate_harmonics(fft, r, nharm, xr, xi);
     const int nbins = H >= 1 ? 2 * H : 2;
     /* Inverse real DFT of the stack, DC held at zero (normalised like irfft). */
     for (int i = 0; i < nbins; i++) {
@@ -459,6 +484,40 @@ int cs_candidate_profile(const cs_fft *fft, double r, int nharm, double *prof)
     free(xr);
     free(xi);
     return nbins;
+}
+
+long cs_remove_periodic(const cs_fft *fft, cs_candlist *l, int nlow, int minharm,
+                        double ratio)
+{
+    long nk = 0;
+    for (long i = 0; i < l->n; i++) {
+        const cs_cand *c = l->c + i;
+        int bad = 0;
+        if (c->nharm >= minharm && c->r > 0.0) {
+            double *xr = calloc(c->nharm + 1, sizeof(double));
+            double *xi = calloc(c->nharm + 1, sizeof(double));
+            const int H = candidate_harmonics(fft, c->r, c->nharm, xr, xi);
+            double lowmax = 0.0, topmax = 0.0;
+            int toph = 0;
+            for (int h = 1; h <= H; h++) {
+                const double pw = xr[h] * xr[h] + xi[h] * xi[h];
+                if (h <= nlow && pw > lowmax)
+                    lowmax = pw;
+                if (pw > topmax) {
+                    topmax = pw;
+                    toph = h;
+                }
+            }
+            bad = toph >= minharm && topmax > ratio * lowmax;
+            free(xr);
+            free(xi);
+        }
+        if (!bad)
+            l->c[nk++] = *c;
+    }
+    const long nremoved = l->n - nk;
+    l->n = nk;
+    return nremoved;
 }
 
 /* The width of the best boxcar on a candidate's profile, refolded at its own

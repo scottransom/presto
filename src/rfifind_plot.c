@@ -303,7 +303,9 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
 
         /* Open and prep our device */
 
-        cpgopen(outdev);
+        char *tmpfile, *pgdevice = pgplot_device(outdev, &tmpfile);
+        cpgopen(pgdevice);
+        free(pgdevice);
         cpgpap(10.25, 8.5 / 11.0);
         cpgpage();
         cpgiden();
@@ -1065,6 +1067,7 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
             }
         }
         cpgclos();
+        pgplot_device_done(outdev, &tmpfile);
     }                           /* Plot for loop */
 
     /* Free our arrays */

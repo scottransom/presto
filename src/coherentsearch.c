@@ -3,6 +3,7 @@
  * PRESTO .fft files.  See include/coherentsearch.h and docs/coherentsearch.1.
  */
 #include <errno.h>
+#include <limits.h>
 #include <sys/stat.h>
 #include <time.h>
 #include "coherentsearch.h"
@@ -30,14 +31,26 @@ static char *output_name(const char *infile, const char *outdir, const char *suf
     return out;
 }
 
-/* The candidate file for infile: -o if given, else <input>.cohout. */
+/* The candidate file for infile: -o if given, else <input>.cohout (or
+ * <input>_deep.cohout with -deep). */
 static char *cohout_name(const Cmdline *cmd, const char *infile)
 {
     return cmd->outfileP ? strdup(cmd->outfile)
-                         : output_name(infile, cmd->outdirP ? cmd->outdir : NULL, ".cohout");
+                         : output_name(infile, cmd->outdirP ? cmd->outdir : NULL,
+                                       cmd->deepP ? "_deep.cohout" : ".cohout");
 }
 
-/* Plot l to <candidate file stem>_cohout.ps (or .png). */
+/* Whether option opt was given on the command line (the parser marks options
+ * with defaults as present either way). */
+static int option_given(int argc, char *argv[], const char *opt)
+{
+    for (int i = 1; i < argc && strcmp(argv[i], "--") != 0; i++)
+        if (strcmp(argv[i], opt) == 0)
+            return 1;
+    return 0;
+}
+
+/* Plot l to <candidate file stem>_cohout.ps (and _NN.png, given gs). */
 static void plot(const Cmdline *cmd, const cs_fft *fft, const cs_candlist *l,
                  const cs_params *p, const char *infile)
 {
@@ -47,9 +60,10 @@ static void plot(const Cmdline *cmd, const cs_fft *fft, const cs_candlist *l,
         cohnm[len - 7] = '\0';
     char *stem = malloc(strlen(cohnm) + 16);
     sprintf(stem, "%s_cohout", cohnm);
-    cs_plot_candidates(fft, l, p->nharms, p->threshold, infile, stem, cmd->plotpngP);
-    fprintf(stderr, "  plotted %ld candidates to %s.ps%s\n", l->n, stem,
-            cmd->plotpngP ? " (and _NN.png)" : "");
+    const int ret = cs_plot_candidates(fft, l, p->nharms, p->threshold, infile, stem);
+    if (ret >= 0)
+        fprintf(stderr, "  plotted %ld candidates to %s.ps%s\n", l->n, stem,
+                ret ? " (and _NN.png)" : "");
     free(stem);
     free(cohnm);
 }
@@ -69,6 +83,15 @@ int main(int argc, char *argv[])
         exit(1);
     }
     Cmdline *cmd = parseCmdline(argc, argv);
+    if (cmd->deepP) {
+        /* The deep pass's defaults; explicit options still win. */
+        if (!option_given(argc, argv, "-nharms"))
+            cmd->nharms = CS_DEEP_NHARMS;
+        if (!option_given(argc, argv, "-maxdecim"))
+            cmd->maxdecim = CS_DEEP_MAXDECIM;
+        if (!option_given(argc, argv, "-hifreq"))
+            cmd->hifreq = CS_DEEP_HIFREQ;
+    }
 
     if (cmd->m % 2) {
         fprintf(stderr, "coherentsearch: -m must be even (got %d)\n", cmd->m);
@@ -126,9 +149,9 @@ int main(int argc, char *argv[])
         cs_band band = cs_make_band(&fft, &p, cmd->lofreq, cmd->hifreq,
                                     cmd->lobinP ? cmd->lobin : -1);
         const int nprof = cmd->blocksize;
-        fprintf(stderr, "coherentsearch: %s (T = %.3f s), %d harmonics, k = 1..%d, "
-                "%.4f-%.4f Hz\n", infile, fft.T, p.nharms, p.decims[p.ndecim - 1],
-                band.r_lo / fft.T, band.r_hi / fft.T);
+        fprintf(stderr, "coherentsearch: %s (T = %.3f s), %s%d harmonics, k = 1..%d, "
+                "%.4f-%.4f Hz\n", infile, fft.T, cmd->deepP ? "deep pass, " : "", p.nharms,
+                p.decims[p.ndecim - 1], band.r_lo / fft.T, band.r_hi / fft.T);
 
         cs_hplan *plans = cs_build_plans(&p, band.r_lo);
         if (cmd->verboseP) {
@@ -156,6 +179,28 @@ int main(int argc, char *argv[])
             cs_remove_duplicates(&cands, cmd->drtol);
         if (!cmd->noharmremoveP)
             cs_remove_harmonics(&cands, cmd->numharm, 1.0);
+        const long nperiodic =
+            cmd->noperiodicP ? 0
+                             : cs_remove_periodic(&fft, &cands, CS_PERIODIC_NLOW,
+                                                  CS_PERIODIC_MINHARM, CS_PERIODIC_RATIO);
+        /* A deep pass drops what the default search of the same file already
+         * found more strongly (e.g. a bright pulsar's subharmonics, whose
+         * fundamental is above the deep band). */
+        long ndeepharm = 0;
+        char *refnm = NULL;
+        int have_ref = 0;
+        if (cmd->deepP && !cmd->noharmremoveP) {
+            refnm = output_name(infile, cmd->outdirP ? cmd->outdir : NULL, ".cohout");
+            char *outnm = cohout_name(cmd, infile);
+            have_ref = strcmp(outnm, refnm) != 0 && access(refnm, R_OK) == 0;
+            free(outnm);
+            if (have_ref) {
+                cs_candlist ref = { 0 };
+                cs_read_cohout(refnm, fft.T, LONG_MAX, &ref);
+                ndeepharm = cs_remove_harmonics_of(&cands, &ref, cmd->numharm, 1.0);
+                cs_candlist_free(&ref);
+            }
+        }
         cs_sort_by_metric(&cands);
         if (cands.n > cmd->ncands)
             cands.n = cmd->ncands;
@@ -168,9 +213,21 @@ int main(int argc, char *argv[])
         fclose(out);
         fprintf(stderr, "  %ld trials above S/N %g -> %ld candidates in %s (%.1f s)\n",
                 nraw, p.threshold, cands.n, outnm, seconds_since(&t0));
+        if (nperiodic)
+            fprintf(stderr, "  %ld removed as periodic (one high harmonic dominates; "
+                    "see -noperiodic)\n", nperiodic);
+        if (refnm) {
+            if (have_ref)
+                fprintf(stderr, "  %ld removed as harmonics of stronger candidates in %s\n",
+                        ndeepharm, refnm);
+            else
+                fprintf(stderr, "  NOTE: no %s from a default search to remove harmonics "
+                        "of known candidates (run one before -deep)\n", refnm);
+            free(refnm);
+        }
         if (nknown)
             fprintf(stderr, "  %d of them match known pulsars\n", nknown);
-        if (cmd->plotP || cmd->plotpngP)
+        if (cmd->plotP)
             plot(cmd, &fft, &cands, &p, infile);
         free(outnm);
         cs_candlist_free(&cands);

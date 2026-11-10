@@ -14,22 +14,23 @@
 
 /* Render <stem>.ps into anti-aliased <stem>_01.png, _02.png, ... with
  * Ghostscript, as prepfold does: PGPLOT's own PNG driver draws poorly (no
- * anti-aliasing, a black background).  The PNGs are a convenience, so a
- * missing or failing gs is only noted. */
-static void ps_to_png(const char *stem)
+ * anti-aliasing, a black background).  The PNGs are a convenience, so
+ * without gs they are quietly skipped, and a failing gs is only noted.
+ * Returns 1 if the PNGs were written. */
+static int ps_to_png(const char *stem)
 {
-    if (system("gs --version > /dev/null 2>&1") != 0) {
-        fprintf(stderr, "coherentsearch: no Ghostscript ('gs'), so no PNGs (the .ps is fine)\n");
-        return;
-    }
+    if (system("gs --version > /dev/null 2>&1") != 0)
+        return 0;
     char *cmd = malloc(2 * strlen(stem) + 200);
     sprintf(cmd, "gs -q -dSAFER -dBATCH -dNOPAUSE -sDEVICE=png16m -r150 "
             "-dTextAlphaBits=4 -dGraphicsAlphaBits=4 -sOutputFile='%s_%%02d.png' '%s.ps' "
             "> /dev/null 2>&1", stem, stem);
-    if (system(cmd))
+    const int ok = system(cmd) == 0;
+    if (!ok)
         fprintf(stderr, "coherentsearch: gs failed to render the PNGs (the .ps is fine).  "
                 "On Ubuntu this is often the AppArmor 'gs' profile; see FAQ.md.\n");
     free(cmd);
+    return ok;
 }
 
 /* Circularly shift prof so that its maximum lands on bin n/2 (phase 0.5). */
@@ -44,16 +45,23 @@ static void rotate_to_peak(const double *prof, int n, float *out)
         out[((i + shift) % n + n) % n] = (float) prof[i];
 }
 
-void cs_plot_candidates(const cs_fft *fft, const cs_candlist *l, int nharms, double threshold,
-                        const char *fftname, const char *stem, int png)
+int cs_plot_candidates(const cs_fft *fft, const cs_candlist *l, int nharms, double threshold,
+                       const char *fftname, const char *stem)
 {
     if (l->n == 0)
-        return;
-    char device[4096];
-    snprintf(device, sizeof(device), "%s.ps/VCPS", stem);
+        return 0;
+    char *psdev = malloc(strlen(stem) + 9), *tmpfile;
+    sprintf(psdev, "%s.ps/VCPS", stem);
+    char *device = pgplot_device(psdev, &tmpfile);
     if (cpgopen(device) <= 0) {
         fprintf(stderr, "coherentsearch: could not open PGPLOT device '%s'\n", device);
-        return;
+        if (tmpfile) {
+            unlink(tmpfile);
+            free(tmpfile);
+        }
+        free(device);
+        free(psdev);
+        return -1;
     }
     cpgask(0);
     cpgpap(8.0, 11.0 / 8.5);
@@ -140,9 +148,13 @@ void cs_plot_candidates(const cs_fft *fft, const cs_candlist *l, int nharms, dou
         }
     }
     cpgclos();
-    if (png)
-        ps_to_png(stem);
+    int ret = pgplot_device_done(psdev, &tmpfile);
+    if (ret == 0)
+        ret = ps_to_png(stem);
+    free(device);
+    free(psdev);
     free(prof);
     free(x);
     free(y);
+    return ret;
 }

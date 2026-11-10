@@ -306,7 +306,7 @@ dependency (Highway), and C++ in the build for the first time.
      run. Wisdom makes the transforms 1.8x faster.
    - **Plots:** `-plot` draws PGPLOT pages of the candidates' profiles, refolded at full
      depth with an m = 64 kernel, 15 to a portrait page; this is `src/cs_plot.c`.
-     `-plotpng` renders the PostScript into PNGs with Ghostscript, as prepfold does,
+     When Ghostscript is available it also renders the PostScript into PNGs, as prepfold does,
      because PGPLOT's PNG driver draws poorly (and valgrind finds uninitialised reads
      inside it). `-replot` redraws from an existing `.cohout`, which stands in for a
      separate replot tool.

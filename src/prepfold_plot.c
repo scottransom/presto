@@ -643,9 +643,12 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
         if (ct == 1)
             strcpy(search->pgdev, "/XWIN");
 
-        /* Open and prep our device */
+        /* Open and prep our device (via a short temporary file if the
+           name is too long for PGPLOT) */
 
-        cpgopen(search->pgdev);
+        char *tmpfile, *pgdevice = pgplot_device(search->pgdev, &tmpfile);
+        cpgopen(pgdevice);
+        free(pgdevice);
         if (!flags->justprofs) {
             cpgpap(10.25, 8.5 / 11.0);
             cpgpage();
@@ -1284,6 +1287,7 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
             }
         }
         cpgclos();
+        pgplot_device_done(search->pgdev, &tmpfile);
         if (ct == 0) {
             // Convert the .ps into a nice anti-aliased .png.
             //

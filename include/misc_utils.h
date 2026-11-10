@@ -190,6 +190,22 @@ double sphere_ang_diff(double ra1, double dec1, double ra2, double dec2);
 double mjd_sec_diff(int int1, double frac1, int int2, double frac2);
 /* Return the difference in seconds between two MJDs (1 - 2) */
 
+int move_file(const char *from, const char *to);
+/* Move (rename) file 'from' to 'to', copying it if they are on       */
+/* different filesystems.  Returns 0 on success, -1 (errno set).      */
 
+/* PGPLOT keeps at most this many characters of a plot's file name    */
+/* and silently drops the rest.                                       */
+#define PGPLOT_MAXFILENM 90
 
+char *pgplot_device(const char *device, char **tmpfile);
+/* Return a malloc'd copy of the PGPLOT 'device' ("file/TYPE") to     */
+/* pass to cpgopen().  If its file name is too long for PGPLOT, the   */
+/* copy names a short temporary file instead, whose name goes in      */
+/* *tmpfile (else *tmpfile = NULL).  After cpgclos(), call            */
+/* pgplot_device_done() to move it to the name 'device' gives.        */
 
+int pgplot_device_done(const char *device, char **tmpfile);
+/* Move *tmpfile (from pgplot_device()) to the file named in 'device' */
+/* and free it.  Does nothing if *tmpfile is NULL.  Returns 0, or -1  */
+/* (with a message) if the move failed.                               */

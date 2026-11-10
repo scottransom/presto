@@ -1,4 +1,6 @@
 #include <ctype.h>
+#include <errno.h>
+#include <sys/stat.h>
 #include "misc_utils.h"
 #include <erfa.h>
 #include <erfam.h>
@@ -1083,4 +1085,85 @@ long deredden_file(FILE * infile, FILE * outfile, long numbins, int startwidth,
     ctx.rpos = ctx.wpos = 0;
     return dered_engine(&ctx, dered_file_read, dered_file_write,
                         startwidth, endwidth, endfreq, T);
+}
+
+
+/* ---- PGPLOT file devices with long names ---------------------------------
+ * PGPLOT keeps at most PGPLOT_MAXFILENM characters of a device's file name
+ * and silently drops the rest, so a plot either lands under a truncated name
+ * or (if that names a directory) fails to open.  For longer names, plot to a
+ * short temporary file and move it into place after cpgclos(). */
+
+int move_file(const char *from, const char *to)
+{
+    if (rename(from, to) == 0)
+        return 0;
+    if (errno != EXDEV)
+        return -1;
+    /* Different filesystems: copy, then remove the original. */
+    FILE *in = fopen(from, "rb");
+    FILE *out = in ? fopen(to, "wb") : NULL;
+    int err = !in || !out;
+    char buf[65536];
+    size_t nr;
+    while (!err && (nr = fread(buf, 1, sizeof(buf), in)) > 0)
+        err = fwrite(buf, 1, nr, out) != nr;
+    if (in) {
+        err |= ferror(in);
+        fclose(in);
+    }
+    if (out && fclose(out))
+        err = 1;
+    if (err)
+        return -1;
+    unlink(from);
+    return 0;
+}
+
+char *pgplot_device(const char *device, char **tmpfile)
+{
+    *tmpfile = NULL;
+    const char *slash = strrchr(device, '/');
+    const size_t flen = slash ? (size_t) (slash - device) : 0;
+    if (flen <= PGPLOT_MAXFILENM)       /* also "/XWIN" etc.: no file at all */
+        return strdup(device);
+    /* A short directory for the temporary file: $TMPDIR if it is short. */
+    const char *dir = getenv("TMPDIR");
+    if (!dir || !dir[0] || strlen(dir) > PGPLOT_MAXFILENM - 20)
+        dir = "/tmp";
+    char *tmp = malloc(strlen(dir) + 20);
+    sprintf(tmp, "%s/pgplot_XXXXXX", dir);
+    int fd = mkstemp(tmp);
+    if (fd < 0) {
+        perror("pgplot_device: mkstemp");
+        free(tmp);
+        return strdup(device);
+    }
+    close(fd);
+    /* mkstemp made it 0600: give it the mode an ordinary new file gets. */
+    const mode_t mask = umask(0);
+    umask(mask);
+    chmod(tmp, 0666 & ~mask);
+    char *dev = malloc(strlen(tmp) + strlen(slash) + 1);
+    sprintf(dev, "%s%s", tmp, slash);
+    *tmpfile = tmp;
+    return dev;
+}
+
+int pgplot_device_done(const char *device, char **tmpfile)
+{
+    if (!*tmpfile)
+        return 0;
+    const char *slash = strrchr(device, '/');
+    char *filenm = strndup(device, slash - device);
+    int ret = move_file(*tmpfile, filenm);
+    if (ret) {
+        fprintf(stderr, "Error: could not move the plot '%s' to '%s': %s\n", *tmpfile,
+                filenm, strerror(errno));
+        unlink(*tmpfile);
+    }
+    free(filenm);
+    free(*tmpfile);
+    *tmpfile = NULL;
+    return ret;
 }

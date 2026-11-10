@@ -280,6 +280,24 @@ void cs_remove_duplicates(cs_candlist *l, double dr_tol);
 /* Drop candidates harmonically related (ratios n/m, m,n <= numharm, within
  * tol bins) to a stronger one; leaves the list sorted by frequency. */
 void cs_remove_harmonics(cs_candlist *l, int numharm, double tol);
+/* Drop candidates whose refolded profile (cs_candidate_profile's harmonics)
+ * is dominated by one high harmonic: its strongest harmonic is number minharm
+ * or above and has more than ratio times the power of the strongest of
+ * harmonics 1..nlow (so of each of them: one harmonic zapped by RFI excision
+ * cannot trigger it).  These are almost always a strong signal (a bright
+ * pulsar's fundamental or harmonics, or RFI) landing on a high harmonic of a
+ * slow trial, which folds into a profile of many identical peaks.  Keeps the
+ * list's order; returns the number dropped. */
+long cs_remove_periodic(const cs_fft *fft, cs_candlist *l, int nlow, int minharm,
+                        double ratio);
+#define CS_PERIODIC_NLOW 4
+#define CS_PERIODIC_MINHARM 7
+#define CS_PERIODIC_RATIO 8.0
+/* Drop candidates of l harmonically related (as in cs_remove_harmonics, an
+ * identical frequency included) to a stronger candidate of ref, typically the
+ * default search's list when l is a -deep pass's.  Keeps the list's order;
+ * returns the number dropped. */
+long cs_remove_harmonics_of(cs_candlist *l, const cs_candlist *ref, int numharm, double tol);
 /* Sort strongest first (stable). */
 void cs_sort_by_metric(cs_candlist *l);
 /* A candidate's pulse profile: the first nharm harmonics of r (stopping at
@@ -299,11 +317,13 @@ void cs_write_cohout(const cs_candlist *l, FILE *f);
 void cs_read_cohout(const char *filenm, double T, long maxcands, cs_candlist *l);
 
 /* Plot the candidates' profiles (best first, as in l), 3 x 5 per portrait
- * page, to <stem>.ps and, with png, also to <stem>_01.png, _02.png, ...
- * (rendered from the .ps by Ghostscript, if it is available).
- * fftname labels the pages; profiles are folded with nharms harmonics.
- * (cs_plot.c, PGPLOT) */
-void cs_plot_candidates(const cs_fft *fft, const cs_candlist *l, int nharms, double threshold,
-                        const char *fftname, const char *stem, int png);
+ * page, to <stem>.ps and, if Ghostscript is available, render that to
+ * <stem>_01.png, _02.png, ...  fftname labels the pages; profiles are folded
+ * with nharms harmonics.  A <stem>.ps name too long for PGPLOT is drawn to a
+ * temporary file and moved into place (pgplot_device() in misc_utils.c).
+ * Returns 1 if the .ps and PNGs were written, 0 for the .ps alone, and -1 if
+ * the plot could not be written.  (cs_plot.c, PGPLOT) */
+int cs_plot_candidates(const cs_fft *fft, const cs_candlist *l, int nharms, double threshold,
+                       const char *fftname, const char *stem);
 
 #endif

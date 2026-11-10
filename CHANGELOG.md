@@ -1,4 +1,11 @@
 ## Development (unreleased, since v6.1.2):
+ * **`prepfold` and `rfifind` plots work with long output names.**  PGPLOT keeps only
+   the first 90 characters of a plot's file name and silently drops the rest, so a long
+   `-o` path (or a deep output directory) wrote the `.ps` under a truncated name, or
+   failed outright when the truncated name was a directory.  Such plots are now drawn to
+   a short temporary file and moved into place (`pgplot_device()` in `misc_utils.c`),
+   as are `coherentsearch`'s.  `cpgstart_ps()` (used by `window`, `psrorbit` and
+   `plotbincand`) no longer overflows a 100-byte stack buffer on long names.
  * **New program `coherentsearch`** (in development on the `coherent-search` branch): a
    coherent harmonic-summing search of normalised `.fft` files, ported to C from
    CoherentSearch.jl (Ransom 2026, arXiv:2610.11749).  It interpolates every harmonic's
@@ -6,13 +13,22 @@
    with boxcar matched filters, with harmonic decimation (`-maxdecim`) folding fewer
    harmonics at multiples of each trial for almost nothing extra.  Candidates go to
    `<input>.cohout`, the format CoherentSearch.jl writes.  `-ncpus` runs chunks in
-   parallel with output identical for any thread count, `-plot`/`-plotpng` draw the
-   candidates' pulse profiles (`-replot` redraws them from a `.cohout`), and `makewisdom`
+   parallel with output identical for any thread count, `-plot` draws the
+   candidates' pulse profiles to PostScript and, if Ghostscript is available, PNGs
+   (`-replot` redraws them from a `.cohout`), and `makewisdom`
    now also stores FFTW plans for its transforms.  On the synthetic test file its
    `.cohout` is byte-identical to the Julia code's, and `tests/test_coherentsearch.py`
    pins every stage to numbers from the Julia package.  Candidates matching a known
    pulsar near the pointing (PRESTO's pulsar database, as in accelsearch) are labelled
-   in the `.cohout` and the plots.
+   in the `.cohout` and the plots.  Candidates whose profile is a comb of identical
+   peaks (the strongest harmonic is the 7th or higher, with over 8x the power of each of
+   harmonics 1-4: usually a bright pulsar landing on a high harmonic of a slow trial)
+   are dropped and counted, unless `-noperiodic` is given.  `-deep` runs the paper's
+   deep pass for slow pulsars with very narrow pulses (`-nharms 120 -maxdecim 12
+   -hifreq 5`, any of which can still be given explicitly) into `<input>_deep.cohout`,
+   beside the default search's file, and `makewisdom` now plans its transforms too.
+   Run after a default search, it drops candidates harmonically related to stronger ones
+   in that search's `.cohout` (such as subharmonics of a bright pulsar above its band).
  * `comp_psr_to_cand()` (the known-pulsar check behind accelsearch's candidate notes) no
    longer caches the observation's position keyed on the `infodata` pointer, which would
    have matched every file after the first against the first file's position whenever a

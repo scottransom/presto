@@ -25,6 +25,8 @@ static Cmdline cmd = {
     /* ncpusP = */ 1,
     /* ncpus = */ 1,
     /* ncpusC = */ 1,
+    /***** -deep: Deep pass for slow, very narrow pulses: -nharms 120 -maxdecim 12 -hifreq 5 unless those are given, writing <input>_deep.cohout */
+    /* deepP = */ 0,
     /***** -threshold: S/N cutoff for candidates */
     /* thresholdP = */ 1,
     /* threshold = */ 8.0,
@@ -75,6 +77,8 @@ static Cmdline cmd = {
     /* noremoveP = */ 0,
     /***** -noharmremove: Do not collapse harmonically related candidates */
     /* noharmremoveP = */ 0,
+    /***** -noperiodic: Keep candidates whose profile is dominated by one high harmonic (harmonic 7 or above, with over 8x the power of each of harmonics 1-4) */
+    /* noperiodicP = */ 0,
     /***** -blocksize: Trial fundamentals per chunk */
     /* blocksizeP = */ 1,
     /* blocksize = */ 2048,
@@ -87,10 +91,8 @@ static Cmdline cmd = {
     /* outdirP = */ 0,
     /* outdir = */ NULL,
     /* outdirC = */ 0,
-    /***** -plot: Plot the candidates' pulse profiles to <input>_cohout.ps */
+    /***** -plot: Plot the candidates' pulse profiles to <input>_cohout.ps (and, with Ghostscript, to <input>_cohout_01.png, _02.png, ...) */
     /* plotP = */ 0,
-    /***** -plotpng: Also render the plots as PNG pages (<input>_cohout_01.png, _02.png, ...) with Ghostscript */
-    /* plotpngP = */ 0,
     /***** -replot: Do not search: plot the candidates already in <input>.cohout */
     /* replotP = */ 0,
     /***** -noprogress: Do not print a progress meter */
@@ -306,6 +308,13 @@ void showOptionValues(void)
         }
     }
 
+    /***** -deep: Deep pass for slow, very narrow pulses: -nharms 120 -maxdecim 12 -hifreq 5 unless those are given, writing <input>_deep.cohout */
+    if (!cmd.deepP) {
+        printf("-deep not found.\n");
+    } else {
+        printf("-deep found:\n");
+    }
+
     /***** -threshold: S/N cutoff for candidates */
     if (!cmd.thresholdP) {
         printf("-threshold not found.\n");
@@ -459,6 +468,13 @@ void showOptionValues(void)
         printf("-noharmremove found:\n");
     }
 
+    /***** -noperiodic: Keep candidates whose profile is dominated by one high harmonic (harmonic 7 or above, with over 8x the power of each of harmonics 1-4) */
+    if (!cmd.noperiodicP) {
+        printf("-noperiodic not found.\n");
+    } else {
+        printf("-noperiodic found:\n");
+    }
+
     /***** -blocksize: Trial fundamentals per chunk */
     if (!cmd.blocksizeP) {
         printf("-blocksize not found.\n");
@@ -495,18 +511,11 @@ void showOptionValues(void)
         }
     }
 
-    /***** -plot: Plot the candidates' pulse profiles to <input>_cohout.ps */
+    /***** -plot: Plot the candidates' pulse profiles to <input>_cohout.ps (and, with Ghostscript, to <input>_cohout_01.png, _02.png, ...) */
     if (!cmd.plotP) {
         printf("-plot not found.\n");
     } else {
         printf("-plot found:\n");
-    }
-
-    /***** -plotpng: Also render the plots as PNG pages (<input>_cohout_01.png, _02.png, ...) with Ghostscript */
-    if (!cmd.plotpngP) {
-        printf("-plotpng not found.\n");
-    } else {
-        printf("-plotpng found:\n");
     }
 
     /***** -replot: Do not search: plot the candidates already in <input>.cohout */
@@ -544,11 +553,12 @@ void showOptionValues(void)
 
 void usage(void)
 {
-    fputs("   [-ncpus ncpus] [-threshold threshold] [-nharms nharms] [-maxdecim maxdecim] [-lofreq lofreq] [-lobin lobin] [-hifreq hifreq] [-hidr hidr] [-m m] [-measuredsigma] [-ncands ncands] [-drtol drtol] [-numharm numharm] [-noremove] [-noharmremove] [-blocksize blocksize] [-o outfile] [-outdir outdir] [-plot] [-plotpng] [-replot] [-noprogress] [-verbose] [--] infile ...\n", stderr);
+    fputs("   [-ncpus ncpus] [-deep] [-threshold threshold] [-nharms nharms] [-maxdecim maxdecim] [-lofreq lofreq] [-lobin lobin] [-hifreq hifreq] [-hidr hidr] [-m m] [-measuredsigma] [-ncands ncands] [-drtol drtol] [-numharm numharm] [-noremove] [-noharmremove] [-noperiodic] [-blocksize blocksize] [-o outfile] [-outdir outdir] [-plot] [-replot] [-noprogress] [-verbose] [--] infile ...\n", stderr);
     fputs("      Search normalised FFTs for pulsars by coherently summing many harmonics and scoring the folded profiles with boxcar matched filters.\n", stderr);
     fputs("            -ncpus: Number of processors to use with OpenMP\n", stderr);
     fputs("                    1 int value between 1 and oo\n", stderr);
     fputs("                    default: `1'\n", stderr);
+    fputs("             -deep: Deep pass for slow, very narrow pulses: -nharms 120 -maxdecim 12 -hifreq 5 unless those are given, writing <input>_deep.cohout\n", stderr);
     fputs("        -threshold: S/N cutoff for candidates\n", stderr);
     fputs("                    1 double value between 0.0 and oo\n", stderr);
     fputs("                    default: `8.0'\n", stderr);
@@ -584,6 +594,7 @@ void usage(void)
     fputs("                    default: `16'\n", stderr);
     fputs("         -noremove: Do not collapse near-identical candidates\n", stderr);
     fputs("     -noharmremove: Do not collapse harmonically related candidates\n", stderr);
+    fputs("       -noperiodic: Keep candidates whose profile is dominated by one high harmonic (harmonic 7 or above, with over 8x the power of each of harmonics 1-4)\n", stderr);
     fputs("        -blocksize: Trial fundamentals per chunk\n", stderr);
     fputs("                    1 int value between 1 and oo\n", stderr);
     fputs("                    default: `2048'\n", stderr);
@@ -591,14 +602,13 @@ void usage(void)
     fputs("                    1 char* value\n", stderr);
     fputs("           -outdir: Write each <input>.cohout into this directory instead\n", stderr);
     fputs("                    1 char* value\n", stderr);
-    fputs("             -plot: Plot the candidates' pulse profiles to <input>_cohout.ps\n", stderr);
-    fputs("          -plotpng: Also render the plots as PNG pages (<input>_cohout_01.png, _02.png, ...) with Ghostscript\n", stderr);
+    fputs("             -plot: Plot the candidates' pulse profiles to <input>_cohout.ps (and, with Ghostscript, to <input>_cohout_01.png, _02.png, ...)\n", stderr);
     fputs("           -replot: Do not search: plot the candidates already in <input>.cohout\n", stderr);
     fputs("       -noprogress: Do not print a progress meter\n", stderr);
     fputs("          -verbose: Report the trial grid and chunking before searching\n", stderr);
     fputs("            infile: Input '.fft' file(s), each with a matching '.inf' file.  They should be normalised (e.g. by rednoise) so that Fourier powers have mean 1\n", stderr);
     fputs("                    1...16384 values\n", stderr);
-    fputs("  CLI code generated: 09Nov26\n", stderr);
+    fputs("  CLI code generated: 10Nov26\n", stderr);
     fputs("  ", stderr);
     exit(EXIT_FAILURE);
 }
@@ -625,6 +635,11 @@ Cmdline *parseCmdline(int argc, char **argv)
             i = getIntOpt(argc, argv, i, &cmd.ncpus, 1);
             cmd.ncpusC = i - keep;
             checkIntHigher("-ncpus", &cmd.ncpus, cmd.ncpusC, 1);
+            continue;
+        }
+
+        if (0 == strcmp("-deep", argv[i])) {
+            cmd.deepP = 1;
             continue;
         }
 
@@ -746,6 +761,11 @@ Cmdline *parseCmdline(int argc, char **argv)
             continue;
         }
 
+        if (0 == strcmp("-noperiodic", argv[i])) {
+            cmd.noperiodicP = 1;
+            continue;
+        }
+
         if (0 == strcmp("-blocksize", argv[i])) {
             int keep = i;
             cmd.blocksizeP = 1;
@@ -773,11 +793,6 @@ Cmdline *parseCmdline(int argc, char **argv)
 
         if (0 == strcmp("-plot", argv[i])) {
             cmd.plotP = 1;
-            continue;
-        }
-
-        if (0 == strcmp("-plotpng", argv[i])) {
-            cmd.plotpngP = 1;
             continue;
         }
 

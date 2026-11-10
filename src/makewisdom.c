@@ -110,22 +110,28 @@ int main(int argc, char *argv[])
     }
 
     /* coherentsearch's batched complex-to-real transforms, for its default
-     * number of harmonics and block size and every decimation factor.  They
+     * and -deep numbers of harmonics at the default block size, and every
+     * decimation factor of each.  They
      * are small, so they always get FFTW_PATIENT (under a second in all; it
      * makes them ~2x faster than FFTW_ESTIMATE, and FFTW_EXHAUSTIVE is no
      * better for 20x the planning time). */
     {
-        const int nh = CS_DEFAULT_NHARMS, nprof = CS_DEFAULT_BLOCKSIZE;
-        fftwf_complex *in = fftwf_malloc(sizeof(fftwf_complex) * (nh + 1) * nprof);
-        float *out = fftwf_malloc(sizeof(float) * 2 * nh * nprof);
-        for (int k = 1; k <= CS_DEFAULT_MAXDECIM; k++) {
-            printf("   %d x %d-point complex-to-real (coherentsearch, k=%d)\n", nprof,
-                   2 * (nh / k), k);
-            plan = cs_plan_c2r(nh, nprof, k, in, out, FFTW_PATIENT);
-            fftwf_destroy_plan(plan);
+        const int nhs[2] = { CS_DEFAULT_NHARMS, CS_DEEP_NHARMS };
+        const int maxk[2] = { CS_DEFAULT_MAXDECIM, CS_DEEP_MAXDECIM };
+        const int nprof = CS_DEFAULT_BLOCKSIZE;
+        for (int ii = 0; ii < 2; ii++) {
+            const int nh = nhs[ii];
+            fftwf_complex *in = fftwf_malloc(sizeof(fftwf_complex) * (nh + 1) * nprof);
+            float *out = fftwf_malloc(sizeof(float) * 2 * nh * nprof);
+            for (int k = 1; k <= maxk[ii]; k++) {
+                printf("   %d x %d-point complex-to-real (coherentsearch%s, k=%d)\n", nprof,
+                       2 * (nh / k), ii ? " -deep" : "", k);
+                plan = cs_plan_c2r(nh, nprof, k, in, out, FFTW_PATIENT);
+                fftwf_destroy_plan(plan);
+            }
+            fftwf_free(in);
+            fftwf_free(out);
         }
-        fftwf_free(in);
-        fftwf_free(out);
     }
 
     /* Write to an explicit path if given, else to the PRESTO data directory

@@ -9,8 +9,8 @@
 
 /* The batched c2r for decimation k: all nprof harmonic stacks (element j of
  * stack b at in[b*(nharms+1) + j*k]) into nprof 2*(nharms/k)-bin profiles.
- * makewisdom plans exactly this for the default nharms and blocksize, so the
- * two must stay identical. */
+ * makewisdom plans exactly this for the default and -deep nharms at the
+ * default blocksize, so the two must stay identical. */
 static inline fftwf_plan cs_plan_c2r(int nharms, int nprof, int k, fftwf_complex *in,
                                      float *out, unsigned flags)
 {
@@ -22,5 +22,11 @@ static inline fftwf_plan cs_plan_c2r(int nharms, int nprof, int k, fftwf_complex
 #define CS_DEFAULT_NHARMS 60
 #define CS_DEFAULT_BLOCKSIZE 2048
 #define CS_DEFAULT_MAXDECIM 6
+
+/* The -deep pass (Ransom 2026, sec. 6): twice the harmonics, decimation to 12,
+ * fundamentals below 5 Hz, for slow pulsars of very low duty cycle. */
+#define CS_DEEP_NHARMS 120
+#define CS_DEEP_MAXDECIM 12
+#define CS_DEEP_HIFREQ 5.0
 
 #endif
