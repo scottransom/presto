@@ -1,8 +1,8 @@
 # Weekly real-data tests (`pixi run test-realdata`) on the 173 MB Terzan 5
-# PSRFITS file: the full search pipeline in tests/test_realdata_search.py, then
-# the prepfold and prepfold_multi suites in tests/prepfold/.  The data are not
-# in the repo; tests/prepfold/get_test_data.sh fetches them from the
-# `test-data-v1` release of this repo and checks their SHA-256.  Too slow
+# PSRFITS file (plus a 34 MB Parkes spectrum for coherentsearch): the full
+# search pipeline in tests/test_realdata_search.py, then the prepfold and
+# prepfold_multi suites in tests/prepfold/.  The data are not in the repo;
+# tests/prepfold/get_test_data.sh fetches them from the `test-data-v2` release of this repo and checks their SHA-256.  Too slow
 # (~7 min) to run on every push, so it runs on a schedule and on demand
 # (Actions tab -> "Real-data tests" -> "Run workflow").  GitHub disables
 # scheduled workflows after 60 days without repository activity.

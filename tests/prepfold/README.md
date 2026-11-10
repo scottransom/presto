@@ -3,7 +3,7 @@
 This directory holds the regression and validation tests for `prepfold` and
 `prepfold_multi`. All scripts are run from inside `tests/prepfold/` and most
 expect the test data file `Ter5_080912_short2bits.fits` to be present. If it is
-missing, `get_test_data.sh` downloads it from the repo's `test-data-v1` GitHub
+missing, `get_test_data.sh` downloads it from the repo's `test-data-v2` GitHub
 release (falling back to the original NRAO copy) and checks its SHA-256.
 `pixi run test-realdata` runs these suites (after `tests/test_realdata_search.py`),
 and CI runs that task weekly (`.github/workflows/realdata.yml`). Prepend a fresh build's `src/` dir to

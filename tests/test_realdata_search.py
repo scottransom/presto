@@ -2,14 +2,16 @@
 
 The data are 859 s of 2-bit, 64-channel GBT PSRFITS at 2 GHz (`Ter5_080912_short2bits.fits`,
 173 MB, also used by the prepfold suites in `tests/prepfold/`). They are not in the repo:
-`tests/prepfold/get_test_data.sh` fetches them from the repo's `test-data-v1` GitHub release,
+`tests/prepfold/get_test_data.sh` fetches them from the repo's `test-data-v2` GitHub release,
 and these tests skip if the file is absent. `pixi run test-realdata` fetches the data and runs
 this file, and CI runs that task weekly (`.github/workflows/realdata.yml`).
 
 The pipeline is rfifind -> prepsubband (8 DMs, barycentered, masked) -> realfft -> rednoise ->
 accelsearch -> sifting -> prepfold, plus single_pulse_search.py and coherentsearch (at DM
 238, where it must label Ter5A, Ter5C and Ter5N and reject the combs that Ter5A makes at
-slow trial frequencies). The truth comes from the
+slow trial frequencies). Separately, coherentsearch must find the slow pulsar J1020-6026,
+alone and labelled, in a rednoised Parkes Multibeam spectrum (PM0063_034C1, DM 445). The
+truth comes from the
 timing solutions in `tests/prepfold/`: `binary_psr` predicts each pulsar's Doppler-shifted
 frequency and frequency derivative during the observation. Two pulsars are checked:
 
@@ -416,3 +418,43 @@ def test_coherentsearch_rejects_periodic(obs: dict, cohout: dict) -> None:
         for n in range(7, 61):
             for fh in (fa, 2 * fa):
                 assert abs(n * c["f"] - fh) * T > 4.0, (n, c, cohout["cands"])
+
+
+# PM0063_034C1 (Parkes Multibeam, 2097 s, DM 445): the slow pulsar J1020-6026 is
+# what coherentsearch is for, and nothing else in it is above threshold.
+PM_FFT = PFDIR / "PM0063_034C1_DM445.0_red.fft"
+# J1020-6026 from PRESTO's catalogue (psj+19): F0 at PEPOCH, F1.
+J1020_F0, J1020_F1, J1020_PEPOCH = 7.11838566803, -3.41421e-13, 55494.0
+
+
+@pytest.mark.skipif(
+    not PM_FFT.exists(),
+    reason=f"{PM_FFT.name} not present: run tests/prepfold/get_test_data.sh",
+)
+def test_coherentsearch_slow_pulsar(tmp_path: Path) -> None:
+    """coherentsearch finds and labels J1020-6026 alone, without a false
+    normalisation warning."""
+    res = subprocess.run(
+        # -hifreq 20 keeps it to ~8 s and still covers the pulsar.
+        ["coherentsearch", "-noprogress", "-ncpus", "2", "-hifreq", "20"]
+        + ["-outdir", str(tmp_path), str(PM_FFT)],
+        capture_output=True,
+        text=True,
+    )
+    assert res.returncode == 0, res.stderr
+    assert "WARNING" not in res.stderr, res.stderr
+    rows = [
+        ln.split(None, 6)
+        for ln in (tmp_path / "PM0063_034C1_DM445.0_red.cohout")
+        .read_text()
+        .splitlines()
+        if not ln.startswith("#")
+    ]
+    assert len(rows) <= 2, rows  # measured 1
+    snr, f = float(rows[0][1]), float(rows[0][2])
+    assert snr > 10.0, rows  # measured 11.65
+    assert rows[0][6] == "PSR J1020-6026", rows
+    idata = infodata.infodata(str(PM_FFT.with_suffix(".inf")))
+    T = idata.N * idata.dt
+    f_pred = J1020_F0 + J1020_F1 * (idata.epoch - J1020_PEPOCH) * 86400.0
+    assert abs(f - f_pred) * T < 0.5, (f, f_pred)  # measured 0.018 bins

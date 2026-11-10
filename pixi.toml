@@ -86,9 +86,9 @@ pytest tests/test_barycenter.py tests/test_binary_calcs.py \
 """, depends-on = [
     "build",
 ] }
-# Real-data tests on the 173 MB Terzan 5 PSRFITS file, which is not in the repo
-# (tests/prepfold/get_test_data.sh fetches it from the repo's test-data-v1
-# GitHub release): the full search pipeline (tests/test_realdata_search.py),
+# Real-data tests on the 173 MB Terzan 5 PSRFITS file and a 34 MB Parkes
+# spectrum, which are not in the repo (tests/prepfold/get_test_data.sh fetches
+# them from the repo's test-data-v2 GitHub release): the full search pipeline (tests/test_realdata_search.py),
 # then the prepfold/prepfold_multi regression suites in tests/prepfold/.
 # ~7 min; CI runs it weekly (.github/workflows/realdata.yml), not on every push.
 get-test-data = "sh tests/prepfold/get_test_data.sh"

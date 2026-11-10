@@ -89,10 +89,12 @@ for any new test that needs raw data.
 failing does not hide the other), which GitHub Actions
 (`.github/workflows/realdata.yml`) runs weekly (Mondays) and on demand (`workflow_dispatch`),
 not on every push. They use the 173 MB Terzan 5 GBT PSRFITS file
-`Ter5_080912_short2bits.fits` (2-bit, 64 channels, 859 s). It is **not in git**: it is an
-asset on the repo's `test-data-v1` GitHub release (a pre-release, kept off "Latest"), and
-`tests/prepfold/get_test_data.sh` downloads it into `tests/prepfold/` (gitignored) and checks
-its SHA-256. The tag is versioned on purpose: to change or add data, upload to a new tag
+`Ter5_080912_short2bits.fits` (2-bit, 64 channels, 859 s), plus a 34 MB rednoised Parkes
+Multibeam spectrum, `PM0063_034C1_DM445.0_red.{fft,inf}`, holding the slow pulsar J1020-6026.
+They are **not in git**: they are assets on the repo's `test-data-v2` GitHub release (a
+pre-release, kept off "Latest"; `test-data-v1` holds only the Ter5 file), and
+`tests/prepfold/get_test_data.sh` downloads them into `tests/prepfold/` (gitignored) and
+checks their SHA-256. The tag is versioned on purpose: to change or add data, upload to a new tag
 (`test-data-v2`, ...) and update the script's tag and checksum, never replace an asset in
 place, so older commits still fetch the data their references were made from. The task runs:
 - `tests/test_realdata_search.py` (pytest; skips if the file is absent): rfifind →
@@ -102,7 +104,8 @@ place, so older commits still fetch the data their references were made from. Th
   (bright, z ≈ −5) and Ter5N (weak, DM 238), and Ter5A's single pulses at DM 242 must be
   phase-locked to its ephemeris (Rayleigh test). `coherentsearch` (`-threshold 7`) on the
   DM-238 spectrum must label Ter5A, Ter5C and Ter5N from the pulsar database and reject the
-  combs Ter5A makes at slow trial frequencies. As for the synthetic test, thresholds sit
+  combs Ter5A makes at slow trial frequencies. On the Parkes spectrum it must find the slow
+  pulsar J1020-6026, alone, labelled, and at its catalogue frequency. As for the synthetic test, thresholds sit
   below measured values recorded at each assert.
 - the `tests/prepfold/` shell suites `prepfold_tests.sh` (`.bestprof` regressions against
   `goodfolds/`, `reader_equiv_check`, the cmd-layout check) and `prepfold_multi_tests.sh`
