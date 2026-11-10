@@ -68,6 +68,8 @@ typedef struct {
 
 /* Read basename.fft and basename.inf (filenm may end in .fft). */
 void cs_read_fft(const char *filenm, cs_fft *fft);
+/* The same, but read_amps = 0 reads only the .inf (amps = NULL, numamps = 0). */
+void cs_read_fft_info(const char *filenm, cs_fft *fft, int read_amps);
 void cs_free_fft(cs_fft *fft);
 
 /*
@@ -249,12 +251,10 @@ cs_band cs_make_band(const cs_fft *fft, const cs_params *p, double lofreq,
 long long *cs_chunk_starts(const cs_hplan *plans, const cs_fft *fft, const cs_params *p,
                            long long total, int nprof, long long *nchunks);
 
-/* Compare the analytic noise scale with the measured one on up to three
- * chunks; warn on stderr (naming fname) and return 0 if they differ by more
- * than 10% anywhere. */
-int cs_sigma_sanity_check(cs_workspace *ws, const cs_hplan *plans, const cs_fft *fft,
-                          const cs_params *p, const cs_band *band, int nprof,
-                          const char *fname);
+/* Check that the Fourier powers are normalised (median/ln 2 = 1) on bins
+ * 10000-19999 (the top half of a shorter FFT); warn on stderr (naming fname)
+ * and return 0 if the implied noise scale is off by more than 10%. */
+int cs_check_normalisation(const cs_fft *fft, const char *fname);
 
 /* Everything a search needs that does not depend on the input file: one
  * workspace (with its FFTW plans) per thread, built serially up front since
@@ -270,7 +270,7 @@ void cs_searcher_free(cs_searcher *s);
 
 /* Search the band, appending every trial (all decimations) with metric >
  * threshold to out, in chunk order whatever the number of threads.
- * progress: print a % meter to stderr. */
+ * progress: print a % meter to stdout. */
 void cs_search(cs_searcher *s, const cs_fft *fft, const cs_band *band, double threshold,
                int progress, cs_candlist *out);
 
@@ -315,6 +315,11 @@ int cs_identify_known(const cs_fft *fft, cs_candlist *l);
 void cs_write_cohout(const cs_candlist *l, FILE *f);
 /* Read a .cohout table (r = freq * T), keeping at most maxcands rows. */
 void cs_read_cohout(const char *filenm, double T, long maxcands, cs_candlist *l);
+/* Re-check every candidate in filenm (which this or CoherentSearch.jl wrote)
+ * against the pulsar database and rewrite it, changing only the Known PSR
+ * labels: every other character of each row is kept.  Returns the number of
+ * candidates; *nknown gets the number labelled. */
+long cs_relabel_cohout(const char *filenm, const cs_fft *fft, int *nknown);
 
 /* Plot the candidates' profiles (best first, as in l), 3 x 5 per portrait
  * page, to <stem>.ps and, if Ghostscript is available, render that to

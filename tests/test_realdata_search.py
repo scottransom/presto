@@ -7,7 +7,9 @@ and these tests skip if the file is absent. `pixi run test-realdata` fetches the
 this file, and CI runs that task weekly (`.github/workflows/realdata.yml`).
 
 The pipeline is rfifind -> prepsubband (8 DMs, barycentered, masked) -> realfft -> rednoise ->
-accelsearch -> sifting -> prepfold, plus single_pulse_search.py. The truth comes from the
+accelsearch -> sifting -> prepfold, plus single_pulse_search.py and coherentsearch (at DM
+238, where it must label Ter5A, Ter5C and Ter5N and reject the combs that Ter5A makes at
+slow trial frequencies). The truth comes from the
 timing solutions in `tests/prepfold/`: `binary_psr` predicts each pulsar's Doppler-shifted
 frequency and frequency derivative during the observation. Two pulsars are checked:
 
@@ -21,6 +23,7 @@ assert), so that FFTW plan differences across platforms cannot flip a test.
 
 from __future__ import annotations
 
+import re
 import subprocess
 from operator import attrgetter
 from pathlib import Path
@@ -339,3 +342,77 @@ def test_single_pulse_search_ter5A(obs: dict) -> None:
     assert zs[242.0] > 15.0, info  # measured 30.6
     for dm in (234.0, 238.0, 248.0):
         assert zs[dm] < 8.0, info  # measured 0.9, 1.0, 0.9 (2.2-4.2 at DM 240, 244)
+
+
+CS_DM = 238.0  # between Ter5N (238.3) and Ter5C (237.1); Ter5A (242.3) is bright enough
+
+
+@pytest.fixture(scope="module")
+def cohout(obs: dict) -> dict:
+    """coherentsearch on the DM-238 spectrum: its candidates and its stdout summary."""
+    d = obs["dir"]
+    res = subprocess.run(
+        [
+            "coherentsearch",
+            "-noprogress",
+            "-ncpus",
+            "2",
+            "-threshold",
+            "7",
+            f"{base(CS_DM)}_red.fft",
+        ],
+        cwd=d,
+        capture_output=True,
+        text=True,
+    )
+    assert res.returncode == 0, res.stderr[-4000:]
+    cands = []
+    for ln in (d / f"{base(CS_DM)}_red.cohout").read_text().splitlines():
+        if ln.startswith("#"):
+            continue
+        w = ln.split(maxsplit=6)
+        cands.append(
+            {"snr": float(w[1]), "f": float(w[2]), "note": w[6] if len(w) > 6 else ""}
+        )
+    return {"cands": cands, "stdout": res.stdout}
+
+
+def test_coherentsearch_known_pulsars(obs: dict, cohout: dict) -> None:
+    """coherentsearch finds Ter5A, Ter5C and Ter5N at DM 238 and labels each from the
+    pulsar database; A and N also sit at their ephemeris frequencies.
+
+    coherentsearch searches no acceleration, so a candidate lies within the |z|/2 bins
+    its pulsar drifts either side of the mid-observation frequency.
+    """
+    cands, info = cohout["cands"], f"candidates: {cohout['cands']}"
+
+    def labelled(name: str) -> dict:
+        hits = [c for c in cands if c["note"].startswith(f"PSR {name}")]
+        assert hits, f"no candidate labelled PSR {name}; {info}"
+        return max(hits, key=lambda c: c["snr"])
+
+    a = labelled("B1744-24A")
+    assert a["snr"] > 30.0, info  # measured 40.6
+    n = labelled("J1748-2446N")
+    assert n["snr"] > 7.5, info  # measured 9.6
+    c = labelled("J1748-2446C")
+    assert c["snr"] > 7.5, info  # measured 9.1
+    for cand, eph in ((a, obs["A"]), (n, obs["N"])):
+        tol = abs(eph.z()) / 2 + 1.0
+        assert abs(cand["f"] - eph.freq(T / 2)[0]) * T < tol, info
+        # measured 0.90 bins for A (tol 3.6), 0.01 for N (tol 1.3)
+
+
+def test_coherentsearch_rejects_periodic(obs: dict, cohout: dict) -> None:
+    """Ter5A's fundamental and 2nd harmonic land on high harmonics of many slow trials,
+    which fold into combs of identical peaks (S/N ~10 at 1.6-5.1 Hz); coherentsearch
+    drops them and says how many."""
+    m = re.search(r"(\d+) removed as periodic", cohout["stdout"])
+    assert m, cohout["stdout"]
+    assert int(m.group(1)) >= 4, cohout["stdout"]  # measured 8
+    # No survivor carries Ter5A (or its 2nd harmonic) on its own harmonic 7..60.
+    fa = obs["A"].freq(T / 2)[0]
+    for c in cohout["cands"]:
+        for n in range(7, 61):
+            for fh in (fa, 2 * fa):
+                assert abs(n * c["f"] - fh) * T > 4.0, (n, c, cohout["cands"])

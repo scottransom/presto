@@ -61,9 +61,9 @@ static void plot(const Cmdline *cmd, const cs_fft *fft, const cs_candlist *l,
     char *stem = malloc(strlen(cohnm) + 16);
     sprintf(stem, "%s_cohout", cohnm);
     const int ret = cs_plot_candidates(fft, l, p->nharms, p->threshold, infile, stem);
-    if (ret >= 0)
-        fprintf(stderr, "  plotted %ld candidates to %s.ps%s\n", l->n, stem,
-                ret ? " (and _NN.png)" : "");
+    if (ret >= 0 && l->n > 0)
+        printf("\nPlotted %ld candidates to '%s.ps'%s\n", l->n, stem,
+               ret ? " (and _NN.png)" : "");
     free(stem);
     free(cohnm);
 }
@@ -120,89 +120,114 @@ int main(int argc, char *argv[])
      * FFTW wisdom (from makewisdom) makes the small batched FFTs ~1.8x faster. */
     read_wisdom();
     cs_searcher *srch = cs_searcher_new(&p, cmd->blocksize, cmd->ncpus);
-    if (cmd->verboseP)
-        fprintf(stderr, "coherentsearch: %d thread(s); FFTs planned %s\n", srch->nthreads,
-                srch->ws[0]->wisdom ? "from FFTW wisdom"
-                                    : "with FFTW_ESTIMATE (no matching wisdom: run makewisdom)");
+
+    printf("\n    Coherent Harmonic Summing Pulsar Search Routine\n");
+    printf("                by Scott M. Ransom\n");
 
     for (int fi = 0; fi < cmd->argc; fi++) {
         const char *infile = cmd->argv[fi];
         struct timespec t0;
-        clock_gettime(CLOCK_MONOTONIC, &t0);
         cs_fft fft;
-        cs_read_fft(infile, &fft);
-        if (cmd->replotP) {
+        /* -rewrite alone needs only the .inf (T and the position). */
+        cs_read_fft_info(infile, &fft, !cmd->rewriteP || cmd->replotP);
+        printf("\nAnalyzing %s data from '%s'.\n", fft.object[0] ? fft.object : "unknown",
+               infile);
+        printf("  Data are of duration %.3f seconds.\n\n", fft.T);
+        if (cmd->replotP || cmd->rewriteP) {
             char *cohnm = cohout_name(cmd, infile);
+            if (cmd->rewriteP) {
+                int nknown;
+                long n = cs_relabel_cohout(cohnm, &fft, &nknown);
+                printf("Rewrote %ld candidates in '%s'\n", n, cohnm);
+                printf("  %d match known pulsars\n", nknown);
+            }
             cs_candlist cands = { 0 };
-            cs_read_cohout(cohnm, fft.T, cmd->ncands, &cands);
-            const int nknown = cs_identify_known(&fft, &cands);
-            fprintf(stderr, "coherentsearch: replotting %ld candidates from %s\n", cands.n,
-                    cohnm);
-            if (nknown)
-                fprintf(stderr, "  %d of them match known pulsars\n", nknown);
-            plot(cmd, &fft, &cands, &p, infile);
+            if (cmd->replotP) {
+                cs_read_cohout(cohnm, fft.T, cmd->ncands, &cands);
+                const int nknown = cs_identify_known(&fft, &cands);
+                printf("%sReplotting %ld candidates from '%s'\n", cmd->rewriteP ? "\n" : "",
+                       cands.n, cohnm);
+                printf("  %d match known pulsars\n", nknown);
+                plot(cmd, &fft, &cands, &p, infile);
+            }
             free(cohnm);
             cs_candlist_free(&cands);
             cs_free_fft(&fft);
             continue;
         }
+        if (!p.sigma_measured) {
+            fflush(stdout);
+            cs_check_normalisation(&fft, infile);
+        }
         cs_band band = cs_make_band(&fft, &p, cmd->lofreq, cmd->hifreq,
                                     cmd->lobinP ? cmd->lobin : -1);
         const int nprof = cmd->blocksize;
-        fprintf(stderr, "coherentsearch: %s (T = %.3f s), %s%d harmonics, k = 1..%d, "
-                "%.4f-%.4f Hz\n", infile, fft.T, cmd->deepP ? "deep pass, " : "", p.nharms,
-                p.decims[p.ndecim - 1], band.r_lo / fft.T, band.r_hi / fft.T);
-
+        printf("Using:\n");
+        printf("  %d CPU core(s)\n", srch->nthreads);
+        printf("  S/N threshold of %g\n", p.threshold);
+        printf("  %d harmonics\n", p.nharms);
+        printf("  f = %.3f to %.3f Hz for fundamental\n", band.r_lo / fft.T, band.r_hi / fft.T);
+        printf("  k = 1..%d decimation factors\n", p.decims[p.ndecim - 1]);
+        if (p.sigma_measured)
+            printf("  Measuring chunk sigmas\n");
+        if (cmd->deepP)
+            printf("  Deep pass (-deep)\n");
         cs_hplan *plans = cs_build_plans(&p, band.r_lo);
         if (cmd->verboseP) {
             long long nchunks;
             long long *starts = cs_chunk_starts(plans, &fft, &p, band.total, nprof, &nchunks);
-            fprintf(stderr, "  %lld trials in %lld chunks of <= %d over r = %.1f .. %.1f bins\n",
-                    band.total, nchunks, nprof, band.r_lo, band.r_hi);
+            printf("  FFTs planned %s\n", srch->ws[0]->wisdom ? "from FFTW wisdom"
+                   : "with FFTW_ESTIMATE (no matching wisdom: run makewisdom)");
+            printf("  %lld trials in %lld chunks of <= %d over r = %.1f .. %.1f bins\n",
+                   band.total, nchunks, nprof, band.r_lo, band.r_hi);
             if (plans[0].P == 0)
-                fprintf(stderr, "  NOTE: -hidr %g gives no small rational trial step; "
-                        "weights are computed per trial (slower)\n", p.hidr);
+                printf("  NOTE: -hidr %g gives no small rational trial step; "
+                       "weights are computed per trial (slower)\n", p.hidr);
             else
-                fprintf(stderr, "  trial step %lld/%lld bins; m = %d; %s noise scale\n",
-                        plans[0].pnum, plans[0].q, p.m,
-                        p.sigma_measured ? "measured" : "analytic");
+                printf("  trial step %lld/%lld bins; m = %d\n", plans[0].pnum, plans[0].q,
+                       p.m);
             free(starts);
         }
-        if (!p.sigma_measured && band.total > 0)
-            cs_sigma_sanity_check(srch->ws[0], plans, &fft, &p, &band, nprof, infile);
+        printf("\n");
+        fflush(stdout);
         cs_free_plans(plans, p.nharms);
 
+        clock_gettime(CLOCK_MONOTONIC, &t0);
         cs_candlist cands = { 0 };
         cs_search(srch, &fft, &band, p.threshold, !cmd->noprogressP, &cands);
-        const long nraw = cands.n;
-        if (!cmd->noremoveP)
+        long nleft = cands.n;
+        long ndups = -1, nharm = -1, nperiodic = -1, ndeepharm = -1;
+        if (!cmd->noremoveP) {
             cs_remove_duplicates(&cands, cmd->drtol);
-        if (!cmd->noharmremoveP)
+            ndups = nleft - cands.n;
+            nleft = cands.n;
+        }
+        if (!cmd->noharmremoveP) {
             cs_remove_harmonics(&cands, cmd->numharm, 1.0);
-        const long nperiodic =
-            cmd->noperiodicP ? 0
-                             : cs_remove_periodic(&fft, &cands, CS_PERIODIC_NLOW,
-                                                  CS_PERIODIC_MINHARM, CS_PERIODIC_RATIO);
+            nharm = nleft - cands.n;
+            nleft = cands.n;
+        }
+        if (!cmd->noperiodicP)
+            nperiodic = cs_remove_periodic(&fft, &cands, CS_PERIODIC_NLOW,
+                                           CS_PERIODIC_MINHARM, CS_PERIODIC_RATIO);
         /* A deep pass drops what the default search of the same file already
          * found more strongly (e.g. a bright pulsar's subharmonics, whose
          * fundamental is above the deep band). */
-        long ndeepharm = 0;
         char *refnm = NULL;
-        int have_ref = 0;
         if (cmd->deepP && !cmd->noharmremoveP) {
             refnm = output_name(infile, cmd->outdirP ? cmd->outdir : NULL, ".cohout");
             char *outnm = cohout_name(cmd, infile);
-            have_ref = strcmp(outnm, refnm) != 0 && access(refnm, R_OK) == 0;
-            free(outnm);
-            if (have_ref) {
+            if (strcmp(outnm, refnm) != 0 && access(refnm, R_OK) == 0) {
                 cs_candlist ref = { 0 };
                 cs_read_cohout(refnm, fft.T, LONG_MAX, &ref);
                 ndeepharm = cs_remove_harmonics_of(&cands, &ref, cmd->numharm, 1.0);
                 cs_candlist_free(&ref);
             }
+            free(outnm);
         }
         cs_sort_by_metric(&cands);
-        if (cands.n > cmd->ncands)
+        const long nbeyond = cands.n > cmd->ncands ? cands.n - cmd->ncands : 0;
+        if (nbeyond)
             cands.n = cmd->ncands;
         cs_measure_ducy(&fft, &p, &cands);
         const int nknown = cs_identify_known(&fft, &cands);
@@ -211,24 +236,30 @@ int main(int argc, char *argv[])
         FILE *out = chkfopen(outnm, "w");
         cs_write_cohout(&cands, out);
         fclose(out);
-        fprintf(stderr, "  %ld trials above S/N %g -> %ld candidates in %s (%.1f s)\n",
-                nraw, p.threshold, cands.n, outnm, seconds_since(&t0));
-        if (nperiodic)
-            fprintf(stderr, "  %ld removed as periodic (one high harmonic dominates; "
-                    "see -noperiodic)\n", nperiodic);
+
+        printf("Search took %.2f seconds\n\n", seconds_since(&t0));
+        printf("Wrote %ld candidates to '%s'\n\n", cands.n, outnm);
+        if (ndups >= 0)
+            printf("  %ld removed as duplicates\n", ndups);
+        if (nharm >= 0)
+            printf("  %ld removed as harmonics\n", nharm);
         if (refnm) {
-            if (have_ref)
-                fprintf(stderr, "  %ld removed as harmonics of stronger candidates in %s\n",
-                        ndeepharm, refnm);
+            if (ndeepharm >= 0)
+                printf("  %ld removed as harmonics of stronger candidates in '%s'\n",
+                       ndeepharm, refnm);
             else
-                fprintf(stderr, "  NOTE: no %s from a default search to remove harmonics "
-                        "of known candidates (run one before -deep)\n", refnm);
+                printf("  NOTE: no default search ('%s') to remove harmonics of "
+                       "(run one before -deep)\n", refnm);
             free(refnm);
         }
-        if (nknown)
-            fprintf(stderr, "  %d of them match known pulsars\n", nknown);
+        if (nperiodic >= 0)
+            printf("  %ld removed as periodic\n", nperiodic);
+        if (nbeyond)
+            printf("  %ld beyond the %d strongest (-ncands)\n", nbeyond, cmd->ncands);
+        printf("  %d match known pulsars\n", nknown);
         if (cmd->plotP)
             plot(cmd, &fft, &cands, &p, infile);
+        fflush(stdout);
         free(outnm);
         cs_candlist_free(&cands);
         cs_free_fft(&fft);

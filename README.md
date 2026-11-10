@@ -96,14 +96,14 @@ If you need to process them, you can either checkout the "classic" branch of PRE
 The software is composed of numerous routines designed to handle three main areas of pulsar analysis:
 
 1. Data Preparation: Interference detection (`rfifind`) and removal (`zapbirds` and `pfdzap.py`), de-dispersion (`prepdata`, `prepsubband`, and `mpiprepsubband`), barycentering (via TEMPO).
-2. Searching: Fourier-domain acceleration and jerk (`accelsearch`), single-pulse (`single_pulse_search.py`), and phase-modulation or sideband searches (`search_bin`).
+2. Searching: Fourier-domain acceleration and jerk (`accelsearch`), coherent harmonic summing for slow and narrow-pulsed pulsars (`coherentsearch`, with `coherent_sift.py` to sift its candidates), single-pulse (`single_pulse_search.py`), and phase-modulation or sideband searches (`search_bin`).
 3. Folding: Candidate optimization (`prepfold` and `fourier_fold.py`) and Time-of-Arrival (TOA) generation (`get_TOAs.py`).
 4. Misc: Data exploration (`readfile`, `exploredat`, `explorefft`), de-dispersion planning (`DDplan.py`), date conversion (`mjd2cal`, `cal2mjd`), tons of python pulsar/astro libraries, average pulse creation and flux density estimation (`sum_profiles.py`), and more...
 5. Post Single Pulse Searching Tools: Single pulse plotting (`waterfaller.py`).
 
 Many additional utilities are provided for various tasks that are often required when working with pulsar data such as time conversions, Fourier transforms, time series and FFT exploration, byte-swapping, etc.
 
-**References**: The Fourier-Domain acceleration search technique that PRESTO uses in the routine `accelsearch` is described in [Ransom, Eikenberry, and Middleditch (2002)](https://ui.adsabs.harvard.edu/abs/2002AJ....124.1788R/abstract), the "jerk" search capability is described in [Andersen & Ransom (2018)](https://ui.adsabs.harvard.edu/abs/2018ApJ...863L..13A/abstract), and the phase-modulation search technique used by `search_bin` is described in [Ransom, Cordes, and Eikenberry (2003)](https://ui.adsabs.harvard.edu/abs/2003ApJ...589..911R/abstract). Some other basic information about PRESTO can be found in my [thesis](http://www.cv.nrao.edu/~sransom/ransom_thesis_2001.pdf).
+**References**: The Fourier-Domain acceleration search technique that PRESTO uses in the routine `accelsearch` is described in [Ransom, Eikenberry, and Middleditch (2002)](https://ui.adsabs.harvard.edu/abs/2002AJ....124.1788R/abstract), the "jerk" search capability is described in [Andersen & Ransom (2018)](https://ui.adsabs.harvard.edu/abs/2018ApJ...863L..13A/abstract), the coherent harmonic summing search in `coherentsearch` is described in [Ransom (2026)](https://arxiv.org/abs/2610.11749), and the phase-modulation search technique used by `search_bin` is described in [Ransom, Cordes, and Eikenberry (2003)](https://ui.adsabs.harvard.edu/abs/2003ApJ...589..911R/abstract). Some other basic information about PRESTO can be found in my [thesis](http://www.cv.nrao.edu/~sransom/ransom_thesis_2001.pdf).
 
 **Support/Docs**:  I may eventually get around to finishing the documentation for PRESTO (but probably not), but until then you should know that each routine returns its basic usage when you call it with no arguments. I am also willing to provide limited support via email (see below). And make sure to check out the [FAQ.md](https://github.com/scottransom/presto/blob/master/FAQ.md)!
 
@@ -130,6 +130,15 @@ Build PRESTO from source instead if you want to hack on the code, need `mpipreps
 or want a build tuned to your own CPU. See
 [INSTALL.md](https://github.com/scottransom/presto/blob/master/INSTALL.md) for the full
 instructions; the short version, if you use pixi, is `pixi run build` in a git checkout.
+
+**Running many PRESTO jobs at once?** Set `export OPENBLAS_NUM_THREADS=1` first. PRESTO uses
+GSL, which on conda-forge loads OpenBLAS, and OpenBLAS starts one thread per core whenever a
+program loads, even though PRESTO never uses it. Each of those threads busy-waits briefly, so
+every PRESTO process wastes some CPU at startup (about 0.1 s per core). On a big multi-core
+machine running one job per core (e.g. one `accelsearch` or `coherentsearch` per DM), that adds
+up, and the many idle threads compete with the real work. Setting it to 1 does not slow PRESTO,
+but it does make NumPy/SciPy linear algebra in the same shell single-threaded. The pixi
+environment in this repository sets it for you.
 
 ## Getting the source: 
 The PRESTO source code is released under the GPL and can be browsed or gotten from here in many different ways (including zipped or tar'd or via git). If you are too lazy to read how to get it but have git on your system do:

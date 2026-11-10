@@ -1,4 +1,4 @@
-scripts = ['binary_info.py', 'chooseN.py', 'combine_weights.py',
+scripts = ['binary_info.py', 'chooseN.py', 'coherent_sift.py', 'combine_weights.py',
   'compare_periods.py', 'dat2tim.py', 'DDplan.py', 'detrend_dat.py', 
   'downsample_filterbank.py', 'event_peak.py', 'fb_truncate.py', 
   'filter_zerolags.py', 'fit_circular_orbit.py', 'fitorb.py', 'fourier_fold.py',

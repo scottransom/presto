@@ -54,6 +54,9 @@ PRESTO = "$PIXI_PROJECT_ROOT"
 PGPLOT_DIR = "$CONDA_PREFIX/share/pgplot"
 # So the Python-package build can link against the installed libpresto
 LIBRARY_PATH = "$CONDA_PREFIX/lib"
+# GSL loads OpenBLAS, which starts (and briefly spins) one thread per core in
+# every PRESTO process although PRESTO never calls BLAS (see README.md).
+OPENBLAS_NUM_THREADS = "1"
 
 # The pixi tasks use their own build directory (build-pixi) so they never
 # interfere with a manually managed meson `build` directory.
@@ -77,7 +80,7 @@ build = { depends-on = ["install-py"] }
 test = { cmd = """
 pytest tests/test_barycenter.py tests/test_binary_calcs.py \
   tests/test_maximize_rz.py tests/test_pipeline_synthetic.py tests/test_sifting.py \
-  tests/test_coherentsearch.py \
+  tests/test_coherentsearch.py tests/test_coherent_sift.py \
   python/fftfit_src \
   && python tests/test_presto_python.py
 """, depends-on = [

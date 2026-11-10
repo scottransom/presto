@@ -29,6 +29,18 @@
    beside the default search's file, and `makewisdom` now plans its transforms too.
    Run after a default search, it drops candidates harmonically related to stronger ones
    in that search's `.cohout` (such as subharmonics of a bright pulsar above its band).
+   Its progress and summary go to stdout in accelsearch's style: the search setup, how
+   long it took, and how many candidates each sifting step removed.  Its check that the
+   input is normalised now takes the median power of bins 10000-19999 straight from the
+   FFT, instead of comparing noise scales on a few search chunks.  The old check sampled
+   the lowest frequencies and warned falsely on well-normalised real data.
+   New `-rewrite` re-checks an existing `.cohout` (including one CoherentSearch.jl wrote)
+   against the pulsar database and labels the matches in place, without searching and
+   reading only the `.inf`.  With `-replot`, the plots get the labels too.
+   New `coherent_sift.py` (ported from CoherentSearch.jl's `sift_candidates.py`) sifts
+   `.cohout` files across DMs and observations: it groups detections, flags harmonics,
+   known pulsars, deep-pass signals and edge-peaked or broadband (RFI-like) ones, ranks
+   the rest by pulsar-likeness, and can write an HTML summary.
  * `comp_psr_to_cand()` (the known-pulsar check behind accelsearch's candidate notes) no
    longer caches the observation's position keyed on the `infodata` pointer, which would
    have matched every file after the first against the first file's position whenever a

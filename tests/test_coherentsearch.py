@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import os
 import shutil
+import re
 import subprocess
 import sys
 import tomllib
@@ -442,7 +443,45 @@ def test_c_known_pulsar(tmp_path):
         capture_output=True,
         text=True,
     )
-    assert "1 of them match known pulsars" in res.stderr
+    assert "  1 match known pulsars\n" in res.stdout, res.stdout
+    assert (tmp_path / "known_cohout.ps").is_file()
+
+
+def test_c_rewrite(tmp_path):
+    """-rewrite labels known pulsars in an existing .cohout (as CoherentSearch.jl
+    writes it, with no Known PSR column), keeping every row, and needs only the
+    .inf; with -replot it also plots, but only the first -ncands."""
+    exe = _cs_dump().parent / "coherentsearch"
+    (tmp_path / "known.inf").write_text(KNOWN_INF)
+    # The Julia CLI's own output for this file.
+    julia = (FIX / "search" / "default.cohout").read_text().splitlines()
+    (tmp_path / "known.cohout").write_text("\n".join(julia) + "\n")
+    res = subprocess.run(
+        [str(exe), "-rewrite", "known.fft"],  # no known.fft exists
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert "Rewrote 2 candidates in 'known.cohout'\n  1 match known pulsars\n" in (
+        res.stdout
+    ), res.stdout
+    lines = (tmp_path / "known.cohout").read_text().splitlines()
+    assert lines[0] == julia[0] + "   Known PSR"
+    assert lines[1] == julia[1] + "   PSR B1804-08"
+    assert lines[2] == julia[2]  # unmatched rows are untouched
+    assert not (tmp_path / "known.cohout.tmp").exists()
+
+    (tmp_path / "known.fft").write_bytes((HERE / "synth_cs.fft").read_bytes())
+    res = subprocess.run(
+        [str(exe), "-rewrite", "-replot", "-ncands", "1", "known.fft"],
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert "Replotting 1 candidates" in res.stdout, res.stdout
+    assert len((tmp_path / "known.cohout").read_text().splitlines()) == 3
     assert (tmp_path / "known_cohout.ps").is_file()
 
 
@@ -482,16 +521,55 @@ def test_c_remove_periodic(tmp_path):
             for ln in (tmp_path / "comb.cohout").read_text().splitlines()
             if not ln.startswith("#")
         ]
-        return rows, res.stderr
+        return rows, res.stdout
 
-    kept, err = search()
+    kept, out = search()
     every, _ = search("-noperiodic")
     combs = [r for r in every if int(r[4]) == 60]
     assert len(combs) >= 4, every  # measured 6
     assert not any(int(r[4]) == 60 for r in kept), kept
-    assert f"{len(every) - len(kept)} removed as periodic" in err, err
+    assert f"  {len(every) - len(kept)} removed as periodic\n" in out, out
     # f0/3 (folded with 10 harmonics; its strongest is the 3rd) is not a comb.
     assert any(abs(float(r[2]) * 3 - r0 / (n * dt)) < 1e-3 for r in kept), kept
+
+
+def test_c_sigma_check(tmp_path):
+    """The normalisation check ignores red noise left at low frequencies (it
+    looks at bins 10000-19999) but still flags a spectrum that is not
+    normalised."""
+    exe = _cs_dump().parent / "coherentsearch"
+    n, dt = 2**18, 1e-3
+    rng = np.random.default_rng(20261111)
+    amps = (rng.standard_normal(n // 2) + 1j * rng.standard_normal(n // 2)) / np.sqrt(2)
+    amps[0] = 0.0
+    amps[:2000] *= 3.0  # leftover red noise below 7.6 Hz
+    (tmp_path / "noise.inf").write_text(
+        " Data file name without suffix          =  noise\n"
+        " Telescope used                         =  None (Artificial Data Set)\n"
+        f" Number of bins in the time series      =  {n}\n"
+        f" Width of each time series bin (sec)    =  {dt}\n"
+        " Any breaks in the data? (1 yes, 0 no)  =  0\n"
+        " Data analyzed by                       =  test_coherentsearch.py\n"
+        " Any additional notes:\n"
+        "    White noise with a low-frequency excess.\n"
+    )
+
+    def warns(scale: float) -> str:
+        (amps * scale).astype(np.complex64).tofile(tmp_path / "noise.fft")
+        res = subprocess.run(
+            [str(exe), "-noprogress", "-hifreq", "50", "noise.fft"],
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        return res.stderr
+
+    assert "WARNING" not in warns(1.0)
+    err = warns(1.5)  # powers 2.25x too big: S/N 1.5x too big
+    m = re.search(r"noise\s+scale is ([\d.]+)% too high", err)
+    assert m, err
+    assert 45 < float(m.group(1)) < 55, err  # measured 50.4
 
 
 def test_c_deep(tmp_path):
@@ -504,27 +582,28 @@ def test_c_deep(tmp_path):
         )
 
     def header(*extra: str) -> str:
-        res = subprocess.run(
+        """The "Using:" block of the run's stdout."""
+        out = subprocess.run(
             [str(exe), "-noprogress", *extra, "synth_cs.fft"],
             cwd=tmp_path,
             check=True,
             capture_output=True,
             text=True,
-        )
-        return res.stderr.splitlines()[0]
+        ).stdout
+        return out[out.index("Using:") : out.index("Search took")]
 
-    assert header("-deep").endswith(
-        "deep pass, 120 harmonics, k = 1..12, 0.1000-5.0000 Hz"
-    )
+    def using(nharms: int, hifreq: float, maxk: int) -> str:
+        return (
+            f"  {nharms} harmonics\n  f = 0.100 to {hifreq:.3f} Hz for fundamental\n"
+            f"  k = 1..{maxk} decimation factors\n  Deep pass (-deep)\n"
+        )
+
+    assert using(120, 5.0, 12) in header("-deep")
     assert (tmp_path / "synth_cs_deep.cohout").is_file()
     assert not (tmp_path / "synth_cs.cohout").exists()
     # Explicit options win, in either order.
-    assert header("-hifreq", "8", "-deep", "-maxdecim", "4").endswith(
-        "deep pass, 120 harmonics, k = 1..4, 0.1000-8.0000 Hz"
-    )
-    assert header("-deep", "-nharms", "60").endswith(
-        "deep pass, 60 harmonics, k = 1..12, 0.1000-5.0000 Hz"
-    )
+    assert using(120, 8.0, 4) in header("-hifreq", "8", "-deep", "-maxdecim", "4")
+    assert using(60, 5.0, 12) in header("-deep", "-nharms", "60")
     # The last (-hifreq 5) run still finds the synthetic 6.1153 Hz pulsar, at
     # decimation k >= 2.
     rows = [
@@ -552,7 +631,7 @@ def test_c_deep_after_default(tmp_path):
             check=True,
             capture_output=True,
             text=True,
-        ).stderr
+        ).stdout
 
     def freqs(name: str) -> list[float]:
         return [
@@ -565,12 +644,14 @@ def test_c_deep_after_default(tmp_path):
         return any(abs(f - f0) < 1e-3 for f in fs)
 
     err = search("-deep")
-    assert "NOTE: no synth_cs.cohout from a default search" in err, err
+    assert "NOTE: no default search ('synth_cs.cohout')" in err, err
     assert has(freqs("synth_cs_deep.cohout"), 44.4214)
     search()
     assert has(freqs("synth_cs.cohout"), 88.8414)
     err = search("-deep")
-    assert "removed as harmonics of stronger candidates in synth_cs.cohout" in err, err
+    assert "removed as harmonics of stronger candidates in 'synth_cs.cohout'" in err, (
+        err
+    )
     deep = freqs("synth_cs_deep.cohout")
     assert not has(deep, 44.4214), deep
     assert has(deep, 6.1153), deep  # the deep fold beats the default one here

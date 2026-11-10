@@ -32,6 +32,11 @@ void cs_set_decimations(cs_params *p, int maxdecim)
 
 void cs_read_fft(const char *filenm, cs_fft *fft)
 {
+    cs_read_fft_info(filenm, fft, 1);
+}
+
+void cs_read_fft_info(const char *filenm, cs_fft *fft, int read_amps)
+{
     char *base = calloc(strlen(filenm) + 8, 1);
     strcpy(base, filenm);
     size_t len = strlen(base);
@@ -42,11 +47,15 @@ void cs_read_fft(const char *filenm, cs_fft *fft)
     readinf(&idata, base);
     char *fftnm = calloc(strlen(base) + 8, 1);
     sprintf(fftnm, "%s.fft", base);
-    FILE *f = chkfopen(fftnm, "rb");
-    fft->numamps = chkfilelen(f, sizeof(fcomplex));
-    fft->amps = gen_cvect(fft->numamps);
-    chkfread(fft->amps, sizeof(fcomplex), fft->numamps, f);
-    fclose(f);
+    fft->amps = NULL;
+    fft->numamps = 0;
+    if (read_amps) {
+        FILE *f = chkfopen(fftnm, "rb");
+        fft->numamps = chkfilelen(f, sizeof(fcomplex));
+        fft->amps = gen_cvect(fft->numamps);
+        chkfread(fft->amps, sizeof(fcomplex), fft->numamps, f);
+        fclose(f);
+    }
     fft->N = (long long) idata.N;
     fft->T = idata.N * idata.dt;
     fft->dm = idata.dm;

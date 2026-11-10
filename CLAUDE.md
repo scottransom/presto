@@ -67,7 +67,8 @@ inside `pixi run bash`; reconfigure with `-Db_sanitize=none` afterwards. The tes
 `pixi.toml`: `tests/test_barycenter.py`, `tests/test_binary_calcs.py`,
 `tests/test_maximize_rz.py`, `tests/test_pipeline_synthetic.py`, `tests/test_sifting.py`,
 `tests/test_coherentsearch.py` (reference numbers for the coherentsearch port; see
-`tests/coherentsearch/README.md`), the fftfit suite in
+`tests/coherentsearch/README.md`), `tests/test_coherent_sift.py` (the `.cohout`
+sifter in `bin/coherent_sift.py`), the fftfit suite in
 `python/fftfit_src/` (needs `hypothesis`), and `tests/test_presto_python.py`. Add a new test
 to that list when you add it.
 
@@ -99,7 +100,9 @@ place, so older commits still fetch the data their references were made from. Th
   → sifting → prepfold, plus `single_pulse_search.py`. The truth is the par files in
   `tests/prepfold/`: `binary_psr` predicts the Doppler-shifted frequency and z of Ter5A
   (bright, z ≈ −5) and Ter5N (weak, DM 238), and Ter5A's single pulses at DM 242 must be
-  phase-locked to its ephemeris (Rayleigh test). As for the synthetic test, thresholds sit
+  phase-locked to its ephemeris (Rayleigh test). `coherentsearch` (`-threshold 7`) on the
+  DM-238 spectrum must label Ter5A, Ter5C and Ter5N from the pulsar database and reject the
+  combs Ter5A makes at slow trial frequencies. As for the synthetic test, thresholds sit
   below measured values recorded at each assert.
 - the `tests/prepfold/` shell suites `prepfold_tests.sh` (`.bestprof` regressions against
   `goodfolds/`, `reader_equiv_check`, the cmd-layout check) and `prepfold_multi_tests.sh`

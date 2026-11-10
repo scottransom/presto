@@ -91,13 +91,17 @@ tests:
         - presto.presto
       pip_check: true
   - script:
-      # Run two tools with no args (they print their pyclig usage) to confirm the
+      # Run the tools with no args (they print their pyclig usage) to confirm the
       # binaries run and resolve all their shared libs (pgplot, fftw, ...).
       - readfile 2>&1 | grep -qi "raw data"
       - accelsearch 2>&1 | grep -qi "acceleration search"
+      - coherentsearch 2>&1 | grep -qi "coherently summing"
+      - coherent_sift.py --help | grep -qi "sift"
   - package_contents:
       bin:
         - accelsearch
+        - coherentsearch
+        - coherent_sift.py
         - prepfold
         - readfile
       lib:

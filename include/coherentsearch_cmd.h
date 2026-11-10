@@ -84,6 +84,8 @@ typedef struct s_Cmdline {
   int plotP;
   /***** -replot: Do not search: plot the candidates already in <input>.cohout */
   int replotP;
+  /***** -rewrite: Do not search: re-check every candidate in <input>.cohout against the pulsar database and rewrite the file with the matches labelled (add -replot to plot them too) */
+  int rewriteP;
   /***** -noprogress: Do not print a progress meter */
   int noprogressP;
   /***** -verbose: Report the trial grid and chunking before searching */

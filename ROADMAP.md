@@ -386,6 +386,34 @@ dependency (Highway), and C++ in the build for the first time.
 
 ## Other open items
 
+### Backport coherentsearch additions to CoherentSearch.jl
+
+Four things the C port gained (November 2026) belong in the Julia reference
+(`~/git/CoherentSearch.jl`) too:
+- **Periodic-signal (comb) removal** (`cs_remove_periodic()` in `src/cs_search.c`): a strong
+  sinusoid lands on one high harmonic of many slow trials, giving combs of identical peaks.
+  Drop a candidate whose strongest harmonic is the 7th or higher and more than 8x the largest
+  of harmonics 1-4 (`CS_PERIODIC_*` in `include/coherentsearch.h`; `-noperiodic` disables).
+- **The FFT normalisation check** (`cs_check_normalisation()`): √(median power / ln 2) over
+  bins 10000-19999 (the top half of a shorter FFT), straight from the file before the search,
+  warning if off by more than 10%. It replaces the chunk-based `_sigma_sanity_check` that
+  Julia still uses. That check samples the lowest chunk (about 17 fundamental bins at 0.1 Hz)
+  and takes the worst of ~18 comparisons, so it warned falsely on well-normalised Ter5 data,
+  and on white noise where only a few harmonics fit.
+- **The `-deep` pass:** a search for slow, very narrow pulses. It defaults to `-nharms 120
+  -maxdecim 12 -hifreq 5` (`CS_DEEP_*` in `include/cs_fftplan.h`; the paper's
+  `coherent_tier`), but explicitly given options win. It writes `<input>_deep.cohout`, so it
+  never overwrites the default search's output.
+- **Sifting a deep pass against the default `.cohout`** (`cs_remove_harmonics_of()`): run
+  after a default search, `-deep` reads `<input>.cohout` and drops its candidates that are
+  harmonically related to stronger ones there, such as subharmonics of a bright pulsar above
+  the deep band (Ter5A/2 on the Ter5 data). `-noharmremove` skips it, and a note is printed
+  if no default `.cohout` exists.
+- **Sifter improvements** made porting `sift_candidates.py` to `bin/coherent_sift.py`:
+  reading the Known PSR column (a `known` class and flag, and `--no-known`), reading
+  `*_deep.cohout` files and flagging deep-pass signals (`--no-deep`), and classing
+  single-observation runs on their DM behaviour instead of calling everything `weak`.
+
 ### libpresto headers and soversion
 
 `libpresto` installs as an unversioned `.so` with **no headers** (only `presto.pc`), so nothing
@@ -407,13 +435,24 @@ loose sidelobe matches.
 
 ### OpenBLAS threads spin in every PRESTO tool
 
-libpresto links GSL, which on conda-forge pulls in OpenBLAS (pthreads build). OpenBLAS
-starts its worker threads at load time, and they burn CPU even though PRESTO's tools never
-call BLAS. In `coherentsearch` on the synthetic file it was ~0.8 s of CPU for a 1.2 s
-run, and `OPENBLAS_NUM_THREADS=1` removes it. That makes it worse with `-ncpus`, since the
-spinning threads compete for cores. Options: set `OPENBLAS_NUM_THREADS=1` in the
-activation scripts or the docs, link GSL against its own `gslcblas` instead, or check
-whether anything in libpresto needs a fast BLAS at all.
+libpresto links GSL, whose conda-forge build needs `libcblas.so.3`, which is OpenBLAS
+(pthreads) by default. OpenBLAS starts one thread per core at load time, even though PRESTO
+never calls BLAS, and each busy-waits about 0.1 s before sleeping. Measured 2026-11-10 on an
+8-core machine: `coherentsearch` used ~0.7 s of extra CPU on both a 0.7 s and an 18 s run,
+so it is a fixed cost per process, not continuous. It matters for many short runs, for one
+job per core over many DMs (the reason `-ncpus` defaults to 1), and on many-core nodes,
+where each process starts that many threads. `OPENBLAS_NUM_THREADS=1` removes it. The pixi
+environment now sets it on activation, and README.md recommends it.
+
+Still open, for the conda-forge package:
+- An `etc/conda/activate.d` (and `deactivate.d`) script in the recipe could set it, but it
+  would apply to the whole environment, making NumPy/SciPy linear algebra single-threaded
+  for users who rely on it, and it does nothing for binaries run without activation.
+- Better: stop loading OpenBLAS at all. libgsl itself needs a CBLAS, but conda-forge's gsl
+  also ships its own `libgslcblas`; linking libpresto against that ahead of `libcblas` may
+  not be enough, since libgsl's own NEEDED entry still pulls in `libcblas.so.3`. Check
+  whether anything in libpresto needs a fast BLAS, and whether the GSL routines it uses
+  touch BLAS at all.
 
 ### Raise the minimum Python version to 3.12 (decided, next release)
 

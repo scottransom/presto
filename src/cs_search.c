@@ -4,6 +4,7 @@
  * remove_duplicates, remove_harmonics, measure_ducy and write_candidates).
  */
 #include "coherentsearch.h"
+#include <ctype.h>
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -118,70 +119,58 @@ long long *cs_chunk_starts(const cs_hplan *plans, const cs_fft *fft, const cs_pa
     return s;
 }
 
-/* --- the analytic-sigma sanity check -------------------------------------- */
+/* --- the normalisation check ---------------------------------------------- */
 
-#define CS_SIGMA_CHECK_CHUNKS 3
-#define CS_SIGMA_CHECK_TOL 0.10
+#define CS_NORM_CHECK_LO 10000     /* first bin checked */
+#define CS_NORM_CHECK_N 10000      /* bins checked */
+#define CS_NORM_CHECK_TOL 0.10     /* tolerated error in the noise scale */
 
-/* The analytic scale assumes the input is normalised (Fourier powers of mean
- * 1), and fails silently -- inflating every S/N -- when it is not.  Checking
- * a few chunks costs nothing and turns that into a warning. */
-int cs_sigma_sanity_check(cs_workspace *ws, const cs_hplan *plans, const cs_fft *fft,
-                          const cs_params *p, const cs_band *band, int nprof,
-                          const char *fname)
+static int cmp_float(const void *a, const void *b)
 {
-    const long long total = band->total;
-    const long long nchunks = (total + nprof - 1) / nprof;
-    const int nsample = nchunks < CS_SIGMA_CHECK_CHUNKS ? (int) nchunks : CS_SIGMA_CHECK_CHUNKS;
-    double worst = 0.0, worst_f = 0.0, meas_w = 0.0, ana_w = 0.0;
-    int worst_k = 1;
-    for (int i = 0; i < nsample; i++) {
-        long long c = nsample == 1 ? 0 : ((long long) i * (nchunks - 1)) / (nsample - 1);
-        long long i0 = c * nprof;
-        int n = (int) (total - i0 < nprof ? total - i0 : nprof);
-        /* A short trailing chunk measures badly; use full chunks only, unless
-         * the whole search is shorter than one. */
-        if (n < nprof && total >= nprof)
-            continue;
-        if (n < 8)
-            continue;
-        double rstart = band->r_lo + i0 * cs_lodr(p);
-        cs_fill_chunk(ws, plans, fft, p, i0, n);
-        for (int di = 0; di < ws->ndecim; di++) {
-            cs_decim *d = ws->d + di;
-            fftwf_execute(d->plan);
-            double meas = cs_block_sigma(d->profs, d->nbins, n, ws->sigbuf);
-            double ana = cs_analytic_sigma(ws->filled, d->k, d->Hk);
-            if (!(meas > 0.0 && ana > 0.0))
-                continue;
-            double dev = fabs(ana / meas - 1.0);
-            if (dev > worst) {
-                worst = dev;
-                worst_k = d->k;
-                worst_f = rstart / fft->T;
-                meas_w = meas;
-                ana_w = ana;
-            }
-        }
+    float x = *(const float *) a, y = *(const float *) b;
+    return (x > y) - (x < y);
+}
+
+/* The analytic noise scale assumes the input is normalised (Fourier powers of
+ * mean 1), and fails silently -- inflating every S/N -- when it is not.  Check
+ * that on a block of bins away from the lowest frequencies, where leftover red
+ * noise (rednoise's running median rests on few bins there) would raise false
+ * alarms.  Normalised powers are exponential with mean 1, so median/ln 2 should
+ * be 1; the median shrugs off a pulsar or RFI in the block.  10000 bins give
+ * a scatter of about 1.4% in the power, 0.7% in the noise scale. */
+int cs_check_normalisation(const cs_fft *fft, const char *fname)
+{
+    long long lo = CS_NORM_CHECK_LO, n = CS_NORM_CHECK_N;
+    if (fft->numamps < lo + n) {    /* short FFT: the top half, at most n bins */
+        lo = fft->numamps / 2;
+        n = fft->numamps - lo < n ? fft->numamps - lo : n;
     }
-    if (worst > CS_SIGMA_CHECK_TOL) {
-        double ratio = ana_w / meas_w;
-        fprintf(stderr, "\nWARNING (%s): the analytic noise scale disagrees with the measured "
-                "one by ", fname);
-        /* Quote a ratio, not a percentage, when it is far off: a 1000x error
-         * would otherwise read like a 99.9% one. */
-        if (ratio > 2.0 || ratio < 0.5)
-            fprintf(stderr, "a factor of %.3g", ratio > 1.0 ? ratio : 1.0 / ratio);
-        else
-            fprintf(stderr, "%.1f%%", 100.0 * worst);
-        fprintf(stderr, " -- every reported S/N is scaled by that.\n"
-                "  This normally means the input FFT is not normalised (Fourier powers\n"
-                "  with mean 1); run PRESTO's rednoise on it, or use -measuredsigma.\n"
-                "  Worst at k=%d, %.4f Hz: measured %.5g vs analytic %.5g (ratio %.4g)\n\n",
-                worst_k, worst_f, meas_w, ana_w, ratio);
-        return 0;
+    if (n < 100)
+        return 1;
+    float *pow = malloc(n * sizeof(float));
+    for (long long i = 0; i < n; i++) {
+        const fcomplex a = fft->amps[lo + i];
+        pow[i] = a.r * a.r + a.i * a.i;
     }
-    return 1;
+    qsort(pow, n, sizeof(float), cmp_float);
+    const double med = n % 2 ? pow[n / 2] : 0.5 * (pow[n / 2 - 1] + pow[n / 2]);
+    free(pow);
+    const double ratio = sqrt(med / M_LN2);   /* (actual / assumed) noise scale */
+    if (fabs(ratio - 1.0) <= CS_NORM_CHECK_TOL)
+        return 1;
+    fprintf(stderr, "\nWARNING (%s): the Fourier powers do not look normalised: the noise\n"
+            "  scale is ", fname);
+    /* Quote a ratio, not a percentage, when it is far off: a 1000x error
+     * would otherwise read like a 99.9% one. */
+    if (ratio > 2.0 || ratio < 0.5)
+        fprintf(stderr, "off by a factor of %.3g", ratio > 1.0 ? ratio : 1.0 / ratio);
+    else
+        fprintf(stderr, "%.1f%% too %s", 100.0 * fabs(ratio - 1.0), ratio > 1.0 ? "high" : "low");
+    fprintf(stderr, ", and every reported S/N is off by that factor.\n"
+            "  Normalised powers have mean 1 (median ln 2 = 0.693); bins %lld-%lld have\n"
+            "  median %.4g.  Run PRESTO's rednoise on the FFT, or use -measuredsigma.\n\n",
+            lo, lo + n - 1, med);
+    return 0;
 }
 
 /* --- the search ------------------------------------------------------------ */
@@ -279,14 +268,17 @@ void cs_search(cs_searcher *s, const cs_fft *fft, const cs_band *band, double th
             if (progress && tid == 0) {
                 int pct = (int) (100 * ndone / nchunks);
                 if (pct != lastpct) {
-                    fprintf(stderr, "\r  %3d%% searched", pct);
+                    printf("\r%3d%% searched", pct);
+                    fflush(stdout);
                     lastpct = pct;
                 }
             }
         }
     }
-    if (progress)
-        fprintf(stderr, "\r  100%% searched\n");
+    if (progress) {
+        printf("\r100%% searched\n");
+        fflush(stdout);
+    }
     for (long long c = 0; c < nchunks; c++) {
         for (long i = 0; i < found[c].n; i++)
             cs_candlist_push(out, found[c].c[i]);
@@ -611,6 +603,8 @@ int cs_identify_known(const cs_fft *fft, cs_candlist *l)
     return nfound;
 }
 
+#define CS_KNOWN_HDR "   Known PSR"
+
 void cs_write_cohout(const cs_candlist *l, FILE *f)
 {
     int anynote = 0;
@@ -618,7 +612,7 @@ void cs_write_cohout(const cs_candlist *l, FILE *f)
         anynote |= l->c[i].note[0] != '\0';
     /* The leading column is the rank, and the header says so. */
     fprintf(f, "#Num    'S/N'      Frequency (Hz)        Period (ms)    #Harm  Ducy(%%)%s\n",
-            anynote ? "   Known PSR" : "");
+            anynote ? CS_KNOWN_HDR : "");
     for (long i = 0; i < l->n; i++) {
         const cs_cand *c = l->c + i;
         char ducy[32];
@@ -655,4 +649,85 @@ void cs_read_cohout(const char *filenm, double T, long maxcands, cs_candlist *l)
         cs_candlist_push(l, c);
     }
     fclose(f);
+}
+
+/* End of the nf'th whitespace-separated field of line. */
+static char *field_end(char *line, int nf)
+{
+    char *q = line;
+    for (int i = 0; i < nf; i++) {
+        while (*q == ' ' || *q == '\t')
+            q++;
+        while (*q && !isspace((unsigned char) *q))
+            q++;
+    }
+    return q;
+}
+
+long cs_relabel_cohout(const char *filenm, const cs_fft *fft, int *nknown)
+{
+    FILE *f = chkfopen((char *) filenm, "r");
+    char **lines = NULL;
+    long *row = NULL;               /* each line's candidate, or -1 */
+    long nlines = 0, cap = 0;
+    cs_candlist l = { 0 };
+    char buf[1024];
+    while (fgets(buf, sizeof(buf), f)) {
+        if (nlines == cap) {
+            cap = cap ? 2 * cap : 256;
+            lines = realloc(lines, cap * sizeof(char *));
+            row = realloc(row, cap * sizeof(long));
+        }
+        buf[strcspn(buf, "\n")] = '\0';
+        row[nlines] = -1;
+        lines[nlines] = strdup(buf);
+        if (buf[0] != '#') {
+            long rank;
+            cs_cand c;
+            double period;
+            char ducy[64];
+            int nf = sscanf(buf, "%ld %lf %lf %lf %d %63s", &rank, &c.metric, &c.freq,
+                            &period, &c.nharm, ducy);
+            if (nf >= 5 && c.freq > 0.0) {
+                c.r = c.freq * fft->T;
+                c.ducy = NAN;
+                c.note[0] = '\0';
+                /* Drop any old label: keep the row's text up to its last numeric field. */
+                *field_end(lines[nlines], nf) = '\0';
+                row[nlines] = l.n;
+                cs_candlist_push(&l, c);
+            }
+        } else if (strncmp(buf, "#Num", 4) == 0) {
+            char *k = strstr(lines[nlines], CS_KNOWN_HDR);
+            if (k)
+                *k = '\0';
+        }
+        nlines++;
+    }
+    fclose(f);
+    *nknown = cs_identify_known(fft, &l);
+
+    /* Write beside it and rename, so a failure cannot leave it half-written. */
+    char *tmpnm = malloc(strlen(filenm) + 8);
+    sprintf(tmpnm, "%s.tmp", filenm);
+    FILE *out = chkfopen(tmpnm, "w");
+    for (long i = 0; i < nlines; i++) {
+        fputs(lines[i], out);
+        if (row[i] >= 0 && l.c[row[i]].note[0])
+            fprintf(out, "   %s", l.c[row[i]].note);
+        else if (*nknown && strncmp(lines[i], "#Num", 4) == 0)
+            fputs(CS_KNOWN_HDR, out);
+        fputc('\n', out);
+        free(lines[i]);
+    }
+    if (fclose(out) != 0 || rename(tmpnm, filenm) != 0) {
+        perror(filenm);
+        exit(1);
+    }
+    free(tmpnm);
+    free(lines);
+    free(row);
+    const long n = l.n;
+    cs_candlist_free(&l);
+    return n;
 }

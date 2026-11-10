@@ -45,6 +45,7 @@ String -o outfile       {Output candidate file name (single input file only; def
 String -outdir outdir   {Write each <input>.cohout into this directory instead}
 Flag -plot plot         {Plot the candidates' pulse profiles to <input>_cohout.ps (and, with Ghostscript, to <input>_cohout_01.png, _02.png, ...)}
 Flag -replot replot     {Do not search: plot the candidates already in <input>.cohout}
+Flag -rewrite rewrite   {Do not search: re-check every candidate in <input>.cohout against the pulsar database and rewrite the file with the matches labelled (add -replot to plot them too)}
 Flag -noprogress noprogress {Do not print a progress meter}
 Flag -verbose verbose   {Report the trial grid and chunking before searching}
 
@@ -132,7 +133,22 @@ does.
 .B -replot
 redraws them from an existing
 .I .cohout
-file without searching again.
+file without searching again, labelling known pulsars afresh.
+.B -rewrite
+re-checks every candidate in an existing
+.I .cohout
+file against the pulsar database and rewrites the file with the matches
+labelled, again without searching.  It reads only the
+.I .inf
+file, not the
+.IR .fft ,
+so it is quick; add
+.B -replot
+to plot them as well.  Both read the files that CoherentSearch.jl writes,
+so a large search run there (on a GPU, say) can be labelled and plotted
+here with
+.B coherentsearch -rewrite -replot
+.IR *_red.fft .
 .PP
 .B -deep
 runs the deep pass recommended in the paper for slow pulsars with very
@@ -170,6 +186,17 @@ coherentsearch mypulsar_DM10.00_red.fft
 coherentsearch -deep mypulsar_DM10.00_red.fft
 .fi
 .RE
+.PP
+To sift the candidates from a search over many DMs (and, optionally, many
+observations), run
+.B coherent_sift.py
+on the
+.I .cohout
+files (or on the directory holding them).  It groups each signal's
+detections across DM and observation, flags harmonics, known pulsars,
+edge-peaked and broadband (RFI-like) signals, and ranks the rest by how
+pulsar-like they look; see
+.BR "coherent_sift.py --help" .
 }
 
 Author {Scott Ransom <sransom@nrao.edu>}

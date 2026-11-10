@@ -95,6 +95,8 @@ static Cmdline cmd = {
     /* plotP = */ 0,
     /***** -replot: Do not search: plot the candidates already in <input>.cohout */
     /* replotP = */ 0,
+    /***** -rewrite: Do not search: re-check every candidate in <input>.cohout against the pulsar database and rewrite the file with the matches labelled (add -replot to plot them too) */
+    /* rewriteP = */ 0,
     /***** -noprogress: Do not print a progress meter */
     /* noprogressP = */ 0,
     /***** -verbose: Report the trial grid and chunking before searching */
@@ -525,6 +527,13 @@ void showOptionValues(void)
         printf("-replot found:\n");
     }
 
+    /***** -rewrite: Do not search: re-check every candidate in <input>.cohout against the pulsar database and rewrite the file with the matches labelled (add -replot to plot them too) */
+    if (!cmd.rewriteP) {
+        printf("-rewrite not found.\n");
+    } else {
+        printf("-rewrite found:\n");
+    }
+
     /***** -noprogress: Do not print a progress meter */
     if (!cmd.noprogressP) {
         printf("-noprogress not found.\n");
@@ -553,7 +562,7 @@ void showOptionValues(void)
 
 void usage(void)
 {
-    fputs("   [-ncpus ncpus] [-deep] [-threshold threshold] [-nharms nharms] [-maxdecim maxdecim] [-lofreq lofreq] [-lobin lobin] [-hifreq hifreq] [-hidr hidr] [-m m] [-measuredsigma] [-ncands ncands] [-drtol drtol] [-numharm numharm] [-noremove] [-noharmremove] [-noperiodic] [-blocksize blocksize] [-o outfile] [-outdir outdir] [-plot] [-replot] [-noprogress] [-verbose] [--] infile ...\n", stderr);
+    fputs("   [-ncpus ncpus] [-deep] [-threshold threshold] [-nharms nharms] [-maxdecim maxdecim] [-lofreq lofreq] [-lobin lobin] [-hifreq hifreq] [-hidr hidr] [-m m] [-measuredsigma] [-ncands ncands] [-drtol drtol] [-numharm numharm] [-noremove] [-noharmremove] [-noperiodic] [-blocksize blocksize] [-o outfile] [-outdir outdir] [-plot] [-replot] [-rewrite] [-noprogress] [-verbose] [--] infile ...\n", stderr);
     fputs("      Search normalised FFTs for pulsars by coherently summing many harmonics and scoring the folded profiles with boxcar matched filters.\n", stderr);
     fputs("            -ncpus: Number of processors to use with OpenMP\n", stderr);
     fputs("                    1 int value between 1 and oo\n", stderr);
@@ -604,6 +613,7 @@ void usage(void)
     fputs("                    1 char* value\n", stderr);
     fputs("             -plot: Plot the candidates' pulse profiles to <input>_cohout.ps (and, with Ghostscript, to <input>_cohout_01.png, _02.png, ...)\n", stderr);
     fputs("           -replot: Do not search: plot the candidates already in <input>.cohout\n", stderr);
+    fputs("          -rewrite: Do not search: re-check every candidate in <input>.cohout against the pulsar database and rewrite the file with the matches labelled (add -replot to plot them too)\n", stderr);
     fputs("       -noprogress: Do not print a progress meter\n", stderr);
     fputs("          -verbose: Report the trial grid and chunking before searching\n", stderr);
     fputs("            infile: Input '.fft' file(s), each with a matching '.inf' file.  They should be normalised (e.g. by rednoise) so that Fourier powers have mean 1\n", stderr);
@@ -798,6 +808,11 @@ Cmdline *parseCmdline(int argc, char **argv)
 
         if (0 == strcmp("-replot", argv[i])) {
             cmd.replotP = 1;
+            continue;
+        }
+
+        if (0 == strcmp("-rewrite", argv[i])) {
+            cmd.rewriteP = 1;
             continue;
         }
 
