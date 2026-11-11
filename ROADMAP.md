@@ -30,8 +30,12 @@ The prerequisite work that made clean packaging possible is also complete:
 
 The next big goal, a C port of CoherentSearch.jl, **shipped in v6.2.0** as `coherentsearch`
 (plus `coherent_sift.py`), merged from the `coherent-search` branch on 2026-11-10. What is
-left of it is optional: Highway kernels (phase 4's open items and phase 5 below) and
-backporting the C version's additions to Julia (see "Other open items").
+left of it is optional: Highway kernels (phase 4's open items and phase 5 below). The C
+version's additions (the comb filter, the file-based normalisation check, `-deep` and its sift
+against the default `.cohout`, and the sifter improvements) were **backported to
+CoherentSearch.jl** on 2026-11-11 (commit `398275f`). Its `bin/sift_candidates.py` is now a copy
+of `bin/coherent_sift.py`, so change both. On Ter5 DM238.50 the two codes' default and deep
+`.cohout` files agree to every printed digit.
 
 ## The coherent harmonic search in PRESTO (shipped in v6.2.0)
 
@@ -563,34 +567,6 @@ dependency (Highway), and C++ in the build for the first time.
   PRESTO's meson build or the feedstock, so it is not the plan.
 
 ## Other open items
-
-### Backport coherentsearch additions to CoherentSearch.jl
-
-Four things the C port gained (November 2026) belong in the Julia reference
-(`~/git/CoherentSearch.jl`) too:
-- **Periodic-signal (comb) removal** (`cs_remove_periodic()` in `src/cs_search.c`): a strong
-  sinusoid lands on one high harmonic of many slow trials, giving combs of identical peaks.
-  Drop a candidate whose strongest harmonic is the 7th or higher and more than 8x the largest
-  of harmonics 1-4 (`CS_PERIODIC_*` in `include/coherentsearch.h`; `-noperiodic` disables).
-- **The FFT normalisation check** (`cs_check_normalisation()`): √(median power / ln 2) over
-  bins 10000-19999 (the top half of a shorter FFT), straight from the file before the search,
-  warning if off by more than 10%. It replaces the chunk-based `_sigma_sanity_check` that
-  Julia still uses. That check samples the lowest chunk (about 17 fundamental bins at 0.1 Hz)
-  and takes the worst of ~18 comparisons, so it warned falsely on well-normalised Ter5 data,
-  and on white noise where only a few harmonics fit.
-- **The `-deep` pass:** a search for slow, very narrow pulses. It defaults to `-nharms 120
-  -maxdecim 12 -hifreq 5` (`CS_DEEP_*` in `include/cs_fftplan.h`; the paper's
-  `coherent_tier`), but explicitly given options win. It writes `<input>_deep.cohout`, so it
-  never overwrites the default search's output.
-- **Sifting a deep pass against the default `.cohout`** (`cs_remove_harmonics_of()`): run
-  after a default search, `-deep` reads `<input>.cohout` and drops its candidates that are
-  harmonically related to stronger ones there, such as subharmonics of a bright pulsar above
-  the deep band (Ter5A/2 on the Ter5 data). `-noharmremove` skips it, and a note is printed
-  if no default `.cohout` exists.
-- **Sifter improvements** made porting `sift_candidates.py` to `bin/coherent_sift.py`:
-  reading the Known PSR column (a `known` class and flag, and `--no-known`), reading
-  `*_deep.cohout` files and flagging deep-pass signals (`--no-deep`), and classing
-  single-observation runs on their DM behaviour instead of calling everything `weak`.
 
 ### libpresto headers and soversion
 
