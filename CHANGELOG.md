@@ -1,4 +1,7 @@
 ## Development (unreleased, since v6.2.0):
+ * Fixed `accelsearch` and `search_bin` silently ignoring `-rlo` and `-rhi` (issue #232).
+   Because `-flo` and `-fhi` have defaults, they always took precedence.  Now `-rlo`/`-rhi`,
+   when given, override `-flo`/`-fhi`; searches that use only the Hz bounds are unchanged.
 
 ## Version 6.2.0:
  * **The coherent harmonic-summing search release.**  The new `coherentsearch` (with its

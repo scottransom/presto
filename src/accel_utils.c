@@ -1690,49 +1690,33 @@ void create_accelobs(accelobs *obs, infodata *idata, Cmdline *cmd, int usemmap)
     obs->numbetween = ACCEL_NUMBETWEEN;
     obs->dt = idata->dt;
     obs->T = idata->dt * idata->N;
-    if (cmd->floP) {
+    /* -flo and -fhi have defaults, so floP and fhiP are always set.  */
+    /* -rlo and -rhi have none, so if given they take precedence.     */
+    if (cmd->rloP)
+        obs->rlo = cmd->rlo;
+    else
         obs->rlo = floor(cmd->flo * obs->T);
-        if (obs->rlo < obs->lobin)
-            obs->rlo = obs->lobin;
-        if (obs->rlo > obs->numbins - 1) {
-            printf("\nLow frequency to search 'flo' is greater than\n");
-            printf("   the highest available frequency.  Exiting.\n\n");
-            exit(1);
-        }
-    } else {
-        if (cmd->rloP)
-            obs->rlo = cmd->rlo;
-        else
-            obs->rlo = 1.0;
-        if (obs->rlo < obs->lobin)
-            obs->rlo = obs->lobin;
-        if (obs->rlo > obs->numbins - 1) {
-            printf("\nLow frequency to search 'rlo' is greater than\n");
-            printf("   the available number of points.  Exiting.\n\n");
-            exit(1);
-        }
+    if (obs->rlo < obs->lobin)
+        obs->rlo = obs->lobin;
+    if (obs->rlo > obs->numbins - 1) {
+        printf("\nLow frequency to search ('%s') is greater than\n",
+               cmd->rloP ? "rlo" : "flo");
+        printf("   the highest available frequency.  Exiting.\n\n");
+        exit(1);
     }
-    obs->highestbin = obs->numbins - 1;
-    if (cmd->fhiP) {
-        obs->highestbin = ceil(cmd->fhi * obs->T);
-        if (obs->highestbin > obs->numbins - 1)
-            obs->highestbin = obs->numbins - 1;
-        obs->rhi = obs->highestbin;
-        if (obs->highestbin < obs->rlo) {
-            printf("\nHigh frequency to search 'fhi' is less than\n");
-            printf("   the lowest frequency to search 'flo'.  Exiting.\n\n");
-            exit(1);
-        }
-    } else if (cmd->rhiP) {
+    if (cmd->rhiP)
         obs->highestbin = cmd->rhi;
-        if (obs->highestbin > obs->numbins - 1)
-            obs->highestbin = obs->numbins - 1;
-        obs->rhi = obs->highestbin;
-        if (obs->highestbin < obs->rlo) {
-            printf("\nHigh frequency to search 'rhi' is less than\n");
-            printf("   the lowest frequency to search 'rlo'.  Exiting.\n\n");
-            exit(1);
-        }
+    else
+        obs->highestbin = ceil(cmd->fhi * obs->T);
+    if (obs->highestbin > obs->numbins - 1)
+        obs->highestbin = obs->numbins - 1;
+    obs->rhi = obs->highestbin;
+    if (obs->highestbin < obs->rlo) {
+        printf("\nHigh frequency to search ('%s') is less than\n",
+               cmd->rhiP ? "rhi" : "fhi");
+        printf("   the lowest frequency to search ('%s').  Exiting.\n\n",
+               cmd->rloP ? "rlo" : "flo");
+        exit(1);
     }
     obs->dr = ACCEL_DR;
     obs->zhi = cmd->zmax;
