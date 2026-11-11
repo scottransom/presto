@@ -65,3 +65,12 @@ Do this only when the Julia code or the input changes:
     pixi run pytest tests/test_coherentsearch.py                       # from the top level
 
 `fixtures/provenance.toml` records the CoherentSearch.jl commit, Julia and FFTW versions used.
+
+## Benchmarking `-march` levels
+
+`bench_march.sh BUILD_DIR FILE.fft` rebuilds only coherentsearch from a compiled meson build
+at several `-march` levels (baseline nocona, AVX2 without FMA, x86-64-v3, v4 if the CPU has
+AVX-512, and native). Every variant links the same libpresto, FFTW and wisdom. It times them
+with hyperfine, checks that every `.cohout` is identical, and with `CALLGRIND=1` counts
+instructions per kernel. It is not a test and CI does not run it. Its header lists the
+options. The results it gave on two machines are in ROADMAP.md ("SIMD on conda-forge").

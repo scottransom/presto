@@ -70,8 +70,11 @@ package with the users.
 ### SIMD on conda-forge (benefits all of PRESTO, not just this)
 
 conda-forge's x86-64 builds target a baseline CPU (no AVX2/FMA), whereas Julia JIT-compiles for
-the host. FFTW already dispatches at runtime, so only our own loops are affected. Options, in
-the order to pursue them:
+the host. FFTW dispatches at runtime, but only among the codelets it was built with:
+conda-forge's single-precision FFTW has SSE/SSE2/AVX on x86 (no AVX2/FMA, no AVX-512) and
+*none* on linux-aarch64 or osx-arm64, where the feedstock disables NEON. On x86 that costs
+at most ~4% (measured below), so there our own loops are what matter. ARM is unmeasured.
+Options, in the order to pursue them:
 
 0. **Measure the ceiling first (free).** Build PRESTO at the default flags and again with
    `-march=x86-64-v3`, then time `accelsearch`, `prepsubband`, `rfifind` and `prepfold` on real
@@ -107,6 +110,68 @@ the order to pursue them:
    - Watch out when benchmarking: the tools use `DT_RPATH` with the conda env's `lib/` first,
      which overrides `LD_LIBRARY_PATH`, so install each build into its own prefix or both
      will silently load the same `libpresto`.
+   - **coherentsearch, measured 2026-11-10** (v6.2.0; Ter5 DM 238.50 `_red.fft`, full
+     0.1–125 Hz band, 1 thread; `tests/coherentsearch/bench_march.sh`, which recompiles only
+     coherentsearch per `-march` against one libpresto/FFTW/wisdom; 1 warmup + 5 runs, both
+     machines quiet). `.cohout` byte-identical across every build, FMA ones included:
+
+     | build | foops (i7-10510U, gcc 15.2) | eiger (w5-3433, gcc 14.2) |
+     |---|---|---|
+     | conda-forge 6.2.0 package | 18.2 s | 11.47 s |
+     | `-march=nocona -mtune=haswell` | 16.8 s | 11.05 s |
+     | nocona + `-mavx2` (no FMA) | 15.8 s | 9.70 s |
+     | `-march=x86-64-v3` | 13.3 s | 9.65 s |
+     | `-march=x86-64-v4` | — | 9.34 s |
+     | `-march=native` | 14.9 s | 9.72 s |
+
+     So v3 is 1.37x (foops) and 1.19x (eiger) faster than the package users get today,
+     and v4 1.23x on eiger. On foops, native ran right after v3 and probably throttled
+     (it executes fewer instructions); treat v3 ≈ native. This gap is larger than phase 4's
+     "~10%" (PM0063, foops) and "nothing" (0.1–30 Hz, eiger). The band or the file is the
+     likely reason; not checked. Part of v4's gain is `CS_GROUP_V = 32`, which is set from
+     `__AVX512F__` at compile time.
+     callgrind, 120–125 Hz slice, foops: `cs_boxcar_batch` 3.58 G instructions at nocona vs
+     1.79 G at v3 (it scales with vector width); `cs_fill_row` 2.67 G vs 1.54 G (FMA is
+     most of it; AVX2 without FMA gives 1.65 G). FFTW's share is the same in all builds.
+     valgrind cannot decode AVX-512, so there are no v4 counts.
+   - **FFTW's SIMD codelets, measured 2026-11-10.** FFTW 3.3.11 rebuilt with the
+     feedstock's linux-64 configure flags and CFLAGS (its `recipe/build_fftw.sh`), as-is
+     and with `--enable-avx2` (+ `--enable-avx512`). Each build was swapped under the
+     conda-forge 6.2.0 binaries with `LD_PRELOAD` (which beats their `DT_RPATH`), with fresh
+     wisdom from `makewisdom` run against the same library. 1 thread, medians of 3:
+
+     | eiger | stock | rebuilt as stock | + AVX2 | + AVX2 + AVX-512 |
+     |---|---|---|---|---|
+     | coherentsearch | 11.52 s | 11.53 s | 11.22 s | 11.26 s |
+     | `accelsearch -zmax 200 -numharm 8` | 28.78 s | 28.04 s | 28.16 s | 27.39 s |
+     | `-zmax 50 -wmax 150 -fhi 1000` | 9.87 s | 9.52 s | 9.79 s | 9.65 s |
+     | `realfft`, 10.6 M points | 0.139 s | 0.140 s | 0.154 s | 0.152 s |
+
+     At most ~2–4%: the stock and rebuilt-as-stock columns differ by as much. `realfft` is
+     ~10% *slower* with AVX2. The `.cohout` and `ACCEL_200` files are byte-identical across
+     FFTW builds.
+     foops (AVX2 only; medians of 3, stock / rebuilt as stock / + AVX2): coherentsearch
+     19.78 / 19.40 / 19.23 s, `-zmax 200` 58.27 / 57.39 / 57.29 s, jerk 22.26 / 20.92 /
+     20.92 s. Against the like-for-like rebuild, AVX2 codelets buy ≤1%.
+     The transforms here are small (8K points) and AVX is already 8 floats wide, so AVX2
+     adds only FMA. This is **not** worth a feedstock request for x86. NEON on ARM is a
+     separate question: the feedstock disables it (its build script cites feedstock issue
+     #94 and FFTW/fftw3#129). Measure on an aarch64 or Apple-silicon host before asking.
+   - **Thread scaling** (eiger, same file, `-ncpus N`; Julia `-t N`, wall time including
+     its ~1 s start-up):
+
+     | threads | C v4 | C conda-forge | Julia |
+     |---|---|---|---|
+     | 1 | 9.37 s | 11.49 s | 9.46 s |
+     | 4 | 2.51 s | 3.02 s | 3.21 s |
+     | 8 | 1.48 s | 1.72 s | 2.23 s |
+     | 16 | **0.90 s** | **1.04 s** | **1.82 s** |
+     | 24 | 1.43 s | 1.98 s | 2.48 s |
+     | 32 | 1.81 s | 2.36 s | 2.78 s |
+
+     The C code scales to 10.4x on the 16 physical cores. Hyperthreads make every code
+     *slower*: 24 threads cost 1.6x over 16 for C. The docs should say to keep `-ncpus` at
+     or below the physical core count. The conda-forge gap holds at every thread count.
 1. **conda-forge microarchitecture variants — tried and dropped.** Adding the
    `x86_64-microarch-level` metapackage to the feedstock's build requirements would produce
    v1 and v3 builds, with the solver choosing via the `__archspec` virtual package
@@ -137,13 +202,118 @@ the order to pursue them:
    unlike `target_clones`, which needs ifunc), but each variant still relies on the
    auto-vectorizer.
 
-**Plan:** (0) is done and (1) dropped; do (2) for the new
-search's hot kernels: the grouped interpolation matvec and the transposed boxcar
-gate/prefix-sum scan. Then adopt Highway kernels in `accelsearch` *only where profiling says
-the non-FFTW loops matter* (see `fourier_interpolation_tradeoffs.md` §5 in CoherentSearch.jl).
-The profile now names two `accelsearch` targets: the harmonic sum in `add_ffdotpows`, whose
-`inpows[rinds[kk]]` gather is a near-arithmetic index sequence that could become contiguous
-loads, and the threshold scan in `search_ffdotpows`.
+**Plan** (revised 2026-11-10, after the measurements above): (0) is done and (1) dropped.
+Cheapest first, and let measurements decide on Highway:
+
+a. **`target_clones` on coherentsearch's two kernels now**, as a stopgap ahead of any
+   Highway work. `__attribute__((target_clones("arch=x86-64-v4", "arch=x86-64-v3",
+   "default")))` on `cs_boxcar_batch` and `cs_fill_row` (its static helpers, such as
+   `group_lanes`, inline into each clone). It sits behind a macro that is defined only for
+   GCC/Clang on x86-64 ELF and is a no-op elsewhere. ARM baselines already have NEON, so
+   they lose little. This should recover most of the measured 1.2–1.4x for conda-forge
+   users with no packaging change. To check:
+   - `test_coherentsearch.py`'s reference numbers with FMA in the dispatched clone. If
+     bit-identical output across CPUs matters more, use AVX2 without FMA (no cost on
+     eiger, ~15% on foops).
+   - `CS_GROUP_V` is a compile-time `#ifdef __AVX512F__`, so a v4 clone would still use
+     16-trial groups. The v4 clone needs a group size of its own, or it gets only part of
+     v4's gain.
+   - the gain in `bench_march.sh`, with an installed build of each kind.
+b. **Restructure accelsearch's hot loops in plain C** (next subsection) and check
+   `-fopt-info-vec`. Its targets don't vectorize at *any* `-march`, so dispatch alone can't
+   help them.
+c. **Highway (2) only on evidence.** Single-threaded, the v4 build already ties Julia on
+   eiger (9.37 vs 9.46 s, Julia's start-up included), so explicit SIMD has no demonstrated headroom over gcc at
+   `-march=native`. A time-boxed test that would settle it: a ~50-line Highway
+   `cs_boxcar_batch` timed against the native build. Adopt Highway if a kernel resists
+   vectorization after restructuring, if an SVE target matters to users (Graviton3's
+   256-bit SVE; Grace's SVE is only 128 bits wide), or if that test shows real headroom.
+   See also `fourier_interpolation_tradeoffs.md` §5 in CoherentSearch.jl.
+d. **FFTW feedstock:** no request for x86 (≤4%). NEON on ARM is worth measuring first.
+e. **Don't move to `-O3`.** Phase 4 found coherentsearch 1.65x slower at `-O3`, and
+   callgrind at baseline flags shows `cs_fill_row` almost doubling its instructions (5.11
+   vs 2.67 G; `cs_boxcar_batch` improves, 2.54 vs 3.58 G). The conda-forge package's counts
+   match `-O2`: the feedstock's `-O2` follows meson's `-O3` and wins.
+
+### Restructuring accelsearch's hot loops
+
+The profile from item (0), `-zmax 200`, 1 thread, ~27 s with the `fmaf` fix: FFTW 8.5 s,
+`search_ffdotpows` 6.9 s, `add_ffdotpows` 5.6 s, `subharm_fderivs_vol` 5.9 s. There is no
+profile of a jerk search yet; take one first (gperftools as in (0)).
+
+**Code paths (from `accelsearch.c`, `accel_utils.c`):**
+- **In-memory mode** (`obs.inmem`) is chosen only for `-zmax` searches, when the full f-fdot
+  plane fits in `MAXRAMUSE` (2 GB) or `-inmem` is given. Subharmonics then come from the
+  stored plane (`inmem_add_ffdotpows`) and need no FFTs.
+- **Jerk searches (`-wmax`) never use it.** Long observations don't either: the Ter5
+  benchmark file needs 7.91 GB for `-zmax 200` and 5.60 GB for the jerk volume, so both
+  ran in standard mode. So standard mode is the one that matters for real searches.
+- **Standard mode**, per block of `corr_uselen` interpolated bins:
+  `subharm_fderivs_vol(1, 1)` builds the fundamental. Then, for each stage and each odd
+  harmonic, `subharm_fderivs_vol` recomputes the subharmonic plane or volume: one complex
+  multiply, inverse FFT and power conversion per (z, w) kernel. `add_ffdotpows` gathers it
+  into the fundamental, and `search_ffdotpows` scans the fundamental after each stage.
+- **Each add and each scan streams the whole fundamental.** With `-numharm 8` that is 7
+  adds and 4 scans per block, and with `-numharm 16`, 15 and 5.
+  - For `-zmax 200` the fundamental is 201 z rows × ~7470 floats, ~6 MB: larger than L2 on
+    both test machines, and close to foops' 8 MB L3.
+  - For `-zmax 50 -wmax 160` it is 17 × 51 = 867 rows, about 4x as many.
+
+**Shared by both searches:**
+1. **Threshold scan (`search_ffdotpows`).** Today every element goes through an `omp
+   parallel for collapse(3)` that recomputes three indices and branches. Almost no element
+   passes `powcut`. Instead:
+   - First pass per row: count `v > powcut`. That is an integer reduction, which should
+     vectorize at baseline flags without `-ffast-math`; check with `-fopt-info-vec`.
+   - Run the existing scalar code (sigma, r/z/w, `insert_new_accelcand` under `critical`)
+     only on rows with hits.
+   - Parallelize over rows, so the critical section is never reached in the common case.
+2. **Harmonic-sum gather (`add_ffdotpows`).** For harmonic h of N, the subharmonic r index
+   table is periodic: `rinds[kk + 2N] = rinds[kk] + 2h`. The period is 2N, not N, because
+   `rint()` rounds ties to even; checked numerically for every N ≤ 32 and odd h.
+   - So each block of 2N outputs reads a contiguous window of 2h+1 inputs, in a fixed
+     pattern per (h, N).
+   - Options, cheapest first:
+     - `int32` indices (now `unsigned short`) with `restrict`, so gcc can use `vgatherdps`
+       in v3/v4 clones;
+     - unrolling by the period with a small constant offset table;
+     - a window load plus a fixed permute per (h, N). That is explicit SIMD, the strongest
+       Highway candidate in accelsearch if the compiler won't do it.
+   - `zinds` only selects rows and is not a cost.
+3. **Fusing and blocking.** Fold the scan into the last add of each stage, which saves one
+   full pass per stage and is simple. Beyond that, tile the fundamental by rows and do all
+   of a stage's adds plus its scan per tile while the tile is in cache. That needs the
+   stage's subharmonic planes computed first: more memory, the same reads from them.
+
+**Acceleration searches (`-zmax`, w = 0):**
+- The work per row is light (one plane, no w loop), so the scan and gather (~45% of the
+  profile) dominate after FFTW. Items 1–3 are the whole story.
+- In-memory mode (`inmem_add_ffdotpows`, short observations) has the same periodic gather,
+  but over rows of a multi-GB plane, so it is memory-bound. Blocking matters more there
+  than SIMD.
+- The `_trans` variants (`-otheropt`) already try a z-major layout. Benchmark them against
+  the new loops before keeping either.
+
+**Jerk searches (`-wmax`):**
+- **Profile first.** The kernel count multiplies by the w dimension: (2·wmax/20 + 1) per z,
+  so 867 correlations per block for the fundamental at `-zmax 50 -wmax 160`. Expect
+  `subharm_fderivs_vol` (correlate, FFT, power) and FFTW to take a larger share than in
+  acceleration searches. Note that `-wmax 150` is rounded up to 160.
+- Candidate changes:
+  - Batch the per-kernel inverse FFTs (`fftwf_plan_many_dft` over a group of kernels, with
+    the multiply and power steps fused around it). That gives FFTW longer runs and
+    removes per-call overhead.
+  - Block the fundamental volume across w planes, as in item 3; it matters more here
+    because the volume is ~4x larger.
+  - Low harmonics reuse a few subharmonic w planes many times: `calc_required_w` rounds
+    to `ACCEL_DW = 20`, so for h/N = 1/8 at `-wmax 160` only 3 subharmonic w planes
+    exist. A gather ordered by subharmonic plane would keep each plane in cache.
+- Items 1 and 2 still apply, now with a w loop outside.
+
+Measure each change with A/B runs in the style of `tests/coherentsearch/bench_march.sh`:
+one libpresto, FFTW and wisdom for all variants, hyperfine, and an output comparison. A
+version of it for accelsearch is the obvious first tool to write. Keep ACCEL files byte-identical, as the
+`fmaf` fix did, or explain any change.
 
 ### Scope of the port
 
@@ -376,7 +546,8 @@ dependency (Highway), and C++ in the build for the first time.
 
    - Still open: an aarch64 host (NEON has 32 registers, so V = 32 may win there too),
      disassembly audits, and Highway only if a kernel still needs it.
-5. **Afterwards, optional:** profile `accelsearch` and move any loops worth it onto Highway.
+5. **Afterwards, optional:** `accelsearch`. See "Restructuring accelsearch's hot loops"
+   above: plain-C restructuring first, Highway only where that fails.
 
 ### Open questions
 
