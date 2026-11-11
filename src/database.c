@@ -245,6 +245,24 @@ int get_psr_at_epoch(char *psrname, double epoch, psrparams * psr)
 }
 
 
+static double match_radius(const infodata * idata, double mult)
+/* The angular radius (radians) within which a catalogue pulsar can   */
+/* match: mult times twice the beam diameter from the .inf file.  If  */
+/* the beam diameter is missing (zero, which would never match any    */
+/* pulsar), use twice a generous default beam, without the mult.      */
+{
+    static int warned = 0;
+    if (idata->fov > 0.0)
+        return mult * 2.0 * ARCSEC2RAD * idata->fov;
+    if (!warned) {
+        fprintf(stderr, "Warning:  no beam diameter in the .inf file, so matching "
+                "known pulsars assuming %.0f arcmin.\n", DEFAULT_BEAM_FWHM_ARCSEC / 60.0);
+        warned = 1;
+    }
+    return 2.0 * ARCSEC2RAD * DEFAULT_BEAM_FWHM_ARCSEC;
+}
+
+
 int comp_psr_to_cand(fourierprops * cand, infodata * idata, char *output, int full)
 /* Compares a pulsar candidate defined by its properties found in   */
 /*   *cand, and *idata with all of the pulsars in the pulsar        */
@@ -268,7 +286,7 @@ int comp_psr_to_cand(fourierprops * cand, infodata * idata, char *output, int fu
     /* when a caller reused one infodata for several files (as a            */
     /* multi-file coherentsearch run does); they are cheap to recompute.    */
 
-    beam2 = 2.0 * ARCSEC2RAD * idata->fov;
+    beam2 = match_radius(idata, 2.0);
     ra = hms2rad(idata->ra_h, idata->ra_m, idata->ra_s);
     dec = dms2rad(idata->dec_d, idata->dec_m, idata->dec_s);
     T = idata->N * idata->dt;
@@ -277,108 +295,102 @@ int comp_psr_to_cand(fourierprops * cand, infodata * idata, char *output, int fu
 
     calc_rzwerrs(cand, T, &rzws);
 
-    /* Run through RAs in database looking for things close  */
-    /* If find one, check the DEC as well (the angle between */
-    /* the sources < 2*beam diam).  If find one, check its   */
-    /* period.  If this matches within 2*perr, return the    */
-    /* number of the pulsar.  If no matches, return 0.       */
+    /* Run through the database looking for pulsars within   */
+    /* beam2 of the pointing (see match_radius()).  For each */
+    /* one, check its period, and if that matches, return    */
+    /* the number of the pulsar.  If no matches, return 0.   */
 
     for (ii = 0; ii < np; ii++) {
 
-        /* See if we're close in RA */
+        /* See if the pulsar is close enough to the pointing */
 
-        if (fabs(pulsardata[ii].ra2000 - ra) < 5 * beam2) {
+        if (sphere_ang_diff(pulsardata[ii].ra2000, pulsardata[ii].dec2000,
+                            ra, dec) < beam2) {
 
-            /* See if we're close in RA and DEC */
+            /* Predict the period of the pulsar at the observation MJD */
 
-            if (sphere_ang_diff(pulsardata[ii].ra2000, pulsardata[ii].dec2000,
-                                ra, dec) < 5 * beam2) {
+            difft = SECPERDAY * (epoch - pulsardata[ii].timepoch);
+            theor = T / (pulsardata[ii].p + pulsardata[ii].pd * difft);
+            theoz = -pulsardata[ii].pd * theor * theor;
 
-                /* Predict the period of the pulsar at the observation MJD */
+            /* Check the predicted period and its harmonics against the */
+            /* measured period.                                         */
 
-                difft = SECPERDAY * (epoch - pulsardata[ii].timepoch);
-                theor = T / (pulsardata[ii].p + pulsardata[ii].pd * difft);
-                theoz = -pulsardata[ii].pd * theor * theor;
+            for (jj = 1; jj < 41; jj++) {
 
-                /* Check the predicted period and its harmonics against the */
-                /* measured period.                                         */
+                /* If the psr from the database is in a             */
+                /* binary orbit, loosen the match criteria.         */
+                /* This accounts for Doppler variations in period.  */
 
-                for (jj = 1; jj < 41; jj++) {
-
-                    /* If the psr from the database is in a             */
-                    /* binary orbit, loosen the match criteria.         */
-                    /* This accounts for Doppler variations in period.  */
-
-                    if (pulsardata[ii].orb.p != 0.0) {
-                        r_criteria = 0.001 * theor * jj;        /* 0.1% fractional error   */
-                        z_criteria = 9999999999.0;      /* Always match for binary */
-                        strcpy(tmp1, "?");
-                        if (full) {
-                            strcpy(tmp3, "Possibly (large error) ");
-                        }
-                    } else {
-                        r_criteria = 5.0;       /* 5 bin error matching... */
-                        z_criteria = 9999999999.0;      /* Always match for binary */
-                        /* z_criteria = 2.5 * cand->zerr; */
-                        strcpy(tmp1, "");
-                        if (full) {
-                            strcpy(tmp3, "Looks like ");
-                        }
+                if (pulsardata[ii].orb.p != 0.0) {
+                    r_criteria = 0.001 * theor * jj;        /* 0.1% fractional error   */
+                    z_criteria = 9999999999.0;      /* Always match for binary */
+                    strcpy(tmp1, "?");
+                    if (full) {
+                        strcpy(tmp3, "Possibly (large error) ");
                     }
+                } else {
+                    r_criteria = 5.0;       /* 5 bin error matching... */
+                    z_criteria = 9999999999.0;      /* Always match for binary */
+                    /* z_criteria = 2.5 * cand->zerr; */
+                    strcpy(tmp1, "");
+                    if (full) {
+                        strcpy(tmp3, "Looks like ");
+                    }
+                }
 
-                    if (theor * jj > 1.5 * cand->r)
-                        break;
+                if (theor * jj > 1.5 * cand->r)
+                    break;
 
-                    rdiff = fabs(theor * jj - cand->r);
-                    zdiff = fabs(theoz * jj - cand->z);
+                rdiff = fabs(theor * jj - cand->r);
+                zdiff = fabs(theoz * jj - cand->z);
 
-                    if (rdiff < r_criteria && zdiff < z_criteria) {
-                        if (strlen(pulsardata[ii].bname) == 0)
-                            sprintf(psrname, "J%s", pulsardata[ii].jname);
-                        else
-                            sprintf(psrname, "B%s", pulsardata[ii].bname);
-                        if (jj == 1) {
-                            if (full) {
-                                sprintf(tmp1, "the fundamental of ");
-                                sprintf(tmp2, "PSR %s. (predicted p = %11.7f s).\n",
-                                        psrname, T / theor);
-                                sprintf(output, "%s%s\n     %s", tmp3, tmp1, tmp2);
-                            } else {
-                                snprintf(shortout, sizeof(shortout), "PSR %s%s",
-                                         psrname, tmp1);
-                                short_label(output, shortout);
-                            }
-                        } else {
-                            if (full) {
-                                sprintf(tmp1, "the %s harmonic of ", num[jj]);
-                                sprintf(tmp2, "PSR %s. (predicted p = %11.7f s).\n",
-                                        psrname, T / theor);
-                                sprintf(output, "%s%s\n     %s", tmp3, tmp1, tmp2);
-                            } else {
-                                snprintf(shortout, sizeof(shortout), "%s H %s%s",
-                                         num[jj], psrname, tmp1);
-                                short_label(output, shortout);
-                            }
-                        }
-                        return ii + 1;
-                    } else if (rdiff < sidedr) {
-                        if (strlen(pulsardata[ii].bname) == 0)
-                            sprintf(psrname, "J%s", pulsardata[ii].jname);
-                        else
-                            sprintf(psrname, "B%s", pulsardata[ii].bname);
+                if (rdiff < r_criteria && zdiff < z_criteria) {
+                    if (strlen(pulsardata[ii].bname) == 0)
+                        sprintf(psrname, "J%s", pulsardata[ii].jname);
+                    else
+                        sprintf(psrname, "B%s", pulsardata[ii].bname);
+                    if (jj == 1) {
                         if (full) {
-                            sprintf(tmp1, "a sidelobe of the %s harmonic of ",
-                                    num[jj]);
+                            sprintf(tmp1, "the fundamental of ");
                             sprintf(tmp2, "PSR %s. (predicted p = %11.7f s).\n",
                                     psrname, T / theor);
                             sprintf(output, "%s%s\n     %s", tmp3, tmp1, tmp2);
                         } else {
-                            snprintf(shortout, sizeof(shortout), "SL H%d %s",
-                                     jj, psrname);
+                            snprintf(shortout, sizeof(shortout), "PSR %s%s",
+                                     psrname, tmp1);
                             short_label(output, shortout);
                         }
-                        return ii + 1;
+                    } else {
+                        if (full) {
+                            sprintf(tmp1, "the %s harmonic of ", num[jj]);
+                            sprintf(tmp2, "PSR %s. (predicted p = %11.7f s).\n",
+                                    psrname, T / theor);
+                            sprintf(output, "%s%s\n     %s", tmp3, tmp1, tmp2);
+                        } else {
+                            snprintf(shortout, sizeof(shortout), "%s H %s%s",
+                                     num[jj], psrname, tmp1);
+                            short_label(output, shortout);
+                        }
                     }
+                    return ii + 1;
+                } else if (rdiff < sidedr) {
+                    if (strlen(pulsardata[ii].bname) == 0)
+                        sprintf(psrname, "J%s", pulsardata[ii].jname);
+                    else
+                        sprintf(psrname, "B%s", pulsardata[ii].bname);
+                    if (full) {
+                        sprintf(tmp1, "a sidelobe of the %s harmonic of ",
+                                num[jj]);
+                        sprintf(tmp2, "PSR %s. (predicted p = %11.7f s).\n",
+                                psrname, T / theor);
+                        sprintf(output, "%s%s\n     %s", tmp3, tmp1, tmp2);
+                    } else {
+                        snprintf(shortout, sizeof(shortout), "SL H%d %s",
+                                 jj, psrname);
+                        short_label(output, shortout);
+                    }
+                    return ii + 1;
                 }
             }
         }
@@ -413,9 +425,9 @@ int comp_bin_to_cand(binaryprops * cand, infodata * idata, char *output, int ful
     if (!have_database)
         np = read_database();
 
-    /* Convert the beam width to radians */
+    /* The matching radius (radians) around the pointing */
 
-    beam2 = 2.0 * ARCSEC2RAD * idata->fov;
+    beam2 = match_radius(idata, 1.0);
 
     /* Convert RA and DEC to radians  (Use J2000) */
 
@@ -426,84 +438,78 @@ int comp_bin_to_cand(binaryprops * cand, infodata * idata, char *output, int ful
 
     epoch = (double) idata->mjd_i + idata->mjd_f;
 
-    /* Run through RAs in database looking for things close  */
-    /* If find one, check the DEC as well (the angle between */
-    /* the sources < 2*beam diam).  If find one, check its   */
-    /* period.  If this matches within 2*perr, return the    */
-    /* number of the pulsar.  If no matches, return 0.       */
+    /* Run through the database looking for pulsars within   */
+    /* beam2 of the pointing (see match_radius()).  For each */
+    /* one, check its period, and if that matches, return    */
+    /* the number of the pulsar.  If no matches, return 0.   */
 
     for (ii = 0; ii < np; ii++) {
 
-        /* See if we're close in RA */
+        /* See if the pulsar is close enough to the pointing */
 
-        if (fabs(pulsardata[ii].ra2000 - ra) < beam2) {
+        if (sphere_ang_diff(pulsardata[ii].ra2000, pulsardata[ii].dec2000,
+                            ra, dec) < beam2) {
 
-            /* See if we're close in RA and DEC */
+            /* Check that the psr in the database is in a binary   */
 
-            if (sphere_ang_diff(pulsardata[ii].ra2000, pulsardata[ii].dec2000,
-                                ra, dec) < beam2) {
+            if (pulsardata[ii].orb.p != 0.0) {
 
-                /* Check that the psr in the database is in a binary   */
+                /* Predict the period of the pulsar at the observation MJD */
 
-                if (pulsardata[ii].orb.p != 0.0) {
+                difft = SECPERDAY * (epoch - pulsardata[ii].timepoch);
+                theop = pulsardata[ii].p + pulsardata[ii].pd * difft;
 
-                    /* Predict the period of the pulsar at the observation MJD */
+                /* Check the predicted period and its harmonics against the */
+                /* measured period.  Use both pulsar and binary periods.    */
 
-                    difft = SECPERDAY * (epoch - pulsardata[ii].timepoch);
-                    theop = pulsardata[ii].p + pulsardata[ii].pd * difft;
-
-                    /* Check the predicted period and its harmonics against the */
-                    /* measured period.  Use both pulsar and binary periods.    */
-
-                    for (jj = 1, pmod = 1.0; jj < 41; jj++, pmod = 1.0 / (double) jj) {
-                        if (fabs(theop * pmod - cand->ppsr) < (4 * cand->ppsrerr)) {
-                            for (kk = 1, bmod = 1.0; kk < 10;
-                                 kk++, bmod = 1.0 / (double) kk) {
-                                if (fabs
-                                    (pulsardata[ii].orb.p * bmod -
-                                     cand->pbin / SECPERDAY) <
-                                    (4 * cand->pbinerr / SECPERDAY)) {
-                                    if (strlen(pulsardata[ii].bname) == 0)
-                                        sprintf(psrname, "J%s",
-                                                pulsardata[ii].jname);
-                                    else
-                                        sprintf(psrname, "B%s",
-                                                pulsardata[ii].bname);
-                                    if (jj > 1) {
-                                        sprintf(tmp1,
-                                                "Possibly the %s phasemod harmonic ",
-                                                num[kk]);
-                                        if (full) {
-                                            sprintf(tmp2,
-                                                    "of the %s harmonic of PSR ",
-                                                    num[jj]);
-                                            sprintf(tmp3,
-                                                    "%s (p = %11.7f s, pbin = %9.4f d).\n",
-                                                    psrname, theop,
-                                                    pulsardata[ii].orb.p);
-                                            sprintf(output, "%s%s%s", tmp1, tmp2,
-                                                    tmp3);
-                                        } else {
-                                            snprintf(shortout, sizeof(shortout),
-                                                     "%s H %s", num[kk], psrname);
-                                            short_label(output, shortout);
-                                        }
+                for (jj = 1, pmod = 1.0; jj < 41; jj++, pmod = 1.0 / (double) jj) {
+                    if (fabs(theop * pmod - cand->ppsr) < (4 * cand->ppsrerr)) {
+                        for (kk = 1, bmod = 1.0; kk < 10;
+                             kk++, bmod = 1.0 / (double) kk) {
+                            if (fabs
+                                (pulsardata[ii].orb.p * bmod -
+                                 cand->pbin / SECPERDAY) <
+                                (4 * cand->pbinerr / SECPERDAY)) {
+                                if (strlen(pulsardata[ii].bname) == 0)
+                                    sprintf(psrname, "J%s",
+                                            pulsardata[ii].jname);
+                                else
+                                    sprintf(psrname, "B%s",
+                                            pulsardata[ii].bname);
+                                if (jj > 1) {
+                                    sprintf(tmp1,
+                                            "Possibly the %s phasemod harmonic ",
+                                            num[kk]);
+                                    if (full) {
+                                        sprintf(tmp2,
+                                                "of the %s harmonic of PSR ",
+                                                num[jj]);
+                                        sprintf(tmp3,
+                                                "%s (p = %11.7f s, pbin = %9.4f d).\n",
+                                                psrname, theop,
+                                                pulsardata[ii].orb.p);
+                                        sprintf(output, "%s%s%s", tmp1, tmp2,
+                                                tmp3);
                                     } else {
-                                        if (full) {
-                                            sprintf(tmp2,
-                                                    "of PSR %s (p = %11.7f s, pbin = %9.4f d).\n",
-                                                    psrname, theop,
-                                                    pulsardata[ii].orb.p);
-                                            sprintf(output, "%s%s", tmp1, tmp2);
-                                        } else {
-                                            snprintf(shortout, sizeof(shortout),
-                                                     "PSR %s", psrname);
-                                            short_label(output, shortout);
-                                        }
+                                        snprintf(shortout, sizeof(shortout),
+                                                 "%s H %s", num[kk], psrname);
+                                        short_label(output, shortout);
+                                    }
+                                } else {
+                                    if (full) {
+                                        sprintf(tmp2,
+                                                "of PSR %s (p = %11.7f s, pbin = %9.4f d).\n",
+                                                psrname, theop,
+                                                pulsardata[ii].orb.p);
+                                        sprintf(output, "%s%s", tmp1, tmp2);
+                                    } else {
+                                        snprintf(shortout, sizeof(shortout),
+                                                 "PSR %s", psrname);
+                                        short_label(output, shortout);
                                     }
                                 }
-                                return ii + 1;
                             }
+                            return ii + 1;
                         }
                     }
                 }
@@ -541,9 +547,9 @@ int comp_rawbin_to_cand(rawbincand * cand, infodata * idata, char *output, int f
     if (!have_database)
         np = read_database();
 
-    /* Convert the beam width to radians */
+    /* The matching radius (radians) around the pointing */
 
-    beam2 = 2.0 * ARCSEC2RAD * idata->fov;
+    beam2 = match_radius(idata, 2.0);
 
     /* Convert RA and DEC to radians  (Use J2000) */
 
@@ -567,116 +573,110 @@ int comp_rawbin_to_cand(rawbincand * cand, infodata * idata, char *output, int f
                        (cand->full_lo_r + 0.5 * cand->mini_N) -
                        cand->full_T / cand->full_lo_r);
 
-    /* Run through RAs in database looking for things close  */
-    /* If find one, check the DEC as well (the angle between */
-    /* the sources < 2*beam diam).  If find one, check its   */
-    /* period.  If this matches within 2*perr, return the    */
-    /* number of the pulsar.  If no matches, return 0.       */
+    /* Run through the database looking for pulsars within   */
+    /* beam2 of the pointing (see match_radius()).  For each */
+    /* one, check its period, and if that matches, return    */
+    /* the number of the pulsar.  If no matches, return 0.   */
 
     for (ii = 0; ii < np; ii++) {
 
-        /* See if we're close in RA */
+        /* See if the pulsar is close enough to the pointing */
 
-        if (fabs(pulsardata[ii].ra2000 - ra) < 5.0 * beam2) {
+        if (sphere_ang_diff(pulsardata[ii].ra2000, pulsardata[ii].dec2000,
+                            ra, dec) < beam2) {
 
-            /* See if we're close in RA and DEC */
+            /* Check that the psr in the database is in a binary   */
 
-            if (sphere_ang_diff(pulsardata[ii].ra2000, pulsardata[ii].dec2000,
-                                ra, dec) < 5.0 * beam2) {
+            if (pulsardata[ii].orb.p != 0.0) {
 
-                /* Check that the psr in the database is in a binary   */
+                /* Predict the period of the pulsar at the observation MJD */
 
-                if (pulsardata[ii].orb.p != 0.0) {
+                difft = SECPERDAY * (epoch - pulsardata[ii].timepoch);
+                theop = pulsardata[ii].p + pulsardata[ii].pd * difft;
 
-                    /* Predict the period of the pulsar at the observation MJD */
+                /* Check the predicted period and its harmonics against the */
+                /* measured period.  Use both pulsar and binary periods.    */
 
-                    difft = SECPERDAY * (epoch - pulsardata[ii].timepoch);
-                    theop = pulsardata[ii].p + pulsardata[ii].pd * difft;
-
-                    /* Check the predicted period and its harmonics against the */
-                    /* measured period.  Use both pulsar and binary periods.    */
-
-                    for (jj = 1; jj < 41; jj++) {
-                        pmod = 1.0 / (double) jj;
-                        if (fabs(theop * pmod - cand->psr_p) < psrperr) {
-                            for (kk = 1; kk < 10; kk++) {
-                                bmod = (double) kk;
-                                if (fabs
-                                    (pulsardata[ii].orb.p * bmod -
-                                     cand->orb_p / SECPERDAY) < orbperr) {
-                                    if (strlen(pulsardata[ii].bname) == 0) {
-                                        if (jj > 1) {
-                                            if (full) {
-                                                sprintf(tmp1,
-                                                        "Possibly the %s phasemod harmonic ",
-                                                        num[kk]);
-                                                sprintf(tmp2,
-                                                        "of the %s harmonic of PSR ",
-                                                        num[jj]);
-                                                sprintf(tmp3,
-                                                        "J%s (p = %11.7f s, pbin = %9.4f d).\n",
-                                                        pulsardata[ii].jname, theop,
-                                                        pulsardata[ii].orb.p);
-                                                sprintf(output, "%s%s%s", tmp1, tmp2,
-                                                        tmp3);
-                                            } else {
-                                                sprintf(output, "%s H J%.12s",
-                                                        num[kk],
-                                                        pulsardata[ii].jname);
-                                            }
+                for (jj = 1; jj < 41; jj++) {
+                    pmod = 1.0 / (double) jj;
+                    if (fabs(theop * pmod - cand->psr_p) < psrperr) {
+                        for (kk = 1; kk < 10; kk++) {
+                            bmod = (double) kk;
+                            if (fabs
+                                (pulsardata[ii].orb.p * bmod -
+                                 cand->orb_p / SECPERDAY) < orbperr) {
+                                if (strlen(pulsardata[ii].bname) == 0) {
+                                    if (jj > 1) {
+                                        if (full) {
+                                            sprintf(tmp1,
+                                                    "Possibly the %s phasemod harmonic ",
+                                                    num[kk]);
+                                            sprintf(tmp2,
+                                                    "of the %s harmonic of PSR ",
+                                                    num[jj]);
+                                            sprintf(tmp3,
+                                                    "J%s (p = %11.7f s, pbin = %9.4f d).\n",
+                                                    pulsardata[ii].jname, theop,
+                                                    pulsardata[ii].orb.p);
+                                            sprintf(output, "%s%s%s", tmp1, tmp2,
+                                                    tmp3);
                                         } else {
-                                            if (full) {
-                                                sprintf(tmp1,
-                                                        "Possibly the %s phasemod harmonic ",
-                                                        num[kk]);
-                                                sprintf(tmp2,
-                                                        "of PSR J%s (p = %11.7f s, pbin = %9.4f d).\n",
-                                                        pulsardata[ii].jname, theop,
-                                                        pulsardata[ii].orb.p);
-                                                sprintf(output, "%s%s", tmp1, tmp2);
-                                            } else {
-                                                sprintf(output, "PSR J%.12s",
-                                                        pulsardata[ii].jname);
-                                            }
+                                            sprintf(output, "%s H J%.12s",
+                                                    num[kk],
+                                                    pulsardata[ii].jname);
                                         }
                                     } else {
-                                        if (jj > 1) {
-                                            if (full) {
-                                                sprintf(tmp1,
-                                                        "Possibly the %s modulation harmonic ",
-                                                        num[kk]);
-                                                sprintf(tmp2,
-                                                        "of the %s harmonic of PSR ",
-                                                        num[jj]);
-                                                sprintf(tmp3,
-                                                        "B%s (p = %11.7f s, pbin = %9.4f d).\n",
-                                                        pulsardata[ii].bname, theop,
-                                                        pulsardata[ii].orb.p);
-                                                sprintf(output, "%s%s%s", tmp1, tmp2,
-                                                        tmp3);
-                                            } else {
-                                                sprintf(output, "%s H B%s", num[kk],
-                                                        pulsardata[ii].bname);
-                                            }
+                                        if (full) {
+                                            sprintf(tmp1,
+                                                    "Possibly the %s phasemod harmonic ",
+                                                    num[kk]);
+                                            sprintf(tmp2,
+                                                    "of PSR J%s (p = %11.7f s, pbin = %9.4f d).\n",
+                                                    pulsardata[ii].jname, theop,
+                                                    pulsardata[ii].orb.p);
+                                            sprintf(output, "%s%s", tmp1, tmp2);
                                         } else {
-                                            if (full) {
-                                                sprintf(tmp1,
-                                                        "Possibly the %s phasemod harmonic ",
-                                                        num[kk]);
-                                                sprintf(tmp2,
-                                                        "of PSR B%s (p = %11.7f s, pbin = %9.4f d).\n",
-                                                        pulsardata[ii].bname, theop,
-                                                        pulsardata[ii].orb.p);
-                                                sprintf(output, "%s%s", tmp1, tmp2);
-                                            } else {
-                                                sprintf(output, "PSR B%s",
-                                                        pulsardata[ii].bname);
-                                            }
+                                            sprintf(output, "PSR J%.12s",
+                                                    pulsardata[ii].jname);
+                                        }
+                                    }
+                                } else {
+                                    if (jj > 1) {
+                                        if (full) {
+                                            sprintf(tmp1,
+                                                    "Possibly the %s modulation harmonic ",
+                                                    num[kk]);
+                                            sprintf(tmp2,
+                                                    "of the %s harmonic of PSR ",
+                                                    num[jj]);
+                                            sprintf(tmp3,
+                                                    "B%s (p = %11.7f s, pbin = %9.4f d).\n",
+                                                    pulsardata[ii].bname, theop,
+                                                    pulsardata[ii].orb.p);
+                                            sprintf(output, "%s%s%s", tmp1, tmp2,
+                                                    tmp3);
+                                        } else {
+                                            sprintf(output, "%s H B%s", num[kk],
+                                                    pulsardata[ii].bname);
+                                        }
+                                    } else {
+                                        if (full) {
+                                            sprintf(tmp1,
+                                                    "Possibly the %s phasemod harmonic ",
+                                                    num[kk]);
+                                            sprintf(tmp2,
+                                                    "of PSR B%s (p = %11.7f s, pbin = %9.4f d).\n",
+                                                    pulsardata[ii].bname, theop,
+                                                    pulsardata[ii].orb.p);
+                                            sprintf(output, "%s%s", tmp1, tmp2);
+                                        } else {
+                                            sprintf(output, "PSR B%s",
+                                                    pulsardata[ii].bname);
                                         }
                                     }
                                 }
-                                return ii + 1;
                             }
+                            return ii + 1;
                         }
                     }
                 }

@@ -1,4 +1,13 @@
 ## Development (unreleased, since v6.2.0):
+ * Fixed known-pulsar matching (`accelsearch`, `coherentsearch`, etc.) never finding any
+   pulsar when the `.inf` beam diameter is 0, as it is for data from PSRFITS files without
+   `BMIN` (e.g. MeerKAT's).  The matching now uses a 1-degree radius (twice a default
+   30-arcmin beam) when no beam is given.  Otherwise the radius drops from 10 to 4 beam
+   diameters, so large beams no longer match pulsars many degrees away.  A faulty RA
+   pre-check (no cos(dec) factor, no wrap at 0h) that hid pulsars inside the matching
+   radius at high |dec| or near RA 0h is gone.  The PSRFITS reader
+   also estimates a missing `BMIN` from the telescope's dish size and the observing
+   frequency, falling back to 30 arcmin for unknown telescopes.
  * Fixed `accelsearch` and `search_bin` silently ignoring `-rlo` and `-rhi` (issue #232).
    Because `-flo` and `-fhi` have defaults, they always took precedence.  Now `-rlo`/`-rhi`,
    when given, override `-flo`/`-fhi`; searches that use only the Hz bounds are unchanged.

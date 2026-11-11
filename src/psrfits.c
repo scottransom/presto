@@ -258,6 +258,19 @@ void read_PSRFITS_files(struct spectra_info *s)
             // beam_halfwidth() returns halfwidth in arcsec
             s->beam_FWHM = 2 * beam_halfwidth(s->fctr, 100.0) / 3600.0; // 100m for GBT
         }
+        // Many PSRFITS files (e.g. MeerKAT's) leave BMIN unset or zero.  Then
+        // estimate the beam from the dish size and observing frequency, or
+        // fall back to a default.  A zero beam would stop the known-pulsar
+        // matching (comp_psr_to_cand() etc.) from ever finding a pulsar.
+        if (ii == 0 && !(s->beam_FWHM > 0.0)) {
+            double diam = telescope_dish_diam(s->telescope);
+            if (diam > 0.0 && s->fctr > 0.0)
+                s->beam_FWHM = 2.0 * beam_halfwidth(s->fctr, diam) / 3600.0;
+            else
+                s->beam_FWHM = DEFAULT_BEAM_FWHM_ARCSEC / 3600.0;
+            printf("Note:  No beam size (BMIN) in the PSRFITS header, so using "
+                   "%.2f arcmin.\n", s->beam_FWHM * 60.0);
+        }
 
         /* This is likely not in earlier versions of PSRFITS */
         s->chan_dm = 0.0;

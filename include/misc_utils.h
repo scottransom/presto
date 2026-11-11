@@ -38,6 +38,17 @@ float beam_halfwidth(float freq, float dish_diam);
 // Return the beam halfwidth in arcsec when freq
 // is in MHz and dish_diam is in meters
 
+#define DEFAULT_BEAM_FWHM_ARCSEC 1800.0
+// The beam diameter (arcsec) assumed when a data file doesn't give one.
+// 30 arcmin covers most telescope beams; the catalogue pulsars are sparse
+// enough that matching candidates to them over a beam this size seldom
+// gives a false match.
+
+double telescope_dish_diam(const char *telescope);
+// Return the (illuminated) dish diameter in meters of the named telescope
+// (case and surrounding whitespace are ignored), or 0.0 if it is unknown
+// or is not a dish (e.g. an aperture array such as LOFAR).
+
 double cal_to_mjd(int year, int month, int day, int *status);
 // Convert a Gregorian calendar date to the MJD at 0h.  *status is set
 // from ERFA's eraCal2jd():  0 = OK, -1 = bad year, -2 = bad month,

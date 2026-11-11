@@ -396,6 +396,46 @@ float beam_halfwidth(float freq, float dish_diam)
 }
 
 
+double telescope_dish_diam(const char *telescope)
+// Return the (illuminated) dish diameter in meters of the named telescope
+// (case and surrounding whitespace are ignored), or 0.0 if it is unknown
+// or is not a dish (e.g. an aperture array such as LOFAR).
+{
+    static const struct {
+        const char *name;
+        double diam;
+    } dishes[] = {
+        // The single dishes match the sizes in sigproc_fb.c's get_telescope_name()
+        {"arecibo", 200.0}, {"ao", 200.0},  // illuminated, not the full 305m
+        {"gbt", 100.0}, {"gb", 100.0},
+        {"parkes", 64.0}, {"pks", 64.0}, {"murriyang", 64.0},
+        {"jodrell", 76.0}, {"jodrell bank", 76.0}, {"lovell", 76.0}, {"jb", 76.0},
+        {"effelsberg", 100.0}, {"eff", 100.0},
+        {"nancay", 100.0},
+        {"fast", 350.0},
+        {"srt", 64.0}, {"sardinia radio telescope", 64.0},
+        {"gb43m", 43.0}, {"gb 140ft", 43.0},
+        {"chime", 20.0},
+        // Arrays: the beam is the primary (single-dish) beam
+        {"meerkat", 13.5},
+        {"kat-7", 12.0}, {"k7", 12.0},
+        {"gmrt", 45.0},
+        {"wsrt", 25.0},
+        {"vla", 25.0},
+        {"ata", 6.1},
+    };
+    char name[64];
+    if (!telescope)
+        return 0.0;
+    snprintf(name, sizeof(name), "%s", telescope);
+    strlower(remove_whitespace(name));
+    for (size_t ii = 0; ii < sizeof(dishes) / sizeof(dishes[0]); ii++)
+        if (strcmp(name, dishes[ii].name) == 0)
+            return dishes[ii].diam;
+    return 0.0;
+}
+
+
 float *gen_freqs(long numfreqs, double lof, double df)
 /* This routine generates a float vector of length numfreqs */
 /* with values set to lof, lof+df, lof+2df, ...             */
