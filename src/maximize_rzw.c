@@ -10,7 +10,8 @@ double max_rzw_arr(fcomplex * data, long numdata, double rin, double zin,
 {
     float locpow = get_localpower3d(data, numdata, rin, zin, win);
     float maxpow = 0, pow, powargr, powargi;
-    int extra = 10, startbin = (int)(rin) - 1;
+    int extra = 10;
+    long startbin = (long)(rin) - 1;
     int numr, numz, numw, nextbin, fftlen, numbetween;
     // The factor beyond ACCEL_DR, ACCEL_DZ, ACCEL_DW will interpolate
     int interpfac = 4, wind = 0, zind = 0, rind = 0;

@@ -932,9 +932,9 @@ float *real_corr_conv(float *data, float *kernel, int numdata, \
 
 /* In corr_routines.c */
 
-int corr_complex(fcomplex *data, int numdata, presto_datainf datainf, \
+int corr_complex(fcomplex *data, long numdata, presto_datainf datainf, \
 		 fcomplex *kern, int numkern, presto_datainf kerninf, \
-		 fcomplex *result, int numresult, int lobin, \
+		 fcomplex *result, int numresult, long lobin, \
 		 int numbetween, int kern_half_width, presto_optype optype);
   /* This routine is a general correlation or convolution routine    */
   /* for complex data.  It can perform convolutions or correlations  */
@@ -1010,7 +1010,7 @@ float *corr_loc_pow(float *powers, int numpowers);
 /* In rzinterp.c */
 
 fcomplex **corr_rz_plane(fcomplex *data, long numdata, int numbetween, \
-			 int startbin, double zlo, double zhi, \
+			 long startbin, double zlo, double zhi, \
 			 int numz, int fftlen, \
 			 presto_interp_acc accuracy, int *nextbin);
   /* This routine uses the correlation method to do Fourier          */
@@ -1029,7 +1029,7 @@ fcomplex **corr_rz_plane(fcomplex *data, long numdata, int numbetween, \
   /*      interpolated in data.                                      */
 
 fcomplex *corr_rz_interp(fcomplex *data, long numdata, int numbetween, \
-			 int startbin, double z, int fftlen, \
+			 long startbin, double z, int fftlen, \
 			 presto_interp_acc accuracy, int *nextbin);
   /* This routine uses the correlation method to do a Fourier        */
   /* complex interpolation of a slice of the f-fdot plane.           */
@@ -1045,7 +1045,7 @@ fcomplex *corr_rz_interp(fcomplex *data, long numdata, int numbetween, \
   /*      interpolated in data.                                      */
 
 fcomplex ***corr_rzw_vol(fcomplex * data, long numdata, int numbetween, \
-                         int startbin, double zlo, double zhi, int numz, \
+                         long startbin, double zlo, double zhi, int numz, \
                          double wlo, double whi, int numw, int fftlen, \
                          presto_interp_acc accuracy, int *nextbin);
   /* This routine uses the correlation method to do Fourier          */
