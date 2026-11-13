@@ -12,7 +12,8 @@ int main(int argc, char *argv[])
     double hir = 0.0, hiz = 0.0, newhir, newhiz;
     fcomplex **ffdotplane, *data;
     float powargr, powargi;
-    int startbin, numdata, nextbin, nr, nz, numkern;
+    int startbin, numdata, nr, nz, numkern;
+    long nextbin;
     int i, j, kernel_half_width, numbetween = 4;
     int n, corrsize = 1024;
     char filenm[80], compare[200];

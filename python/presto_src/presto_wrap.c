@@ -4377,12 +4377,12 @@ SWIG_AsVal_unsigned_SS_long (PyObject *obj, unsigned long *val)
 
 
     void wrap_corr_rz_plane(fcomplex *data, long N, int numbetween,
-                            int startbin, double zlo, double zhi,
+                            long startbin, double zlo, double zhi,
                             int numz, int fftlen,
                             presto_interp_acc accuracy,
                             fcomplex **arr, long *nr, long *nc){
         fcomplex **outarr;
-        int nextbin;
+        long nextbin;
         outarr = corr_rz_plane(data, N, numbetween, startbin, zlo, zhi,
                                numz, fftlen, accuracy, &nextbin);
         *arr = outarr[0];
@@ -4393,12 +4393,12 @@ SWIG_AsVal_unsigned_SS_long (PyObject *obj, unsigned long *val)
 
 
     void wrap_corr_rzw_vol(fcomplex *data, long N, int numbetween, \
-                           int startbin, double zlo, double zhi, int numz, \
+                           long startbin, double zlo, double zhi, int numz, \
                            double wlo, double whi, int numw, int fftlen, \
                            presto_interp_acc accuracy, \
                            fcomplex **arr, long *nh, long *nr, long *nc){
         fcomplex ***outarr;
-        int nextbin;
+        long nextbin;
         outarr = corr_rzw_vol(data, N, numbetween, startbin, zlo, zhi,
                               numz, wlo, whi, numw, fftlen, accuracy, &nextbin);
         *arr = outarr[0][0];
@@ -13713,7 +13713,7 @@ SWIGINTERN PyObject *_wrap_corr_rz_plane(PyObject *self, PyObject *args) {
   fcomplex *arg1 = (fcomplex *) 0 ;
   long arg2 ;
   int arg3 ;
-  int arg4 ;
+  long arg4 ;
   double arg5 ;
   double arg6 ;
   int arg7 ;
@@ -13726,7 +13726,7 @@ SWIGINTERN PyObject *_wrap_corr_rz_plane(PyObject *self, PyObject *args) {
   int i1 = 1 ;
   int val3 ;
   int ecode3 = 0 ;
-  int val4 ;
+  long val4 ;
   int ecode4 = 0 ;
   double val5 ;
   int ecode5 = 0 ;
@@ -13763,11 +13763,11 @@ SWIGINTERN PyObject *_wrap_corr_rz_plane(PyObject *self, PyObject *args) {
     SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "corr_rz_plane" "', argument " "3"" of type '" "int""'");
   } 
   arg3 = (int)(val3);
-  ecode4 = SWIG_AsVal_int(swig_obj[2], &val4);
+  ecode4 = SWIG_AsVal_long(swig_obj[2], &val4);
   if (!SWIG_IsOK(ecode4)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode4), "in method '" "corr_rz_plane" "', argument " "4"" of type '" "int""'");
+    SWIG_exception_fail(SWIG_ArgError(ecode4), "in method '" "corr_rz_plane" "', argument " "4"" of type '" "long""'");
   } 
-  arg4 = (int)(val4);
+  arg4 = (long)(val4);
   ecode5 = SWIG_AsVal_double(swig_obj[3], &val5);
   if (!SWIG_IsOK(ecode5)) {
     SWIG_exception_fail(SWIG_ArgError(ecode5), "in method '" "corr_rz_plane" "', argument " "5"" of type '" "double""'");
@@ -13845,7 +13845,7 @@ SWIGINTERN PyObject *_wrap_corr_rzw_vol(PyObject *self, PyObject *args) {
   fcomplex *arg1 = (fcomplex *) 0 ;
   long arg2 ;
   int arg3 ;
-  int arg4 ;
+  long arg4 ;
   double arg5 ;
   double arg6 ;
   int arg7 ;
@@ -13862,7 +13862,7 @@ SWIGINTERN PyObject *_wrap_corr_rzw_vol(PyObject *self, PyObject *args) {
   int i1 = 1 ;
   int val3 ;
   int ecode3 = 0 ;
-  int val4 ;
+  long val4 ;
   int ecode4 = 0 ;
   double val5 ;
   int ecode5 = 0 ;
@@ -13907,11 +13907,11 @@ SWIGINTERN PyObject *_wrap_corr_rzw_vol(PyObject *self, PyObject *args) {
     SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "corr_rzw_vol" "', argument " "3"" of type '" "int""'");
   } 
   arg3 = (int)(val3);
-  ecode4 = SWIG_AsVal_int(swig_obj[2], &val4);
+  ecode4 = SWIG_AsVal_long(swig_obj[2], &val4);
   if (!SWIG_IsOK(ecode4)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode4), "in method '" "corr_rzw_vol" "', argument " "4"" of type '" "int""'");
+    SWIG_exception_fail(SWIG_ArgError(ecode4), "in method '" "corr_rzw_vol" "', argument " "4"" of type '" "long""'");
   } 
-  arg4 = (int)(val4);
+  arg4 = (long)(val4);
   ecode5 = SWIG_AsVal_double(swig_obj[3], &val5);
   if (!SWIG_IsOK(ecode5)) {
     SWIG_exception_fail(SWIG_ArgError(ecode5), "in method '" "corr_rzw_vol" "', argument " "5"" of type '" "double""'");

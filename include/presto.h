@@ -1012,7 +1012,7 @@ float *corr_loc_pow(float *powers, int numpowers);
 fcomplex **corr_rz_plane(fcomplex *data, long numdata, int numbetween, \
 			 long startbin, double zlo, double zhi, \
 			 int numz, int fftlen, \
-			 presto_interp_acc accuracy, int *nextbin);
+			 presto_interp_acc accuracy, long *nextbin);
   /* This routine uses the correlation method to do Fourier          */
   /* complex interpolations of the f-fdot plane.                     */
   /* Arguments:                                                      */
@@ -1030,7 +1030,7 @@ fcomplex **corr_rz_plane(fcomplex *data, long numdata, int numbetween, \
 
 fcomplex *corr_rz_interp(fcomplex *data, long numdata, int numbetween, \
 			 long startbin, double z, int fftlen, \
-			 presto_interp_acc accuracy, int *nextbin);
+			 presto_interp_acc accuracy, long *nextbin);
   /* This routine uses the correlation method to do a Fourier        */
   /* complex interpolation of a slice of the f-fdot plane.           */
   /* Arguments:                                                      */
@@ -1047,7 +1047,7 @@ fcomplex *corr_rz_interp(fcomplex *data, long numdata, int numbetween, \
 fcomplex ***corr_rzw_vol(fcomplex * data, long numdata, int numbetween, \
                          long startbin, double zlo, double zhi, int numz, \
                          double wlo, double whi, int numw, int fftlen, \
-                         presto_interp_acc accuracy, int *nextbin);
+                         presto_interp_acc accuracy, long *nextbin);
   /* This routine uses the correlation method to do Fourier          */
   /* complex interpolations of the f-fdot-fdotdot volume.            */
   /* Arguments:                                                      */
@@ -1061,23 +1061,6 @@ fcomplex ***corr_rzw_vol(fcomplex * data, long numdata, int numbetween, \
   /*   'wlo' is the lowest fdotdot to use (w=f-dotdot*T^3)           */
   /*   'whi' is the highest fdotdot to use (w=f-dotdot*T^3)          */
   /*   'numw' is the number of w values to use to make the volume    */
-  /*   'fftlen' is the # of complex pts in kernel and result.        */
-  /*   'accuracy' is either HIGHACC or LOWACC.                       */
-  /*   'nextbin' will contain the bin number of the first bin not    */
-  /*      interpolated in data.                                      */
-
-fcomplex *corr_rzw_interp(fcomplex *data, long numdata, int numbetween, \
-			  int startbin, double z, double w, int fftlen, \
-			  presto_interp_acc accuracy, int *nextbin);
-  /* This routine uses the correlation method to do a Fourier        */
-  /* complex interpolation of part of the f-fdot-fdotdot volume.     */
-  /* Arguments:                                                      */
-  /*   'data' is a complex array of the data to be interpolated.     */
-  /*   'numdata' is the number of complex points (bins) in data.     */
-  /*   'numbetween' is the number of points to interpolate per bin.  */
-  /*   'startbin' is the first bin to use in data for interpolation. */
-  /*   'z' is the fdot to use (z=f-dot*T^2).                         */
-  /*   'w' is the fdotdot to use (z=f-dotdot*T^3).                   */
   /*   'fftlen' is the # of complex pts in kernel and result.        */
   /*   'accuracy' is either HIGHACC or LOWACC.                       */
   /*   'nextbin' will contain the bin number of the first bin not    */

@@ -3,7 +3,7 @@
 fcomplex **corr_rz_plane(fcomplex * data, long numdata, int numbetween,
                          long startbin, double zlo, double zhi,
                          int numz, int fftlen,
-                         presto_interp_acc accuracy, int *nextbin)
+                         presto_interp_acc accuracy, long *nextbin)
   /* This routine uses the correlation method to do Fourier          */
   /* complex interpolations of the f-fdot plane.                     */
   /* Arguments:                                                      */
@@ -45,6 +45,12 @@ fcomplex **corr_rz_plane(fcomplex * data, long numdata, int numbetween,
     maxz = (fabs(zlo) < fabs(zhi)) ? zhi : zlo;
     kern_half_width = z_resp_halfwidth(maxz, accuracy);
     numkern = 2 * numbetween * kern_half_width;
+    if (numkern + numbetween > fftlen) {
+        printf("\n  'fftlen' = %d is too short for the %d-point kernel in corr_rz_plane().\n",
+               fftlen, numkern);
+        printf("  It must be at least %d.\n\n", numkern + numbetween);
+        exit(1);
+    }
 
     /* If this is our first time or the parameters have changed, */
     /* set up and FFT the correlation kernel array               */
@@ -117,7 +123,7 @@ fcomplex **corr_rz_plane(fcomplex * data, long numdata, int numbetween,
 
 fcomplex *corr_rz_interp(fcomplex * data, long numdata, int numbetween,
                          long startbin, double z, int fftlen,
-                         presto_interp_acc accuracy, int *nextbin)
+                         presto_interp_acc accuracy, long *nextbin)
   /* This routine uses the correlation method to do a Fourier        */
   /* complex interpolation of a slice of the f-fdot plane.           */
   /* Arguments:                                                      */

@@ -3,7 +3,7 @@
 fcomplex ***corr_rzw_vol(fcomplex * data, long numdata, int numbetween,
                          long startbin, double zlo, double zhi, int numz,
                          double wlo, double whi, int numw, int fftlen,
-                         presto_interp_acc accuracy, int *nextbin)
+                         presto_interp_acc accuracy, long *nextbin)
   /* This routine uses the correlation method to do Fourier          */
   /* complex interpolations of the f-fdot-fdotdot volume.            */
   /* Arguments:                                                      */
@@ -58,6 +58,12 @@ fcomplex ***corr_rzw_vol(fcomplex * data, long numdata, int numbetween,
     maxw = (fabs(wlo) < fabs(whi)) ? whi : wlo;
     kern_half_width = w_resp_halfwidth(maxz, maxw, accuracy);
     numkern = 2 * numbetween * kern_half_width;
+    if (numkern + numbetween > fftlen) {
+        printf("\n  'fftlen' = %d is too short for the %d-point kernel in corr_rzw_vol().\n",
+               fftlen, numkern);
+        printf("  It must be at least %d.\n\n", numkern + numbetween);
+        exit(1);
+    }
 
     /* If this is our first time or the parameters have changed, */
     /* set up and FFT the correlation kernel array               */

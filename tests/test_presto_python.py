@@ -209,6 +209,42 @@ for numharm in (2, 4):
         assert abs(zmax - 100.0) < 0.01
 print("success")
 
+print("Testing f-fdot plane and f-fdot-fdotdot volume correlations...", end=" ")
+# corr_rz_plane() and corr_rzw_vol() return numbetween points per bin, starting
+# at Fourier bin startbin.  The number of columns comes from the C routines'
+# 'nextbin' output, so it checks that output as well as the correlations.
+r, z = 4100.25, 6.0
+ft = ffdot_signal(r, z)
+numbetween, startbin, fftlen = 4, 4080, 1024
+zlo, zhi, numz = 0.0, 12.0, 7  # dz = 2, so z = 6 is index 3
+khw = presto.z_resp_halfwidth(zhi, presto.HIGHACC)
+plane = presto.corr_rz_plane(
+    ft, numbetween, startbin, zlo, zhi, numz, fftlen, presto.HIGHACC
+)
+assert plane.shape == (numz, fftlen - 2 * khw * numbetween)
+iz, ir = np.unravel_index(np.argmax(np.abs(plane) ** 2), plane.shape)
+assert zlo + 2.0 * iz == z
+assert startbin + ir / numbetween == r
+assert np.abs(plane[iz, ir]) ** 2 > 0.99 * predpow
+# Every point must match a direct interpolation of the same (r, z)
+for jz in (0, 3, 6):
+    for jr in range(0, plane.shape[1], 7):
+        amp = complex(
+            *presto.rz_interp(ft, startbin + jr / numbetween, zlo + 2.0 * jz, khw)
+        )
+        assert abs(amp - plane[jz, jr]) < 0.01 * np.sqrt(predpow)
+wlo, whi, numw = -20.0, 20.0, 5  # dw = 10, so w = 0 is index 2
+khw = presto.w_resp_halfwidth(zhi, whi, presto.HIGHACC)
+vol = presto.corr_rzw_vol(
+    ft, numbetween, startbin, zlo, zhi, numz, wlo, whi, numw, fftlen, presto.HIGHACC
+)
+assert vol.shape == (numw, numz, fftlen - 2 * khw * numbetween)
+iw, iz, ir = np.unravel_index(np.argmax(np.abs(vol) ** 2), vol.shape)
+assert (wlo + 10.0 * iw, zlo + 2.0 * iz, startbin + ir / numbetween) == (0.0, z, r)
+# The w = 0 slice is the f-fdot plane (the kernel is wider, so it is shorter)
+assert np.max(np.abs(vol[2] - plane[:, : vol.shape[2]])) < 0.01 * np.sqrt(predpow)
+print("success")
+
 print("Testing angle functions...", end=" ")
 dd1 = 15.25
 dd2 = presto.dms2rad(*presto.deg2dms(dd1)) * presto.RADTODEG

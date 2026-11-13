@@ -213,7 +213,8 @@ static fftview *get_fftview(double centerr, int zoomlevel, fftpart * fp)
     fv->zoomlevel = zoomlevel;
     fv->centerr = centerr;
     if (zoomlevel > 0) {        /* Magnified power spectrum */
-        int numbetween, nextbin, index;
+        int numbetween, index;
+        long nextbin;
         fcomplex *interp;
 
         numbetween = (1 << zoomlevel);

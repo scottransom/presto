@@ -1,4 +1,15 @@
 ## Development (unreleased, since v6.2.0):
+ * Fixed `accelsearch` candidate optimization for FFTs with 2^31 or more bins (PR #233,
+   thanks to Aaron Pearlman).  `corr_complex()` took the number of bins as an `int`, so
+   jerk (`-wmax`) optimization exited with "'numdata' = 0 (out of bounds)", and
+   `rz_interp()`/`rzw_interp()` truncated the integer frequency, which gave wrong
+   (usually zero) powers at Fourier frequencies above 2^31 for all optimizations.  The
+   bin indices in that path are now `long`.  The `nextbin` output of `corr_rz_plane()`,
+   `corr_rz_interp()` and `corr_rzw_vol()` is now `long *` too (fixing `explorefft` and
+   `quicklook` on such FFTs), and the Python `corr_rz_plane()`/`corr_rzw_vol()` wrappers
+   accept a 64-bit `startbin`.  `corr_rz_plane()` and `corr_rzw_vol()` now exit with a clear
+   error, rather than a failed allocation, if `fftlen` is too short for the kernel.  The
+   unimplemented `corr_rzw_interp()` prototype is gone from `presto.h`.
  * Fixed known-pulsar matching (`accelsearch`, `coherentsearch`, etc.) never finding any
    pulsar when the `.inf` beam diameter is 0, as it is for data from PSRFITS files without
    `BMIN` (e.g. MeerKAT's).  The matching now uses a 1-degree radius (twice a default

@@ -95,6 +95,12 @@ int corr_complex(fcomplex * data, long numdata, presto_datainf datainf,
         printf("  both 'datainf' and 'kerninf' if 'lobin' hasn't changed.\n\n");
         exit(1);
     }
+    if ((datainf == PREPPED || datainf == FFT) && numdata > MAXREALFFT / 4) {
+        /* Check before the (int) cast below, which could wrap */
+        printf("\n  'numdata' = %ld (out of bounds for PREPPED or FFT data)", numdata);
+        printf(" in corr_complex().\n\n");
+        exit(1);
+    }
     if (datainf == PREPPED || datainf == FFT || kerninf == PREPPED || kerninf == FFT) {
         if (datainf == PREPPED || datainf == FFT)
             fftlen = (int) numdata;

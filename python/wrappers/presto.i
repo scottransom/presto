@@ -773,12 +773,12 @@ double sphere_ang_diff(double ra1, double dec1, double ra2, double dec2);
 %rename (corr_rz_plane) wrap_corr_rz_plane;
 %inline %{
     void wrap_corr_rz_plane(fcomplex *data, long N, int numbetween,
-                            int startbin, double zlo, double zhi,
+                            long startbin, double zlo, double zhi,
                             int numz, int fftlen,
                             presto_interp_acc accuracy,
                             fcomplex **arr, long *nr, long *nc){
         fcomplex **outarr;
-        int nextbin;
+        long nextbin;
         outarr = corr_rz_plane(data, N, numbetween, startbin, zlo, zhi,
                                numz, fftlen, accuracy, &nextbin);
         *arr = outarr[0];
@@ -796,12 +796,12 @@ double sphere_ang_diff(double ra1, double dec1, double ra2, double dec2);
 %rename (corr_rzw_vol) wrap_corr_rzw_vol;
 %inline %{
     void wrap_corr_rzw_vol(fcomplex *data, long N, int numbetween, \
-                           int startbin, double zlo, double zhi, int numz, \
+                           long startbin, double zlo, double zhi, int numz, \
                            double wlo, double whi, int numw, int fftlen, \
                            presto_interp_acc accuracy, \
                            fcomplex **arr, long *nh, long *nr, long *nc){
         fcomplex ***outarr;
-        int nextbin;
+        long nextbin;
         outarr = corr_rzw_vol(data, N, numbetween, startbin, zlo, zhi,
                               numz, wlo, whi, numw, fftlen, accuracy, &nextbin);
         *arr = outarr[0][0];

@@ -12,7 +12,8 @@ double max_rzw_arr(fcomplex * data, long numdata, double rin, double zin,
     float maxpow = 0, pow, powargr, powargi;
     int extra = 10;
     long startbin = (long)(rin) - 1;
-    int numr, numz, numw, nextbin, fftlen, numbetween;
+    int numr, numz, numw, fftlen, numbetween;
+    long nextbin;
     // The factor beyond ACCEL_DR, ACCEL_DZ, ACCEL_DW will interpolate
     int interpfac = 4, wind = 0, zind = 0, rind = 0;
     fcomplex ***vol, amp;
@@ -92,7 +93,8 @@ void max_rzw_arr_harmonics(fcomplex data[], long numdata,
 {
     float maxpow = 0, pow, powargr, powargi, locpow;
     long lobin, hhlobin = 0;
-    int hind, ii, jj, kk, extra = 10, nextbin, fftlen;
+    int hind, ii, jj, kk, extra = 10, fftlen;
+    long nextbin;
     int interpfac = 4; // Factor beyond ACCEL_D[RZW] we will interpolate
     int numwid = 2; // The number of full peak widths we will search
     int numbetween = interpfac * ACCEL_RDR;
