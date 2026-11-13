@@ -1,7 +1,7 @@
 #include "presto.h"
 
 fcomplex ***corr_rzw_vol(fcomplex * data, long numdata, int numbetween,
-                         int startbin, double zlo, double zhi, int numz,
+                         long startbin, double zlo, double zhi, int numz,
                          double wlo, double whi, int numw, int fftlen,
                          presto_interp_acc accuracy, int *nextbin)
   /* This routine uses the correlation method to do Fourier          */
@@ -175,7 +175,7 @@ void rzw_interp(fcomplex * data, long numdata, double r, double z,
     /* Split 'r' into integer and fractional parts */
 
     fracfreq = modf(r, &dintfreq);
-    intfreq = (int) dintfreq;
+    intfreq = (long) dintfreq;
 
     /* Return immediately if 'w' is close to zero  */
 

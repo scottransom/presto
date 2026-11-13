@@ -2,9 +2,9 @@
 
 /* define DEBUGPRINT */
 
-int corr_complex(fcomplex * data, int numdata, presto_datainf datainf,
+int corr_complex(fcomplex * data, long numdata, presto_datainf datainf,
                  fcomplex * kern, int numkern, presto_datainf kerninf,
-                 fcomplex * result, int numresult, int lobin,
+                 fcomplex * result, int numresult, long lobin,
                  int numbetween, int kern_half_width, presto_optype optype)
   /* This routine is a general correlation or convolution routine    */
   /* for complex data.  It can perform convolutions or correlations  */
@@ -51,14 +51,16 @@ int corr_complex(fcomplex * data, int numdata, presto_datainf datainf,
 {
     static fcomplex *kernarray, *dataarray;
     static int firsttime = 1, oldnumbetween, oldkern_half_width;
-    static int oldfftlen, oldnumdata, oldlobin;
+    static int oldfftlen;
+    static long oldnumdata, oldlobin;
     fcomplex *tmpdata = NULL, zeros = { 0.0, 0.0 };
-    int ii, fftlen = 1, numbins, beginbin, endbin, padlo, padhi;
+    int ii, fftlen = 1, numbins;
+    long beginbin, endbin, padlo, padhi;
 
     /* Check entry arguments for validity */
 
     if (numdata <= 0) {
-        printf("\n  'numdata' = %d (out of bounds) in corr_complex().\n\n", numdata);
+        printf("\n  'numdata' = %ld (out of bounds) in corr_complex().\n\n", numdata);
         exit(1);
     }
     if (numkern <= 0 || numkern > MAXREALFFT / 4) {
@@ -81,7 +83,7 @@ int corr_complex(fcomplex * data, int numdata, presto_datainf datainf,
         exit(1);
     }
     if (lobin < 0 || lobin >= numdata) {
-        printf("\n  'lobin' = %d (out of bounds) in corr_complex().\n\n", lobin);
+        printf("\n  'lobin' = %ld (out of bounds) in corr_complex().\n\n", lobin);
         exit(1);
     }
     if ((datainf == SAME || kerninf == SAME) && firsttime) {
@@ -95,7 +97,7 @@ int corr_complex(fcomplex * data, int numdata, presto_datainf datainf,
     }
     if (datainf == PREPPED || datainf == FFT || kerninf == PREPPED || kerninf == FFT) {
         if (datainf == PREPPED || datainf == FFT)
-            fftlen = numdata;
+            fftlen = (int) numdata;
         if (kerninf == PREPPED || kerninf == FFT)
             fftlen = numkern;
         if ((datainf == PREPPED || datainf == FFT) &&
@@ -134,7 +136,7 @@ int corr_complex(fcomplex * data, int numdata, presto_datainf datainf,
         }
     }
 #ifdef DEBUGPRINT
-    printf("numdata = %d  fftlen = %d\n", numdata, fftlen);
+    printf("numdata = %ld  fftlen = %d\n", numdata, fftlen);
 #endif
 
     /* Prep the data array */
@@ -161,7 +163,7 @@ int corr_complex(fcomplex * data, int numdata, presto_datainf datainf,
                 tmpdata = gen_cvect(numbins);
                 for (ii = 0; ii < numbins; ii++)
                     tmpdata[ii] = zeros;
-                padlo = (beginbin < 0) ? abs(beginbin) : 0;
+                padlo = (beginbin < 0) ? labs(beginbin) : 0;
                 padhi = ((endbin - numdata) > 0) ? endbin - numdata : 0;
                 memcpy(tmpdata + padlo, data + beginbin + padlo,
                        sizeof(fcomplex) * (numbins - padhi - padlo));

@@ -1,7 +1,7 @@
 #include "presto.h"
 
 fcomplex **corr_rz_plane(fcomplex * data, long numdata, int numbetween,
-                         int startbin, double zlo, double zhi,
+                         long startbin, double zlo, double zhi,
                          int numz, int fftlen,
                          presto_interp_acc accuracy, int *nextbin)
   /* This routine uses the correlation method to do Fourier          */
@@ -116,7 +116,7 @@ fcomplex **corr_rz_plane(fcomplex * data, long numdata, int numbetween,
 
 
 fcomplex *corr_rz_interp(fcomplex * data, long numdata, int numbetween,
-                         int startbin, double z, int fftlen,
+                         long startbin, double z, int fftlen,
                          presto_interp_acc accuracy, int *nextbin)
   /* This routine uses the correlation method to do a Fourier        */
   /* complex interpolation of a slice of the f-fdot plane.           */
@@ -173,7 +173,7 @@ void rz_interp(fcomplex * data, long numdata, double r, double z,
     /* Split 'r' into integer and fractional parts */
 
     fracfreq = modf(r, &dintfreq);
-    intfreq = (int) dintfreq;
+    intfreq = (long) dintfreq;
 
     /* Return immediately if 'r' is close to an           */
     /* integer frequency and z is very close to zero      */
