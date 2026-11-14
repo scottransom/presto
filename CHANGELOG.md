@@ -1,4 +1,13 @@
-## Development (unreleased, since v6.2.0):
+## Development (unreleased, since v6.3.0):
+
+## Version 6.3.0:
+ * **The polyco-folding release.**  `prepfold` can fold long raw-data searches with tempo2
+   polycos (`-usepoly`, automatic past 2 hr) instead of a cubic topocentric fit that
+   drifts by turns over a day, and `prepfold_multi` can fold with polycos too, so one pass
+   over the data gives TOAs for many pulsars (e.g. a whole globular cluster).
+   `get_TOAs.py` can time searched folds (`-u`).  Also: `accelsearch` works on FFTs with
+   2^31 or more bins (PR #233), `-rlo`/`-rhi` are honored, and known-pulsar matching
+   works when the beam size is missing.
  * `prepfold_multi` can now fold with tempo2 polycos, so it can make TOAs for many
    pulsars (e.g. those in a globular cluster) in one pass over the raw data.  The
    candidate file takes a new `par` column: a candidate with a par file is folded with

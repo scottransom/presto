@@ -37,6 +37,11 @@ CoherentSearch.jl** on 2026-11-11 (commit `398275f`). Its `bin/sift_candidates.p
 of `bin/coherent_sift.py`, so change both. On Ter5 DM238.50 the two codes' default and deep
 `.cohout` files agree to every printed digit.
 
+**v6.3.0** (2026-11-14) added polyco folding for long raw-data searches (`prepfold
+-usepoly`) and for `prepfold_multi` (par-file candidates and `-timing`, for many-pulsar
+TOAs; see "Polyco folding in `prepfold_multi`" below), plus the 64-bit `accelsearch`
+optimizer fix from PR #233.
+
 ## The coherent harmonic search in PRESTO (shipped in v6.2.0)
 
 ### What and why

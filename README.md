@@ -8,6 +8,20 @@ PRESTO is a large suite of pulsar search and analysis software developed primari
 
 **PRESTO has discovered well over 1500 pulsars, including ~500 recycled and/or binary pulsars!**
 
+## Version 6.3.0:
+ * **`prepfold` folds long raw-data searches with tempo2 polycos.** The cubic topocentric
+   fit it used before drifts badly on long observations (~0.1 turn at 8 hr, ~3 turns at
+   20 hr for a 2-ms pulsar). Use `-usepoly`; it is automatic for folds over 2 hr when
+   `tempo2` is on your `PATH`.
+ * **`prepfold_multi` can fold with polycos**: give each pulsar a par file in the
+   candidate file's new `par` column and use `-timing` to get TOAs for many pulsars
+   (e.g. a globular cluster) in one pass over the raw data.
+ * `get_TOAs.py -u` times folds that `prepfold` searched, using the parameters they were
+   folded with.
+ * Bug fixes: `accelsearch` on FFTs with 2^31 or more bins (thanks to Aaron Pearlman),
+   `accelsearch`/`search_bin` ignoring `-rlo`/`-rhi`, and known-pulsar matching when the
+   data have no beam size (e.g. MeerKAT PSRFITS).
+
 ## Version 6.2.0:
  * **New program `coherentsearch`**: a coherent harmonic-summing search, ported to C from
    CoherentSearch.jl ([Ransom 2026](https://arxiv.org/abs/2610.11749)). It is much more sensitive than
