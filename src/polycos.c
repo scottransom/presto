@@ -31,13 +31,16 @@ Sample code:
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
-#include "presto.h"
+#include <unistd.h>
+#include "prepfold.h"
 
-#define MAX_POLYCOS 500
 
-static double f0[MAX_POLYCOS], z4[MAX_POLYCOS], rphase[MAX_POLYCOS],
-    mjdmid[MAX_POLYCOS], mjd1mid[MAX_POLYCOS], coeff[MAX_POLYCOS][15];
-static int isets, nblk, ncoeff, icurr;
+/* The polycos loaded by getpoly() and used by phcalc() live in the       */
+/* default set below.  Programs folding several pulsars at once (e.g.     */
+/* prepfold_multi) give each one its own polycoset and use the _set()     */
+/* versions, which share no state, so different sets can be used from     */
+/* different threads at the same time.                                    */
+static polycoset default_set;
 
 extern int get_psr_from_parfile(char *parfilenm, double epoch, psrparams * psr);
 
@@ -99,16 +102,16 @@ char *make_polycos(char *parfilenm, infodata * idata, char *polycofilenm, int de
 /* which writes TEMPO1-format polycos, so the external 'tempo2'        */
 /* executable (with its $TEMPO2 runtime directory, both available      */
 /* from conda-forge) is required.  TEMPO itself is no longer used.     */
+/* tempo2 runs in its own temporary directory (via "cd dir && ..." in  */
+/* the shell, not chdir(), which would change the directory of every   */
+/* thread in the process), so this is safe to call from threads.       */
 {
     FILE *checkfile;
     double T, fmid = 0.0, epoch;
-    char *command, *psrname;
-    char *pcpathnm, *pcfilenm;
+    char *command, *psrname, *tmpfilenm;
     psrparams psr;
     polyco_scope *site;
-
-    /* Get the path and name of the output polycofilenm */
-    split_path_file(polycofilenm, &pcpathnm, &pcfilenm);
+    size_t cmdlen;
 
     /* Read the parfile */
     epoch = idata->mjd_i + idata->mjd_f;
@@ -134,19 +137,16 @@ char *make_polycos(char *parfilenm, infodata * idata, char *polycofilenm, int de
     }
 
     /* Copy the parfile to the temp directory */
-    command = (char *) calloc(strlen(parfilenm) + strlen(tmpdir) +
-                              strlen(pcfilenm) + strlen(pcpathnm) + 200, 1);
-    sprintf(command, "cp %s %s/pulsar.par", parfilenm, tmpdir);
+    cmdlen = strlen(parfilenm) + strlen(polycofilenm) + 2 * strlen(tmpdir) + 300;
+    command = (char *) calloc(cmdlen, 1);
+    tmpfilenm = (char *) calloc(strlen(tmpdir) + 20, 1);
+    snprintf(command, cmdlen, "cp '%s' %s/pulsar.par", parfilenm, tmpdir);
     if (system(command) != 0) {
         fprintf(stderr,
                 "\nError:  Cannot copy parfile '%s' to tmpdir '%s' in make_polycos()\n\n",
                 parfilenm, tmpdir);
         exit(-1);
     }
-
-    /* change to temp dir */
-    char *origdir = getcwd(NULL, 0);
-    chdir(tmpdir);
 
     /* Identify the observatory and observing band */
     site = find_polyco_scope(idata->telescope);
@@ -156,10 +156,10 @@ char *make_polycos(char *parfilenm, infodata * idata, char *polycofilenm, int de
         fmid = 0.0;
     }
     printf("Generating polycos for PSR %s.\n", psr.jname);
-    sprintf(command,
-            "tempo2 -tempo1 -f pulsar.par -polyco \"%d %d 60 12 %d %s %.5f\" %s",
-            idata->mjd_i - 1, (int) ceil(epoch + T), site->maxha,
-            site->t2name, fmid, debug ? "> tempo2.out 2>&1" : "> /dev/null 2>&1");
+    snprintf(command, cmdlen,
+             "cd %s && tempo2 -tempo1 -f pulsar.par -polyco \"%d %d 60 12 %d %s %.5f\" %s",
+             tmpdir, idata->mjd_i - 1, (int) ceil(epoch + T), site->maxha,
+             site->t2name, fmid, debug ? "> tempo2.out 2>&1" : "> /dev/null 2>&1");
     if (debug)
         fprintf(stderr, "Debugging tempo2 call:  '%s'\n", command);
     if (system(command) != 0) {
@@ -171,14 +171,15 @@ char *make_polycos(char *parfilenm, infodata * idata, char *polycofilenm, int de
         exit(-1);
     }
     /* tempo2 -polyco writes the TEMPO1-format polycos to polyco_new.dat */
-    if ((checkfile = fopen("polyco_new.dat", "r")) == NULL) {
+    sprintf(tmpfilenm, "%s/polyco_new.dat", tmpdir);
+    if ((checkfile = fopen(tmpfilenm, "r")) == NULL) {
         fprintf(stderr,
                 "\nError:  tempo2 did not generate polycos in '%s' for make_polycos().\n"
                 "        Re-run with -debug to see the tempo2 output.\n\n", tmpdir);
         exit(-1);
     }
     fclose(checkfile);
-    sprintf(command, "cp polyco_new.dat %s/%s", pcpathnm, pcfilenm);
+    snprintf(command, cmdlen, "cp %s '%s'", tmpfilenm, polycofilenm);
     if (system(command) != 0) {
         fprintf(stderr,
                 "\nError:  Cannot copy polyco_new.dat in '%s' to '%s' in make_polycos()\n\n",
@@ -186,18 +187,18 @@ char *make_polycos(char *parfilenm, infodata * idata, char *polycofilenm, int de
         exit(-1);
     }
     if (!debug) {
-        remove("polyco_new.dat");
-        remove("newpolyco.dat");
-        remove("polyco.tim");
-        remove("pulsar.par");
-    }
-    chdir(origdir);
-    free(origdir);
-    free(pcpathnm);
-    free(pcfilenm);
-    free(command);
-    if (!debug)
+        const char *tmpfiles[] = { "polyco_new.dat", "newpolyco.dat",
+            "polyco.tim", "pulsar.par"
+        };
+        int ii;
+        for (ii = 0; ii < 4; ii++) {
+            sprintf(tmpfilenm, "%s/%s", tmpdir, tmpfiles[ii]);
+            remove(tmpfilenm);
+        }
         remove(tmpdir);
+    }
+    free(tmpfilenm);
+    free(command);
     psrname = (char *) calloc(strlen(psr.jname) + 1, sizeof(char));
     strcpy(psrname, psr.jname);
     return psrname;
@@ -316,7 +317,57 @@ char *make_polycos_tempo1(char *parfilenm, infodata * idata, char *polycofilenm,
 }
 
 
+/* Make room for at least n polyco sets in set */
+static void grow_polycoset(polycoset * set, int n)
+{
+    if (n <= set->nalloc)
+        return;
+    n = (set->nalloc == 0) ? 16 : 2 * set->nalloc;
+    set->f0 = (double *) realloc(set->f0, n * sizeof(double));
+    set->z4 = (double *) realloc(set->z4, n * sizeof(double));
+    set->rphase = (double *) realloc(set->rphase, n * sizeof(double));
+    set->mjdmid = (double *) realloc(set->mjdmid, n * sizeof(double));
+    set->mjd1mid = (double *) realloc(set->mjd1mid, n * sizeof(double));
+    set->coeff = (double (*)[15]) realloc(set->coeff, n * sizeof(*set->coeff));
+    if (!set->f0 || !set->z4 || !set->rphase || !set->mjdmid ||
+        !set->mjd1mid || !set->coeff) {
+        fprintf(stderr, "\nError:  out of memory reading polycos.\n\n");
+        exit(1);
+    }
+    set->nalloc = n;
+}
+
+
+void free_polycoset(polycoset * set)
+/* Free the polycos held in set (but not set itself) */
+{
+    free(set->f0);
+    free(set->z4);
+    free(set->rphase);
+    free(set->mjdmid);
+    free(set->mjd1mid);
+    free(set->coeff);
+    memset(set, 0, sizeof(polycoset));
+}
+
+
 int getpoly(double mjd, double duration, double *dm, FILE * fp, char *pname)
+/* getpoly_set() into the default polyco set used by phcalc() */
+{
+    return getpoly_set(&default_set, mjd, duration, dm, fp, pname);
+}
+
+
+int phcalc(double mjd0, double mjd1, int last_index, double *phase, double *psrfreq)
+/* phcalc_set() with the default polyco set loaded by getpoly() */
+{
+    return phcalc_set(&default_set, mjd0, mjd1, last_index, phase, psrfreq);
+}
+
+
+int getpoly_set(polycoset * set, double mjd, double duration, double *dm,
+                FILE * fp, char *pname)
+/* A NULL set means the default set (as used by getpoly()) */
 {
 
 /*
@@ -331,7 +382,7 @@ int getpoly(double mjd, double duration, double *dm, FILE * fp, char *pname)
     char obsstr[16];
     char dummy[3][30];
     char buffer[160];
-    double aphi0b[30], adphib[30];
+    double aphi0b, adphib;      /* binary phase info (unused) */
     double dm0, z40, mjdend;
     float r;
     long int mjddummy;
@@ -341,19 +392,26 @@ int getpoly(double mjd, double duration, double *dm, FILE * fp, char *pname)
     int nblk0, ncoeff0;
     double mjdcheck;
 
+    if (set == NULL)
+        set = &default_set;
     mjdend = mjd + duration;
     j = 0;
+    grow_polycoset(set, 1);
     while (fgets(buffer, 90, fp) != NULL) {
         sscanf(buffer, "%s", testname);
         if (strncmp(pname, testname, 4) == 0) {
             sscanf(buffer, "%s%s%f%ld%lf%lf%lf",
-                   name0, date0, &r, &mjddummy, &mjd1mid[j], &dm0, &z40);
+                   name0, date0, &r, &mjddummy, &set->mjd1mid[j], &dm0, &z40);
             fgets(buffer, 80, fp);
             /* The observatory field is a numeric TEMPO code from TEMPO */
             /* polycos but a site name (e.g. "gbt") from tempo2 ones,   */
             /* so read it as a string (it is unused regardless).        */
-            sscanf(buffer, "%lf%lf%15s%d%d", &rphase[j], &f0[j], obsstr, &nblk0,
+            sscanf(buffer, "%lf%lf%15s%d%d", &set->rphase[j], &set->f0[j], obsstr, &nblk0,
                    &ncoeff0);
+            if (ncoeff0 > 15) { /* coeff[] holds at most 15 per set */
+                printf("ncoeff too big in polyco.dat.\n");
+                exit(1);
+            }
             fgets(buffer, 80, fp);
             /* %16c writes no NUL, and nothing at all if the line is short */
             /* (as in tempo2 polycos), so start from a blank string.      */
@@ -367,87 +425,87 @@ int getpoly(double mjd, double duration, double *dm, FILE * fp, char *pname)
                     len = strlen(dummy[kk]);
                     if (dummy[kk][len - 4] == 'D')
                         dummy[kk][len - 4] = 'e';
-                    sscanf(dummy[kk], "%lf", &coeff[j][3 * k + kk]);
+                    sscanf(dummy[kk], "%lf", &set->coeff[j][3 * k + kk]);
                 }
             }
-            mjdmid[j] = mjddummy;
+            set->mjdmid[j] = mjddummy;
 
             /* just in case its a futmid we want an mjdmid */
-            if (mjdmid[j] < 20000)
-                mjdmid[j] += 39126.;
-            z4[j] = z40;
+            if (set->mjdmid[j] < 20000)
+                set->mjdmid[j] += 39126.;
+            set->z4[j] = z40;
             *dm = dm0;
             binary = (binpha[0] != ' ');
-            mjdcheck = mjdmid[j] + mjd1mid[j];
+            mjdcheck = set->mjdmid[j] + set->mjd1mid[j];
             // printf("mjd, mjdcheck, j: %lf %lf %d\n",mjd,mjdcheck,j);
             if (mjdcheck > mjd - 0.5 && mjdcheck < mjdend + 0.5) {
-                nblk = nblk0;
-                ncoeff = ncoeff0;
+                set->nblk = nblk0;
+                set->ncoeff = ncoeff0;
                 if (binary)
-                    sscanf(binpha, "%lf%lf", &aphi0b[j], &adphib[j]);
-                if (ncoeff > 15) {
+                    sscanf(binpha, "%lf%lf", &aphi0b, &adphib);
+                if (set->ncoeff > 15) {
                     printf("ncoeff too big in polyco.dat.\n");
                     exit(1);
                 }
-                if (ncoeff < 15)
-                    for (k = ncoeff; k < 15; k++)
-                        coeff[j][k] = 0.;
-                rphase[j] -= floor(rphase[j]);
-                if ((rphase[j] < 0.) || (rphase[j] > 1.)) {
-                    printf("rphase[%d] = %f\n", j, rphase[j]);
+                if (set->ncoeff < 15)
+                    for (k = set->ncoeff; k < 15; k++)
+                        set->coeff[j][k] = 0.;
+                set->rphase[j] -= floor(set->rphase[j]);
+                if ((set->rphase[j] < 0.) || (set->rphase[j] > 1.)) {
+                    printf("rphase[%d] = %f\n", j, set->rphase[j]);
                     exit(1);
                 }
                 j++;
-                if (j >= MAX_POLYCOS) {
-                    fprintf(stderr,
-                            "Too many polycos in polycos.c (MAX_POLYCO = %d)",
-                            MAX_POLYCOS);
-                    exit(32);
-                }
+                grow_polycoset(set, j + 1);
             }
         }
     }
 
-    isets = j;
-    return (isets);
+    set->isets = j;
+    return (set->isets);
 
 }
 
 
 /*  Compute pulsar phase and frequency at time mjd0+mjd1. */
 
-int phcalc(double mjd0, double mjd1, int last_index, double *phase, double *psrfreq)
+int phcalc_set(polycoset * set, double mjd0, double mjd1, int last_index,
+               double *phase, double *psrfreq)
+/* A NULL set means the default set (as used by phcalc()) */
 {
     double dtmin;
-    int i, j;
+    int i, j, icurr;
     int show;
+
+    if (set == NULL)
+        set = &default_set;
 
     show = 0;
 
     icurr = -1;
-    *psrfreq = f0[0];           /* Default psrfreq */
-    for (j = last_index; j < isets; j++) {
-        dtmin = (mjd0 - mjdmid[j]);
-        dtmin = (dtmin + (mjd1 - mjd1mid[j])) * 1440.;  /* Time from center of this set */
-        // printf("j, dtmin, comp = %d  %.16g  %.16g  %.16g\n", j, fabs(dtmin), nblk / 2.0 + 1e-10, fabs(dtmin)-(nblk / 2.0 + 1e-10));
-        if (fabs(dtmin) < (nblk / 2.0 + 1e-7)) {        /* The extra bit avoids a subtle bug since
-                                                           roundoff can cause fabs(dtmin)>(nblk/2) */
-            // printf("j, mjds: %d %f %f %f %f\n",j,mjd0,mjd1,mjdmid[j],mjd1mid[j]);
+    *psrfreq = set->f0[0];           /* Default psrfreq */
+    for (j = last_index; j < set->isets; j++) {
+        dtmin = (mjd0 - set->mjdmid[j]);
+        dtmin = (dtmin + (mjd1 - set->mjd1mid[j])) * 1440.;  /* Time from center of this set */
+        // printf("j, dtmin, comp = %d  %.16g  %.16g  %.16g\n", j, fabs(dtmin), set->nblk / 2.0 + 1e-10, fabs(dtmin)-(set->nblk / 2.0 + 1e-10));
+        if (fabs(dtmin) < (set->nblk / 2.0 + 1e-7)) {        /* The extra bit avoids a subtle bug since
+                                                           roundoff can cause fabs(dtmin)>(set->nblk/2) */
+            // printf("j, mjds: %d %f %f %f %f\n",j,mjd0,mjd1,set->mjdmid[j],set->mjd1mid[j]);
             *psrfreq = 0.;      /* Compute psrfreq and phase from */
-            *phase = coeff[j][ncoeff - 1];      /* the polynomial coeffs. */
+            *phase = set->coeff[j][set->ncoeff - 1];      /* the polynomial coeffs. */
             if (show)
-                printf("phase = %21.15e   :%21.15e\n", *phase, coeff[j][ncoeff - 1]);
-            for (i = ncoeff - 1; i > 0; --i) {
-                *psrfreq = dtmin * (*psrfreq) + i * coeff[j][i];
-                *phase = dtmin * (*phase) + coeff[j][i - 1];
+                printf("phase = %21.15e   :%21.15e\n", *phase, set->coeff[j][set->ncoeff - 1]);
+            for (i = set->ncoeff - 1; i > 0; --i) {
+                *psrfreq = dtmin * (*psrfreq) + i * set->coeff[j][i];
+                *phase = dtmin * (*phase) + set->coeff[j][i - 1];
                 if (show)
-                    printf("phase = %21.15e   :%21.15e\n", *phase, coeff[j][i - 1]);
+                    printf("phase = %21.15e   :%21.15e\n", *phase, set->coeff[j][i - 1]);
             }
 
-            *psrfreq = f0[j] + *psrfreq / 60.;  /* Add in the DC terms and scale */
-            *phase += rphase[j] + dtmin * 60. * f0[j];
+            *psrfreq = set->f0[j] + *psrfreq / 60.;  /* Add in the DC terms and scale */
+            *phase += set->rphase[j] + dtmin * 60. * set->f0[j];
             if (show)
-                printf("phase = %21.15e   f0: %21.15e\n", *phase, f0[j]);
+                printf("phase = %21.15e   f0: %21.15e\n", *phase, set->f0[j]);
             *phase -= floor(*phase);
             if ((*phase < 0.) || (*phase > 1.)) {
                 printf("phase = %21.15f\n", *phase);
@@ -459,10 +517,10 @@ int phcalc(double mjd0, double mjd1, int last_index, double *phase, double *psrf
     }
     if (icurr == -1) {
         printf("MJD %9.3f out of range (%9.3f to %9.3f)\n",
-               (mjd0 + mjd1), mjdmid[0] - nblk / 2880.,
-               mjdmid[isets - 1] + nblk / 2880.);
+               (mjd0 + mjd1), set->mjdmid[0] - set->nblk / 2880.,
+               set->mjdmid[set->isets - 1] + set->nblk / 2880.);
         *phase = -999.;
-        printf("isets = %d\n", isets);
+        printf("isets = %d\n", set->isets);
         exit(1);
     }
     return icurr;

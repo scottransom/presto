@@ -12,12 +12,7 @@
 
 #define RAWDATA (cmd->filterbankP || cmd->psrfitsP)
 
-extern int getpoly(double mjd, double duration, double *dm, FILE * fp, char *pname);
-extern int phcalc(double mjd0, double mjd1, int last_index,
-                  double *phase, double *psrfreq);
 extern int get_psr_from_parfile(char *parfilenm, double epoch, psrparams * psr);
-extern char *make_polycos(char *parfilenm, infodata * idata, char *polycofilenm,
-                          int debug_tempo);
 extern int *ranges_to_ivect(char *str, int minval, int maxval, int *numvals);
 void set_posn(prepfoldinfo * in, infodata * idata);
 
@@ -593,13 +588,14 @@ void compute_obs_timing(Cmdline *cmd, struct spectra_info *s, infodata *idata,
 }
 
 
-/* Read the polycos in cmd->polycofile for cmd->psrname, and set the fold to  */
-/* follow them:  fc->f becomes the topocentric spin frequency at the fold     */
-/* start (fd = fdd = 0, since the polycos track the phase from then on), and */
-/* fc->polyco_index / fc->polyco_phase0 are set for fold_timeseries().        */
+/* Read the polycos in cmd->polycofile for cmd->psrname (into fc->polycos,   */
+/* or the default set if that is NULL), and set the fold to follow them:     */
+/* fc->f becomes the topocentric spin frequency at the fold start (fd = fdd  */
+/* = 0, since the polycos track the phase from then on), and                 */
+/* fc->polyco_index / fc->polyco_phase0 are set for the fold.                */
 /* The polyco DM is used unless a DM was given.                              */
-static void load_fold_polycos(Cmdline *cmd, infodata *idata, foldcand *fc,
-                              double T, double startTday)
+void load_fold_polycos(Cmdline *cmd, infodata *idata, foldcand *fc,
+                       double T, double startTday)
 {
     prepfoldinfo *search = &fc->search;
     FILE *polycofileptr;
@@ -609,8 +605,8 @@ static void load_fold_polycos(Cmdline *cmd, infodata *idata, foldcand *fc,
     if (idata->bary)
         epoch = search->bepoch;
     polycofileptr = chkfopen(cmd->polycofile, "r");
-    numsets = getpoly(epoch, T / SECPERDAY, &polyco_dm,
-                      polycofileptr, cmd->psrname);
+    numsets = getpoly_set(fc->polycos, epoch, T / SECPERDAY, &polyco_dm,
+                          polycofileptr, cmd->psrname);
     fclose(polycofileptr);
     if (fc->dm > 0.0) {
         printf("\nRead %d set(s) of polycos for PSR %s at %18.12f\n",
@@ -622,8 +618,9 @@ static void load_fold_polycos(Cmdline *cmd, infodata *idata, foldcand *fc,
              numsets, cmd->psrname, epoch, polyco_dm);
         fc->dm = polyco_dm;
     }
-    fc->polyco_index = phcalc(idata->mjd_i, idata->mjd_f + startTday,
-                              fc->polyco_index, &fc->polyco_phase0, &f);
+    fc->polyco_index = phcalc_set(fc->polycos, idata->mjd_i,
+                                  idata->mjd_f + startTday, fc->polyco_index,
+                                  &fc->polyco_phase0, &f);
     fc->f = f;
     fc->fd = fc->fdd = 0.0;
     search->topo.p1 = 1.0 / f;
@@ -634,6 +631,51 @@ static void load_fold_polycos(Cmdline *cmd, infodata *idata, foldcand *fc,
         search->bary.p2 = search->topo.p2;
         search->bary.p3 = search->topo.p3;
     }
+}
+
+
+/* Make <outfile>.polycos from the par file parfilenm with tempo2, and point */
+/* cmd->psrname / cmd->polycofile at them, so that load_fold_polycos() and   */
+/* the rest of the pipeline treat the fold as a polyco fold.                 */
+void make_parfile_polycos(Cmdline *cmd, infodata *idata, foldcand *fc,
+                          char *parfilenm)
+{
+    char *polycofilenm;
+
+    polycofilenm = (char *) calloc(strlen(fc->outfilenm) + 9, sizeof(char));
+    strcpy(polycofilenm, fc->outfilenm);
+    strcat(polycofilenm, ".polycos");
+    cmd->psrnameP = 1;
+    cmd->psrname = make_polycos(parfilenm, idata, polycofilenm, cmd->debugP);
+    printf("Polycos used are in '%s'.\n", polycofilenm);
+    cmd->polycofileP = 1;
+    cmd->polycofile = polycofilenm;
+}
+
+
+/* For a polyco fold, return the pulse phase (0-1) at the start of a block   */
+/* of data beginning at MJD mjd_i + mjdf, relative to the phase at the fold  */
+/* start (fc->polyco_phase0) unless absphase, and put the fold frequency at  */
+/* the middle of the block (blockdur seconds long) in *foldf.  The block is  */
+/* then folded with fold_time0 = 0 and this phase added to the -phs offset.  */
+/* Shared by prepfold's fold_timeseries() and prepfold_multi.                */
+double polyco_block_phase(foldcand *fc, int absphase, int mjd_i, double mjdf,
+                          double blockdur, double *foldf)
+{
+    double phase, midphase;
+
+    /* The pulse phase at the start of the block */
+    fc->polyco_index = phcalc_set(fc->polycos, mjd_i, mjdf, fc->polyco_index,
+                                  &phase, foldf);
+    if (!absphase)
+        phase -= fc->polyco_phase0;
+    if (phase < 0.0)
+        phase += 1.0;
+    /* The folding frequency at the middle of the block */
+    fc->polyco_index = phcalc_set(fc->polycos, mjd_i,
+                                  mjdf + 0.5 * blockdur / SECPERDAY,
+                                  fc->polyco_index, &midphase, foldf);
+    return phase;
 }
 
 
@@ -654,22 +696,9 @@ void resolve_fold_params(Cmdline *cmd, infodata *idata, foldcand *fc,
 
     /* Generate polycos if required and set the pulsar name */
     if (((cmd->timingP || cmd->parnameP) && (!idata->bary)) ||
-        (idata->bary && cmd->barypolycosP)) {
-        char *polycofilenm;
-        polycofilenm = (char *) calloc(strlen(fc->outfilenm) + 9, sizeof(char));
-        strcpy(polycofilenm, fc->outfilenm);
-        strcat(polycofilenm, ".polycos");
-        cmd->psrnameP = 1;
-        if (cmd->timingP)
-            cmd->psrname = make_polycos(cmd->timing, idata, polycofilenm, cmd->debugP);
-        else
-            cmd->psrname = make_polycos(cmd->parname, idata, polycofilenm, cmd->debugP);
-        printf("Polycos used are in '%s'.\n", polycofilenm);
-        cmd->polycofileP = 1;
-        cmd->polycofile = (char *) calloc(strlen(polycofilenm) + 1, sizeof(char));
-        strcpy(cmd->polycofile, polycofilenm);
-        free(polycofilenm);
-    }
+        (idata->bary && cmd->barypolycosP))
+        make_parfile_polycos(cmd, idata, fc,
+                             cmd->timingP ? cmd->timing : cmd->parname);
 
     /* Read the pulsar database if needed */
     if (cmd->psrnameP) {
@@ -964,7 +993,7 @@ void setup_usepoly_polycos(Cmdline *cmd, infodata *idata, foldcand *fc,
                            char *rastring, char *decstring, char *pname)
 {
     prepfoldinfo *search = &fc->search;
-    char *parfilenm, *polycofilenm;
+    char *parfilenm;
     FILE *parfile;
 
     /* The (barycentric) candidate parameters at search->bepoch */
@@ -1004,13 +1033,7 @@ void setup_usepoly_polycos(Cmdline *cmd, infodata *idata, foldcand *fc,
     printf("\nWrote the candidate's barycentric ephemeris to '%s'.\n", parfilenm);
 
     /* Make the polycos and fold with them (as for -par). */
-    polycofilenm = (char *) calloc(strlen(fc->outfilenm) + 9, sizeof(char));
-    sprintf(polycofilenm, "%s.polycos", fc->outfilenm);
-    cmd->psrname = make_polycos(parfilenm, idata, polycofilenm, cmd->debugP);
-    cmd->psrnameP = 1;
-    cmd->polycofile = polycofilenm;
-    cmd->polycofileP = 1;
-    printf("Polycos used are in '%s'.\n", polycofilenm);
+    make_parfile_polycos(cmd, idata, fc, parfilenm);
     free(parfilenm);
     load_fold_polycos(cmd, idata, fc, T, startTday);
     strncpy(pname, search->candnm, 29);
@@ -1276,8 +1299,8 @@ void fold_events(Cmdline *cmd, infodata *idata, foldcand *fc, double T,
             else {
                 double mjdf = idata->mjd_f + startTday + event / SECPERDAY;
                 /* Calculate the pulse phase for the event  */
-                polyco_index =
-                    phcalc(idata->mjd_i, mjdf, polyco_index, &phase, &foldf);
+                polyco_index = phcalc_set(fc->polycos, idata->mjd_i, mjdf,
+                                          polyco_index, &phase, &foldf);
                 if (ii == 0)
                     orig_foldf = foldf;
             }
@@ -1613,7 +1636,6 @@ void fold_timeseries(Cmdline *cmd, struct spectra_info *s, infodata *idata,
 {
     prepfoldinfo *search = &fc->search;
     double f = fc->f, fd = fc->fd, fdd = fc->fdd;
-    double polyco_phase0 = fc->polyco_phase0;
     float *data = *data_out;
     double foldf = fc->foldf, foldfd = fc->foldfd, foldfdd = fc->foldfdd;
     double orig_foldf = fc->orig_foldf;
@@ -1747,27 +1769,14 @@ void fold_timeseries(Cmdline *cmd, struct spectra_info *s, infodata *idata,
             }
 
             if (cmd->polycofileP) { /* Update the period/phase */
-                double mjdf, currentsec, currentday, offsetphase, orig_cmd_phs =
-                    0.0;
+                double mjdf = idata->mjd_f + startTday +
+                    (parttimes[ii] + jj * proftime) / SECPERDAY;
 
-                if (ii == 0 && jj == 0)
-                    orig_cmd_phs = fc->phs;
-                currentsec = parttimes[ii] + jj * proftime;
-                currentday = currentsec / SECPERDAY;
-                mjdf = idata->mjd_f + startTday + currentday;
-                /* Calculate the pulse phase at the start of the current block */
-                polyco_index =
-                    phcalc(idata->mjd_i, mjdf, polyco_index, &polyco_phase,
-                           &foldf);
-                if (!cmd->absphaseP)
-                    polyco_phase -= polyco_phase0;
-                if (polyco_phase < 0.0)
-                    polyco_phase += 1.0;
-                /* Calculate the folding frequency at the middle of the current block */
-                polyco_index =
-                    phcalc(idata->mjd_i, mjdf + 0.5 * proftime / SECPERDAY,
-                           polyco_index, &offsetphase, &foldf);
-                fc->phs = orig_cmd_phs + polyco_phase;
+                fc->polyco_index = polyco_index;
+                polyco_phase = polyco_block_phase(fc, cmd->absphaseP, idata->mjd_i,
+                                                  mjdf, proftime, &foldf);
+                polyco_index = fc->polyco_index;
+                fc->phs = cmd->phs + polyco_phase;
                 fold_time0 = 0.0;
             } else {
                 fold_time0 = parttimes[ii] + jj * proftime;

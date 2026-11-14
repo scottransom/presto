@@ -68,7 +68,7 @@ static Cmdline cmd = {
     /* absphaseP = */ 0,
     /***** -barypolycos: Force the use of polycos for barycentered events */
     /* barypolycosP = */ 0,
-    /***** -usepoly: not a prepfold_multi option (shared-struct placeholder; always 0) */
+    /***** -usepoly: Fold every candidate (not just -par ones) with tempo2 polycos made from its barycentric params (automatic if > 2 hr) */
     /* usepolyP = */ 0,
     /***** -debug: Show debugging output when calling tempo2 for polycos */
     /* debugP = */ 0,
@@ -212,7 +212,7 @@ static Cmdline cmd = {
     /* polycofileP = */ 0,
     /* polycofile = */ NULL,
     /* polycofileC = */ 0,
-    /***** -timing: Sets useful flags for TOA generation. Generates polycos (if required) based on the par file specified as the argument. (This means you don't need the -par or -psr commands!) */
+    /***** -timing: Sets useful flags for TOA generation (every candidate needs a 'par' file).  A flag here: timing stays NULL */
     /* timingP = */ 0,
     /* timing = */ NULL,
     /* timingC = */ 0,
@@ -672,6 +672,13 @@ void showOptionValues(void)
         printf("-barypolycos found:\n");
     }
 
+    /***** -usepoly: Fold every candidate with tempo2 polycos */
+    if (!cmd.usepolyP) {
+        printf("-usepoly not found.\n");
+    } else {
+        printf("-usepoly found:\n");
+    }
+
     /***** -debug: Show debugging output when calling tempo2 for polycos */
     if (!cmd.debugP) {
         printf("-debug not found.\n");
@@ -1117,16 +1124,11 @@ void showOptionValues(void)
         }
     }
 
-    /***** -timing: Sets useful flags for TOA generation. Generates polycos (if required) based on the par file specified as the argument. (This means you don't need the -par or -psr commands!) */
+    /***** -timing: Sets useful flags for TOA generation */
     if (!cmd.timingP) {
         printf("-timing not found.\n");
     } else {
         printf("-timing found:\n");
-        if (!cmd.timingC) {
-            printf("  no values\n");
-        } else {
-            printf("  value = `%s'\n", cmd.timing);
-        }
     }
 
     /***** -rzwcand: The candidate number to fold from 'infile'_rzw.cand */
@@ -1346,7 +1348,7 @@ void showOptionValues(void)
 
 void usage(void)
 {
-    fputs("   [-ncpus ncpus] [-o outfile] [-filterbank] [-psrfits] [-noweights] [-noscales] [-nooffsets] [-topo] [-invert] [-zerodm] [-samples] [-normalize] [-if ifs] [-clip clip] [-noclip] [-noxwin] [-runavg] [-fine] [-coarse] [-slow] [-searchpdd] [-searchfdd] [-nosearch] [-nopsearch] [-nopdsearch] [-nodmsearch] [-scaleparts] [-allgrey] [-fixchi] [-justprofs] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-phs phs] [-start startT] [-end endT] [-mask maskfile] [-ignorechan ignorechanstr] [-candfile candfile] [--] infile ...\n", stderr);
+    fputs("   [-ncpus ncpus] [-o outfile] [-filterbank] [-psrfits] [-noweights] [-noscales] [-nooffsets] [-topo] [-invert] [-zerodm] [-timing] [-usepoly] [-absphase] [-debug] [-samples] [-normalize] [-if ifs] [-clip clip] [-noclip] [-noxwin] [-runavg] [-fine] [-coarse] [-slow] [-searchpdd] [-searchfdd] [-nosearch] [-nopsearch] [-nopdsearch] [-nodmsearch] [-scaleparts] [-allgrey] [-fixchi] [-justprofs] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-phs phs] [-start startT] [-end endT] [-mask maskfile] [-ignorechan ignorechanstr] [-candfile candfile] [--] infile ...\n", stderr);
     fputs("      Folds many pulsar candidates (each with its own period/frequency, derivatives, and DM) in a single pass over the raw data.\n", stderr);
     fputs("         -ncpus: Number of OpenMP threads (CPUs) used to fold candidates (default: min(host CPU count, number of candidates))\n", stderr);
     fputs("                 1 int value between 1 and oo\n", stderr);
@@ -1361,6 +1363,10 @@ void usage(void)
     fputs("          -topo: Fold the data topocentrically (i.e. don't barycenter)\n", stderr);
     fputs("        -invert: For rawdata, flip (or invert) the band\n", stderr);
     fputs("        -zerodm: Subtract the mean of all channels from each sample (i.e. remove zero DM)\n", stderr);
+    fputs("        -timing: Sets useful flags for TOA generation (no searching, 60 parts, fine grid).  Every candidate needs a 'par' column entry\n", stderr);
+    fputs("       -usepoly: Fold every candidate with tempo2 polycos (-par ones always are; p/f ones use their barycentric params; automatic if > 2 hr)\n", stderr);
+    fputs("      -absphase: Use the absolute phase associated with polycos\n", stderr);
+    fputs("         -debug: Show debugging output when calling tempo2 for polycos\n", stderr);
     fputs("       -samples: Treat the data as samples and not as finite-duration integrated data\n", stderr);
     fputs("     -normalize: Bandpass flatten the data by normalizing the subbands\n", stderr);
     fputs("            -if: A specific IF to use if available (summed IFs is the default)\n", stderr);
@@ -1523,6 +1529,11 @@ Cmdline *parseCmdline(int argc, char **argv)
 
         if (0 == strcmp("-debug", argv[i])) {
             cmd.debugP = 1;
+            continue;
+        }
+
+        if (0 == strcmp("-usepoly", argv[i])) {
+            cmd.usepolyP = 1;
             continue;
         }
 
@@ -1857,11 +1868,10 @@ Cmdline *parseCmdline(int argc, char **argv)
             continue;
         }
 
+        /* prepfold_multi's -timing is a flag: each candidate's par file */
+        /* comes from the candidate file, so cmd.timing stays NULL.      */
         if (0 == strcmp("-timing", argv[i])) {
-            int keep = i;
             cmd.timingP = 1;
-            i = getStringOpt(argc, argv, i, &cmd.timing, 1);
-            cmd.timingC = i - keep;
             continue;
         }
 

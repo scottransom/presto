@@ -1,4 +1,29 @@
 ## Development (unreleased, since v6.2.0):
+ * `prepfold_multi` can now fold with tempo2 polycos, so it can make TOAs for many
+   pulsars (e.g. those in a globular cluster) in one pass over the raw data.  The
+   candidate file takes a new `par` column: a candidate with a par file is folded with
+   polycos made from it, exactly as `prepfold -par` would fold it, and is named
+   `PSR_<name>` by default.  With a `par` column the `DM` and `p`/`f` columns become
+   optional, and `-` in any column means "not given" (a par-file candidate with no DM
+   uses the polyco DM).  New options: `-timing` (a flag here; it sets the same no-search
+   flags as `prepfold -timing` and needs a par file for every candidate), `-usepoly`
+   (and the automatic switch to polycos for folds longer than 2 hr, which replaces the
+   old warning), `-absphase` and `-debug`.  Each candidate has its own polycos, so polyco
+   and ordinary candidates can be mixed in one file, and the folds still run in parallel.
+   On the Terzan 5 test data, one `-timing` run detects Ter5 A, C, N and O and matches
+   the four single `prepfold -timing` folds field for field, in 67 s against 117 s for
+   the four.  `prepfold_multi` now also refuses the single-candidate `prepfold` options
+   (`-p`, `-dm`, `-par`, `-psr`, `-bin`, ...), which its parser accepted and the shared
+   code then silently used.
+ * The polyco routines (`polycos.c`) keep their polycos in a `polycoset` struct, used
+   through new `getpoly_set()`/`phcalc_set()`/`free_polycoset()` (`getpoly()` and
+   `phcalc()` still work, on a default set), so several pulsars' polycos can be used at
+   once and from several threads.  There is no longer a limit of 500 polyco sets.
+   `make_polycos()` no longer calls `chdir()` (which changes the directory of every
+   thread) to run tempo2.  Also fixed a stack overflow when reading more than 30 binary
+   polyco sets, and a buffer overflow for polycos with more than 15 coefficients.
+ * Fixed `prepfold -phs` with polycos (`-par`, `-timing`, `-polycos`, `-usepoly`): the
+   phase offset was applied only to the first block of data.
  * `prepfold` can now fold raw-data (filterbank, PSRFITS or subband) candidates with tempo2
    polycos rather than with `bary2topo()`, which converts the barycentric fold parameters
    to topocentric ones with a cubic fit.  The Earth's rotation makes that fit fail for long
@@ -9,8 +34,7 @@
    those as for `-par`.  This happens automatically for observations longer than 2 hours
    when `tempo2` is on the `PATH`.  The plot shows the topocentric period at the start of
    the observation and the best barycentric period (the search's topocentric offsets
-   mapped back).  `prepfold_multi` does not support this yet; it warns for observations
-   longer than 2 hours.  On the Terzan 5 test data, `-usepoly` and `bary2topo()` folds give
+   mapped back).  On the Terzan 5 test data, `-usepoly` and `bary2topo()` folds give
    TOAs that agree to < 0.35 us.  On a synthetic 20-hr MeerKAT observation of a 20-ms
    pulsar, the polyco fold's reduced chi^2 is 62.8, against 12.0 with `bary2topo()`.
  * `get_TOAs.py` has a new `-u`/`--unadjusted` option, which times a fold with the

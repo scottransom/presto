@@ -11,12 +11,7 @@
 
 #define RAWDATA (cmd->filterbankP || cmd->psrfitsP)
 
-extern int getpoly(double mjd, double duration, double *dm, FILE * fp, char *pname);
-extern int phcalc(double mjd0, double mjd1, int last_index,
-                  double *phase, double *psrfreq);
 extern int get_psr_from_parfile(char *parfilenm, double epoch, psrparams * psr);
-extern char *make_polycos(char *parfilenm, infodata * idata, char *polycofilenm,
-                          int debug_tempo);
 extern int *ranges_to_ivect(char *str, int minval, int maxval, int *numvals);
 void set_posn(prepfoldinfo * in, infodata * idata);
 

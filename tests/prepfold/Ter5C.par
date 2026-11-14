@@ -1,0 +1,28 @@
+PSR              1748-2446C
+RAJ      17:48:04.53403090  1          0.00004305
+DECJ     -24:46:34.7256297  1           0.0208857
+PMRA               -2.3114  1              0.1132
+PMDEC             -18.6007  1              3.7496
+F0    118.5382560216174710  1  0.0000000000022229
+F1      8.483829369329D-15  1  7.542749698193D-21
+PEPOCH        55000.000000
+START            50850.872
+FINISH           59362.330
+DM              237.032166  1            0.002275
+DM001   2.414907436929D-03  1  4.539081917652D-04
+SOLARN0              10.00
+EPHEM               DE440
+CLK                 TT(BIPM2019)                    
+UNITS               TDB
+TIMEEPH             FB90
+T2CMETHOD           TEMPO
+CORRECT_TROPOSPHERE N
+PLANET_SHAPIRO      N
+DILATEFREQ          N
+NTOA                   476
+TRES                 50.18
+TZRMJD  55037.00217496616428
+TZRFRQ            1557.720
+TZRSITE                  GB
+MODE                     1
+NITS                     9

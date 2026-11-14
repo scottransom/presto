@@ -82,9 +82,60 @@ for pair in 241.30:subDM241 242.30:subDM242 243.30:subDM243; do
             "m_single_${nm}_8.66ms_Cand.pfd.bestprof"
 done
 
+# --- Polyco folds: -timing with par files, and -usepoly -----------------------
+# A globular-cluster style timing run: Ter5 A, C, N and O folded with tempo2
+# polycos from their par files in one pass (multi_cands_timing.txt has a 'par'
+# column), checked against single prepfold -timing runs, by detection, and by
+# their TOAs (so get_TOAs.py can time prepfold_multi's polyco folds).
+if [ ! -f Ter5_080912_short2bits_rfifind.mask ]; then
+    echo "Making the rfifind mask."
+    rfifind -noscales -nooffsets -time 2.0 -o Ter5_080912_short2bits \
+        $DATA >> "$LOG" 2>&1
+fi
+TCOMMON="-noxwin -noscales -nooffsets -nsub 64 -mask Ter5_080912_short2bits_rfifind.mask"
+echo "Polyco equivalence (-timing, Ter5 A/C/N/O par files in one pass):"
+prepfold_multi $TCOMMON -timing -o m_timing -candfile "${_SCRIPT_DIR}/multi_cands_timing.txt" \
+    $DATA >> "$LOG" 2>&1
+# Only two singles (bright isolated A and the fast binary O): every candidate
+# goes through the same code, and the singles are the slow part of the test.
+for psr in A O; do
+    prepfold $TCOMMON -timing Ter5${psr}.par -o m_single_timing $DATA >> "$LOG" 2>&1
+    compare "m_timing_PSR_1748-2446${psr}.pfd.bestprof" \
+            "m_single_timing_PSR_1748-2446${psr}.pfd.bestprof"
+done
+# Detections (reduced chi^2; measured A 1278.4, C 4.00, N 5.01, O 8.99)
+for pair in A:1100 C:3.5 N:4.3 O:7.5; do
+    psr=${pair%%:*}; min=${pair##*:}
+    chi=$(awk '/Reduced chi-sqr/ {print $5}' "m_timing_PSR_1748-2446${psr}.pfd.bestprof")
+    if awk "BEGIN{exit !(${chi:-0} > $min)}"; then
+        echo "  PASS: Ter5${psr} detected (reduced chi^2 = $chi > $min)"
+    else
+        echo "  FAIL: Ter5${psr} not detected (reduced chi^2 = $chi, need > $min)"
+        FAILED=1
+    fi
+done
+if python3 "${_SCRIPT_DIR}/compare_toas.py" m_timing_PSR_1748-2446O.pfd \
+    m_single_timing_PSR_1748-2446O.pfd -t m_timing_PSR_1748-2446O.pfd.bestprof \
+    >> "$LOG" 2>&1; then
+    echo "  PASS: Ter5O TOAs agree (multi vs single)"
+else
+    echo "  FAIL: Ter5O TOAs disagree (multi vs single)"
+    FAILED=1
+fi
+
+# A search candidate folded with polycos made from its barycentric parameters
+# (-usepoly; automatic for folds > 2 hr) instead of with bary2topo().
+echo "Polyco equivalence (-usepoly):"
+printf "# name DM p pd\nupoly 238.30 $P $PD\n" > m_usepoly_cands.txt
+prepfold_multi $COMMON -nsub 64 -usepoly -o m_usepoly -candfile m_usepoly_cands.txt \
+    $DATA >> "$LOG" 2>&1
+prepfold $COMMON -nsub 64 -usepoly -p $P -pd $PD -dm 238.30 -o m_single_usepoly \
+    $DATA >> "$LOG" 2>&1
+compare m_usepoly_upoly.pfd.bestprof m_single_usepoly_8.66ms_Cand.pfd.bestprof
+
 echo "Finished"
 [ "${FAILED}" -eq 0 ] && echo "All prepfold_multi equivalence tests PASSED." \
     || { echo "One or more prepfold_multi equivalence tests FAILED."; exit 1; }
 
 # To clean up temp files, do:
-# rm m_single_* Ter5_080912_short2bits_candDM*.pfd* Ter5_080912_DM242.30_subDM*.pfd* multi_output.txt
+# rm m_single_* m_timing_* m_usepoly* Ter5_080912_short2bits_candDM*.pfd* Ter5_080912_DM242.30_subDM*.pfd* multi_output.txt

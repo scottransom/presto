@@ -78,6 +78,36 @@ typedef struct PREPFOLDINFO {
   orbitparams orb;    /* Barycentric orbital parameters used in folds */
 } prepfoldinfo;
 
+/* A set of TEMPO-format polycos for one pulsar (see polycos.c).  getpoly()  */
+/* and phcalc() use a static default set; prepfold_multi gives each          */
+/* candidate its own, via getpoly_set() and phcalc_set().  Zero it before    */
+/* first use and release it with free_polycoset().                           */
+typedef struct POLYCOSET {
+  int isets;          /* Number of polyco sets loaded */
+  int nblk;           /* Span of each set (min) */
+  int ncoeff;         /* Number of coefficients per set */
+  int nalloc;         /* Number of sets the arrays below can hold */
+  double *f0, *z4, *rphase, *mjdmid, *mjd1mid;
+  double (*coeff)[15];
+} polycoset;
+
+int getpoly(double mjd, double duration, double *dm, FILE * fp, char *pname);
+int phcalc(double mjd0, double mjd1, int last_index, double *phase,
+           double *psrfreq);
+int getpoly_set(polycoset *set, double mjd, double duration, double *dm,
+                FILE * fp, char *pname);
+/* Read the polycos for pname (only its first 4 characters are compared)   */
+/* covering mjd to mjd+duration (days) from fp into set.  Returns the       */
+/* number of sets read and puts the polyco DM in *dm.  A NULL set means    */
+/* the default set (the one getpoly() and phcalc() use).                   */
+int phcalc_set(polycoset *set, double mjd0, double mjd1, int last_index,
+               double *phase, double *psrfreq);
+/* Compute the pulse phase (0-1) and frequency at MJD mjd0+mjd1 from set,   */
+/* searching from set index last_index.  Returns the index used.            */
+void free_polycoset(polycoset *set);
+char *make_polycos(char *parfilenm, infodata * idata, char *polycofilenm,
+                   int debug);
+
 /* Per-candidate folding context.  Bundles the per-candidate working state    */
 /* that the fold pipeline threads through its phase functions, so that         */
 /* "fold one candidate" is expressed as a single foldcand* rather than ~30     */
@@ -111,6 +141,7 @@ typedef struct FOLDCAND {
   double phs;          /* per-block fold phase offset (was cmd->phs)          */
   double *parttimes;
   /* polyco state */
+  polycoset *polycos;  /* this candidate's polycos (NULL = the default set) */
   int polyco_index;
   double polyco_phase0;
   /* -usepoly: fold with polycos made from the candidate's barycentric     */
@@ -282,6 +313,22 @@ int decide_usepoly(Cmdline *cmd, infodata *idata, foldcand *fc, int insubs,
 void setup_usepoly_polycos(Cmdline *cmd, infodata *idata, foldcand *fc,
                            double T, double startTday, char *obs, char *ephem,
                            char *rastring, char *decstring, char *pname);
+
+void load_fold_polycos(Cmdline *cmd, infodata *idata, foldcand *fc,
+                       double T, double startTday);
+/* Read cmd->polycofile's polycos for cmd->psrname (into fc->polycos, or the */
+/* default set) and start the fold from them (fc->f, topo.p1, phase0).      */
+
+void make_parfile_polycos(Cmdline *cmd, infodata *idata, foldcand *fc,
+                          char *parfilenm);
+/* Make <outfile>.polycos from parfilenm with tempo2, and point             */
+/* cmd->psrname/polycofile at them (as -par and -timing do).                */
+
+double polyco_block_phase(foldcand *fc, int absphase, int mjd_i, double mjdf,
+                          double blockdur, double *foldf);
+/* For a polyco fold: the pulse phase (0-1, relative to the fold start      */
+/* unless absphase) at the start of a block beginning at MJD mjd_i+mjdf,    */
+/* with the fold frequency at mid-block (blockdur s long) in *foldf.        */
 
 void setup_orbit_delays(Cmdline *cmd, infodata *idata, foldcand *fc,
                         int insubs, double T, double *N_out);

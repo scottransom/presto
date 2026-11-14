@@ -630,38 +630,28 @@ empirical inflation factor against the coverage tests.
 `clig/prepfold_multi_cmd.cli`. Fix the generator or the `.cli` so it regenerates cleanly like
 every other tool. Until then, do not blindly overwrite the hand edits.
 
-### Polyco folding in `prepfold_multi`
+### [DONE] Polyco folding in `prepfold_multi`
 
-`prepfold -usepoly` (automatic for raw-data folds longer than 2 hr) folds a search candidate
-with tempo2 polycos made from its barycentric F0/F1/F2, instead of `bary2topo()`'s cubic
-topocentric fit, which drifts by more than a turn over ~20 hr. `prepfold_multi` cannot do this
-yet: it only warns for long barycentric folds and recommends single `prepfold` runs. Nor can it
-fold `-par`/`-timing` candidates with polycos. A moderate job (a few hours plus testing):
+Done 2026-11-14, mostly as planned here. The candidate file has a `par` column (rows with a
+par file fold like `prepfold -par`), `-timing` is a flag that needs a par file on every row,
+and `-usepoly` (plus the automatic > 2 hr switch) works per candidate. How it was done:
 
-- **Per-candidate polyco state.** `src/polycos.c` keeps the loaded polycos in file-scope
-  statics (`f0[]`, `coeff[][]`, `mjdmid[]`, `isets`, `nblk`, `ncoeff`, ...), so only one
-  pulsar can be loaded at a time. Move them into a `polycoset` struct with
-  `getpoly_set()`/`phcalc_set()`, keep `getpoly()`/`phcalc()` as wrappers on a static default
-  set (so `prepfold` and `check_polycos_t2.c` don't change), and give each `foldcand` a
-  `polycoset *`. That also makes `phcalc` safe to call from the OpenMP candidate loop.
-- **Setup per candidate.** Call `decide_usepoly()` and `setup_usepoly_polycos()` per
-  candidate after `multi_resolve_fold_params()`. `setup_usepoly_polycos()` sets
-  `cmd->psrname`/`cmd->polycofile`, and shared code (`write_results_and_plot`,
-  `setup_orbit_delays`, ...) tests `cmd->polycofileP`; those must become per-candidate
-  (`fc->usepoly` / `fc->polycos`).
-- **tempo2 calls.** `make_polycos()` uses `chdir()`, which is process-wide, so it can't run in
-  parallel. Run `cd tmpdir && tempo2 ...` inside the `system()` call instead. At ~1–2 s per
-  candidate, serial generation is tolerable for long folds; parallel is easy after that fix.
-- **Fold loop.** In the per-block candidate loop (`prepfold_multi.c`, around the
-  `fold_subband_block()` call), polyco candidates need what `fold_timeseries()` does: phase at
-  the block start and frequency at mid-block from `phcalc`, setting `fc->phs`, folding with
-  `fold_time0 = 0`. Factor that out of `fold_timeseries()` into a helper both programs use.
-  Skip `apply_bary_fold_correction()` for those candidates, and reset `foldf` to `orig_foldf`
-  before optimizing, as `prepfold.c` does. The topo→bary mapping of the best fold offsets is
-  already in `write_results_and_plot()`.
-- **Options and tests.** Exposing `-usepoly` means editing the hand-maintained
-  `prepfold_multi_cmd.[ch]` (see above); the automatic >2 hr switch needs no option. Add a
-  `-usepoly` multi-vs-singles case on the Ter5 file to `prepfold_multi_tests.sh`.
+- `polycos.c` keeps its state in a `polycoset` (`getpoly_set()`/`phcalc_set()`; a NULL set
+  is the static default that `getpoly()`/`phcalc()` use), and each `foldcand` has a
+  `polycoset *polycos`.
+- Instead of making `cmd->polycofileP` etc. per-candidate fields, each candidate gets its
+  own copy of the `Cmdline`, in which `make_parfile_polycos()` (factored out of
+  `resolve_fold_params()`) or `setup_usepoly_polycos()` sets `psrname`/`polycofile`. The
+  shared code then needs no change.
+- `make_polycos()` runs `cd tmpdir && tempo2 ...` rather than `chdir()`. Polyco generation
+  is still serial (in the setup loop), at ~1 s per candidate.
+- `polyco_block_phase()` holds the per-block phase/frequency step of `fold_timeseries()`,
+  and `prepfold_multi` calls it per candidate in the parallel fold loop.
+- Tests: `prepfold_multi_tests.sh` folds Ter5 A, C, N and O with `-timing` and checks A and O
+  against single `prepfold -timing` runs, plus a `-usepoly` case.
+
+Possible follow-ups: generate the polycos in parallel; `-polycos` (a user-supplied polyco
+file holding several pulsars) as another candidate-file column.
 
 ### Python docstrings, type hints and ruff
 

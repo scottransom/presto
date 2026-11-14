@@ -39,6 +39,12 @@ Flag   -nooffsets  nooffsets  {Do not apply PSRFITS offsets}
 Flag   -topo    topo    {Fold the data topocentrically (i.e. don't barycenter)}
 Flag   -invert  invert  {For rawdata, flip (or invert) the band}
 Flag   -zerodm  zerodm  {Subtract the mean of all channels from each sample (i.e. remove zero DM)}
+# NB: -timing is a Flag here but a String (the par file) in prepfold; the hand-
+# maintained prepfold_multi_cmd.c sets only timingP and leaves cmd.timing NULL.
+Flag   -timing  timing  {Sets useful flags for TOA generation (no searching, 60 parts, fine grid).  Every candidate needs a 'par' column entry}
+Flag   -usepoly usepoly {Fold every candidate with tempo2 polycos (-par ones always are; p/f ones use their barycentric params; automatic if > 2 hr)}
+Flag   -absphase absphase {Use the absolute phase associated with polycos}
+Flag   -debug   debug   {Show debugging output when calling tempo2 for polycos}
 Flag   -samples samples {Treat the data as samples and not as finite-duration integrated data}
 Flag   -normalize normalize {Bandpass flatten the data by normalizing the subbands}
 Int    -if      ifs     {A specific IF to use if available (summed IFs is the default)} \
@@ -110,17 +116,40 @@ disk I/O -- is therefore paid once no matter how many candidates are
 folded.
 
 Because every candidate already supplies its own DM and spin
-parameters via the
+parameters (or par file) via the
 .B -candfile
 (see CANDIDATE FILE FORMAT below), prepfold_multi has no single-candidate
-spin (-p/-pd/-pdd/-f/-fd/-fdd), source (-psr/-par/-polycos/-timing),
-binary (-bin and friends), or event (-events/-days/-mjds/-double/-offset)
-options: those are meaningless when many independent candidates are
-folded in one run.  Likewise prepfold_multi only accepts raw radio data
+spin (-p/-pd/-pdd/-f/-fd/-fdd, -dm, -pfact/-ffact), source
+(-psr/-par/-polycos/-accelcand), binary (-bin and friends), or event
+(-events/-days/-mjds/-double/-offset) options, and it exits with an
+error if one is given: those are meaningless when many independent
+candidates are folded in one run.  Likewise prepfold_multi only accepts raw radio data
 or PRESTO subbands as input, never an already-dedispersed time series
 or event file, because there is no single DM to apply to a .dat file
 on behalf of several candidates at once (see "Rest infile" above and
 CANDIDATE FILE FORMAT below).
+
+A candidate with a par file (the
+.B par
+column) is folded with tempo2 polycos made from it, exactly as
+.B prepfold -par
+or
+.B -timing
+would fold it.  With
+.BR -timing ,
+which sets the same flags as in prepfold (no searching, 60
+sub-integrations, and a power-of-two number of profile bins), every
+candidate must have a par file.  This makes TOAs for many pulsars, such
+as those in a globular cluster, from one pass over the data:
+.BR get_TOAs.py (1)
+times each resulting .pfd with its .pfd.polycos.  Search candidates
+(p or f rows) are folded with tempo2 polycos made from their
+barycentric parameters, rather than with a cubic topocentric
+approximation, if
+.B -usepoly
+is given or the fold is longer than 2 hr (as in prepfold).  Each
+candidate gets its own polycos, so polyco and non-polyco candidates can
+be mixed in one file.
 
 All of the fold mathematics is shared with
 .BR prepfold (1)
@@ -166,7 +195,11 @@ suffix and prints a warning, rather than letting one candidate's
 output silently clobber another's.
 .TP
 .B DM
-Required.  The candidate's dispersion measure (cm^-3 pc).  Must be >= 0.
+The candidate's dispersion measure (cm^-3 pc).  Must be >= 0.  Required
+unless there is a
+.B par
+column; a par-file candidate with no DM (or `-') uses the DM from its
+polycos.
 .TP
 .B p
 The candidate's folding period (s).  Must be > 0.  Selects
@@ -189,12 +222,20 @@ Optional.  The frequency derivative (Hz/s).  Only valid in frequency mode.
 .TP
 .B fdd
 Optional.  The frequency 2nd derivative (Hz/s^2).  Only valid in frequency mode.
+.TP
+.B par
+Optional.  A par file for the candidate, or `-' for none.  A candidate
+with a par file is folded with tempo2 polycos made from it (see
+DESCRIPTION), and its p/f columns are ignored.  Its default name is
+PSR_ plus the pulsar name in the par file.
 .PP
 The header must contain exactly one of
 .B p
 or
-.BR f ,
-never both: this choice is file-wide and fixes whether every candidate
+.B f
+(unless it has a
+.B par
+column, when it may have neither), never both: this choice is file-wide and fixes whether every candidate
 in the file is specified in period mode (p, optionally with pd/pdd) or
 frequency mode (f, optionally with fd/fdd).  Mixing modes within one
 file is rejected: a header may not combine
@@ -219,9 +260,11 @@ and any derivatives) are parsed like C's
 .BR strtod (3),
 so ordinary decimal and scientific notation (e.g.
 .IR 8.66430621957513e-3 )
-are both accepted.  DM must be >= 0 and the period (or frequency) must
-be > 0 on every row, or prepfold_multi reports the offending line
-number and exits before any folding begins.
+are both accepted.  A `-' in any column means "not given" (no name,
+no par file, or a value of 0).  DM must be >= 0 on every row, and the
+period (or frequency) must be > 0 on every row without a par file, or
+prepfold_multi reports the offending line number and exits before any
+folding begins.
 
 Example (period mode, three candidates at nearby trial DMs, sharing one
 spin solution -- see tests/prepfold/multi_cands.txt):
@@ -231,6 +274,31 @@ spin solution -- see tests/prepfold/multi_cands.txt):
 candDM238   238.30  8.66430621957513e-3  -5.01154755640048e-11
 candDM240   240.30  8.66430621957513e-3  -5.01154755640048e-11
 candDM242   242.30  8.66430621957513e-3  -5.01154755640048e-11
+.fi
+.RE
+
+Example (timing four Ter5 pulsars with
+.BR "prepfold_multi -timing" ;
+see tests/prepfold/multi_cands_timing.txt):
+.RS
+.nf
+# par
+Ter5A.par
+Ter5C.par
+Ter5N.par
+Ter5O.par
+.fi
+.RE
+
+Example (two known pulsars, one with a fixed DM, and a new candidate):
+.RS
+.nf
+# name    par        DM      p
+-         Ter5A.par  -       -
+-         Ter5N.par  238.30  -
+cand1     -          238.30  8.66430621957513e-3
+.fi
+.RE
 }
 
 Author {Ryan Lynch <rlynch@nrao.edu>}

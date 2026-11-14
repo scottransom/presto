@@ -30,7 +30,11 @@ cd tests/prepfold
   N candidates (each with its own DM) in a single pass over the raw data must
   reproduce, field for field, what N independent `prepfold` runs produce.
   Checked for both supported inputs: raw PSRFITS (`multi_cands.txt`, 3
-  candidates) and PRESTO subbands (`multi_cands_sub.txt`, 3 candidates). Also
+  candidates) and PRESTO subbands (`multi_cands_sub.txt`, 3 candidates), and
+  for polyco folds: `-timing` with the Ter5 A, C, N and O par files
+  (`multi_cands_timing.txt`; A and O are checked against single
+  `prepfold -timing` runs, all four must be detected, and O's TOAs must match
+  the single fold's), and a `-usepoly` search candidate. Also
   reports the wall-clock of the one multi run vs. the sum of the single runs,
   to make the "the raw data is read once" claim measured rather than just
   structural.
@@ -96,6 +100,9 @@ the full format spec; `multi_cands.txt` is reproduced there as the worked
 example. `multi_cands_sub.txt` covers the PRESTO-subband path (residual DMs
 around the subbands' DM), and `multi_cands_perf.txt` is an 8-candidate file
 sized for the OpenMP scaling measurement in `perf_check.sh`.
+`multi_cands_timing.txt` has only a `par` column, naming `Ter5A.par`,
+`Ter5C.par`, `Ter5N.par` and `Ter5O.par` here, so each pulsar is folded with
+tempo2 polycos from its own par file.
 
 ## What to expect
 
@@ -103,9 +110,10 @@ Based on the most recent validation run:
 
 - `prepfold_tests.sh`: all pass -- 8 folds, `reader_equiv_check` x2 (no mask /
   with mask), and the command-layout check.
-- `prepfold_multi_tests.sh`: RAWDATA 3/3 and insubs 3/3 pass -- every
-  `prepfold_multi` candidate matches its single-`prepfold` counterpart field
-  for field.
+- `prepfold_multi_tests.sh`: RAWDATA 3/3, insubs 3/3, `-timing` 2/2 and
+  `-usepoly` 1/1 pass -- every `prepfold_multi` candidate matches its
+  single-`prepfold` counterpart field for field. In the `-timing` run, the
+  reduced chi^2 values are 1278.4 (A), 4.00 (C), 5.01 (N) and 8.99 (O).
 - `determinism_check.sh`: `.bestprof` files are bit-identical across `-ncpus`
   1, 4, and 8 for every candidate, in both RAWDATA and insubs.
 - `valgrind_check.sh`: memcheck reports 0 errors / 0 leaks for both the

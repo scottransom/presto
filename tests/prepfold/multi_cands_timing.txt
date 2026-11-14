@@ -1,0 +1,5 @@
+# par
+Ter5A.par
+Ter5C.par
+Ter5N.par
+Ter5O.par

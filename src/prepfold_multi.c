@@ -57,6 +57,7 @@ static void fold_mem_limits(size_t *warn, size_t *cap)
 /* set_posn lives in prepfold_utils.c (no public header); declare it here as   */
 /* prepfold.c does.                                                            */
 void set_posn(prepfoldinfo * in, infodata * idata);
+extern int get_psr_from_parfile(char *parfilenm, double epoch, psrparams * psr);
 
 /*
  * prepfold_multi: fold many candidates -- each with its own period/frequency,
@@ -76,14 +77,17 @@ void set_posn(prepfoldinfo * in, infodata * idata);
 #define MAX_CANDCOLS 8
 
 /* One candidate row.  x0/x1/x2 hold p,pd,pdd (period mode) or f,fd,fdd        */
-/* (frequency mode); which is decided file-wide by the header.                 */
+/* (frequency mode); which is decided file-wide by the header.  A row with a   */
+/* par file is folded with tempo2 polycos made from it (as prepfold -par or    */
+/* -timing does), and its x0/x1/x2 are ignored.                                */
 typedef struct {
     char *name;                 /* NULL => autogenerate like prepfold */
+    char *par;                  /* par file, or NULL for a p/f candidate */
     double dm;
     double x0, x1, x2;
 } multicand;
 
-enum { COL_NAME = 1, COL_DM, COL_X0, COL_X1, COL_X2 };
+enum { COL_NAME = 1, COL_DM, COL_X0, COL_X1, COL_X2, COL_PAR };
 
 static void candfile_error(const char *fn, int lineno, const char *msg, const char *arg)
 {
@@ -110,10 +114,15 @@ static void lowercase(char *s)
         *s = (char) tolower((unsigned char) *s);
 }
 
+/* A numeric cell.  "-" means "not given" (0), which is how a row with a par   */
+/* file skips its p/f columns, or takes its DM from the par file.              */
 static double parse_candval(const char *fn, int lineno, const char *col, char *v)
 {
     char *end;
-    double x = strtod(v, &end);
+    double x;
+    if (!strcmp(v, "-"))
+        return 0.0;
+    x = strtod(v, &end);
     if (end == v || *end != '\0') {
         char msg[80];
         snprintf(msg, sizeof(msg), "expected a number in column '%s', got", col);
@@ -132,7 +141,7 @@ static multicand *parse_candfile(const char *fn, int *ncand_out, int *is_period_
     const char *col_name[MAX_CANDCOLS];
     int ncols = 0, lineno = 0, header_done = 0, is_period = 0;
     int seen_p = 0, seen_f = 0, seen_pd = 0, seen_fd = 0, seen_pdd = 0, seen_fdd = 0;
-    int seen_dm = 0;
+    int seen_dm = 0, seen_par = 0;
     multicand *cands = NULL;
     int ncand = 0, cap = 0;
 
@@ -171,17 +180,25 @@ static multicand *parse_candfile(const char *fn, int *ncand_out, int *is_period_
                     col_field[ncols] = COL_X2;   col_name[ncols] = "pdd"; seen_pdd = 1;
                 } else if (!strcmp(tok, "fdd")) {
                     col_field[ncols] = COL_X2;   col_name[ncols] = "fdd"; seen_fdd = 1;
+                } else if (!strcmp(tok, "par")) {
+                    col_field[ncols] = COL_PAR;  col_name[ncols] = "par"; seen_par = 1;
                 } else {
                     candfile_error(fn, lineno, "unknown column key", tok);
                 }
                 ncols++;
             }
-            if (!seen_dm)
+            /* With a 'par' column, rows can take their DM and spin from    */
+            /* their par files, so 'DM' and 'p'/'f' become optional.        */
+            if (!seen_dm && !seen_par)
                 candfile_error(fn, lineno, "header is missing the required 'DM' column", NULL);
-            if (seen_p == seen_f)
+            if (seen_p && seen_f)
                 candfile_error(fn, lineno,
                                "header must contain exactly one of 'p' or 'f'", NULL);
-            is_period = seen_p;
+            if (!seen_p && !seen_f && !seen_par)
+                candfile_error(fn, lineno,
+                               "header must contain one of 'p' or 'f' (or a 'par' column)",
+                               NULL);
+            is_period = seen_p || !seen_f;
             if (is_period && (seen_fd || seen_fdd))
                 candfile_error(fn, lineno,
                                "cannot mix period 'p' with frequency derivatives 'fd'/'fdd'",
@@ -218,11 +235,21 @@ static multicand *parse_candfile(const char *fn, int *ncand_out, int *is_period_
                 cands = (multicand *) realloc(cands, cap * sizeof(multicand));
             }
             cd = &cands[ncand];
-            cd->name = NULL;
+            cd->name = cd->par = NULL;
             cd->dm = cd->x0 = cd->x1 = cd->x2 = 0.0;
             for (ci = 0; ci < ncols; ci++) {
                 switch (col_field[ci]) {
-                case COL_NAME: cd->name = dupstr(toks[ci]); break;
+                case COL_NAME:  /* "-" means autogenerate the name */
+                    if (strcmp(toks[ci], "-"))
+                        cd->name = dupstr(toks[ci]);
+                    break;
+                case COL_PAR:
+                    if (strcmp(toks[ci], "-")) {
+                        if (access(toks[ci], R_OK) != 0)
+                            candfile_error(fn, lineno, "cannot read par file", toks[ci]);
+                        cd->par = dupstr(toks[ci]);
+                    }
+                    break;
                 case COL_DM:   cd->dm  = parse_candval(fn, lineno, col_name[ci], toks[ci]); break;
                 case COL_X0:   cd->x0  = parse_candval(fn, lineno, col_name[ci], toks[ci]); break;
                 case COL_X1:   cd->x1  = parse_candval(fn, lineno, col_name[ci], toks[ci]); break;
@@ -231,7 +258,10 @@ static multicand *parse_candfile(const char *fn, int *ncand_out, int *is_period_
             }
             if (cd->dm < 0.0)
                 candfile_error(fn, lineno, "DM must be >= 0", NULL);
-            if (cd->x0 <= 0.0)
+            if (cd->par == NULL && !seen_p && !seen_f)
+                candfile_error(fn, lineno,
+                               "a row without a par file needs a 'p' or 'f' column", NULL);
+            if (cd->par == NULL && cd->x0 <= 0.0)
                 candfile_error(fn, lineno,
                                is_period ? "period 'p' must be > 0" : "frequency 'f' must be > 0",
                                NULL);
@@ -274,8 +304,18 @@ static void multi_output_names(foldcand *fc_array, int c, char *rootnm,
 {
     foldcand *fc = &fc_array[c];
     prepfoldinfo *search = &fc->search;
-    char *base = cand->name ? dupstr(cand->name)
-                            : make_autogen_candnm(is_period, cand->x0);
+    char *base;
+
+    if (cand->name) {
+        base = dupstr(cand->name);
+    } else if (cand->par) {     /* PSR_<name from the par file>, as in prepfold */
+        psrparams psr;
+        get_psr_from_parfile(cand->par, 51000.0, &psr);
+        base = (char *) chkmalloc(strlen(psr.jname) + 5, "candidate name");
+        sprintf(base, "PSR_%s", psr.jname);
+    } else {
+        base = make_autogen_candnm(is_period, cand->x0);
+    }
 
     if (candnm_taken(fc_array, c, base)) {
         char *uniq = (char *) chkmalloc(strlen(base) + 16, "candidate name");
@@ -337,6 +377,21 @@ static double multi_bary_epoch(infodata *idata, double tepoch, double dm,
     return bary_epoch_to_infinite_freq(idata, bepoch, dm);
 }
 
+/* For a candidate folded with polycos, set its phase offset (fc->phs) and    */
+/* fold frequency (*foldf) for the block starting fold_time0 s into the fold, */
+/* exactly as prepfold's fold_timeseries() does, and return the fold_time0   */
+/* to fold the block with (0, since the phase is set from the polycos).      */
+/* Touches only this candidate's state, so it is safe in the parallel loop.   */
+static double multi_polyco_block(Cmdline *cmd, infodata *idata, foldcand *fc,
+                                 double startTday, double fold_time0,
+                                 double proftime, double *foldf)
+{
+    double mjdf = idata->mjd_f + startTday + fold_time0 / SECPERDAY;
+    fc->phs = cmd->phs + polyco_block_phase(fc, cmd->absphaseP, idata->mjd_i,
+                                            mjdf, proftime, foldf);
+    return 0.0;
+}
+
 /* ------------------------------------------------------------------------- */
 /* Main                                                                      */
 /* ------------------------------------------------------------------------- */
@@ -346,7 +401,7 @@ int main(int argc, char *argv[])
     double recdt = 0.0, N = 0.0, T = 0.0, startTday = 0.0, proftime;
     double *events = NULL;
     char *rootnm, *shared_filenm, *shared_telescope;
-    char obs[3], ephem[6], pname[30], rastring[50], decstring[50];
+    char obs[3], ephem[6], rastring[50], decstring[50];
     int numevents = 0, numchan = 1, useshorts = 0;
     int ptsperrec = 1, insubs = 0, shared_nsub, ncand = 0, is_period = 0;
     int *maskchans = NULL;
@@ -359,7 +414,7 @@ int main(int argc, char *argv[])
     infodata idata;
     foldcand fcs, *fc;
     multicand *cands;
-    Cmdline *cmd;
+    Cmdline *cmd, *cmds;
     plotflags pflags;
     mask obsmask;
     /* Per-candidate fold scratch, plus the SHARED barycentric tables: the topo<->  */
@@ -371,7 +426,7 @@ int main(int argc, char *argv[])
     rawblock_reader *reader = NULL;
     float **subdatas = NULL, *insub_data = NULL;
     int padding = 0, nummasked = 0;
-    int nthreads = 1;
+    int nthreads = 1, npolyco = 0, any_par = 0;
     size_t fold_mem_bytes = 0, fold_mem_warn = 0, fold_mem_cap = 0;
 
     if (argc == 1) {
@@ -380,12 +435,55 @@ int main(int argc, char *argv[])
         usage();
         exit(0);
     }
-    pname[0] = '\0';
 
+    /* The parser shares prepfold's struct (and still recognizes its options), */
+    /* but each candidate brings its own spin, DM and source, so refuse the    */
+    /* single-candidate options rather than silently mis-folding with them.    */
+    /* (Options with defaults have their P flag set even when absent, so look */
+    /* at the command line itself, before parseCmdline() rearranges argv.)   */
+    for (ii = 1; ii < argc && strcmp(argv[ii], "--"); ii++) {
+        static const char *single_opts[] = {
+            "-p", "-pd", "-pdd", "-f", "-fd", "-fdd", "-dm", "-pfact", "-ffact",
+            "-psr", "-par", "-polycos", "-rzwcand", "-rzwfile", "-accelcand",
+            "-accelfile", "-bin", "-pb", "-x", "-e", "-To", "-w", "-wdot",
+            "-barypolycos", "-events", "-days", "-mjds", "-double", "-offset", NULL
+        };
+        for (jj = 0; single_opts[jj]; jj++)
+            if (!strcmp(argv[ii], single_opts[jj]))
+                break;
+        if (single_opts[jj] == NULL)
+            continue;
+        fprintf(stderr,
+                "\nprepfold_multi: option '%s' is not allowed.\n"
+                "  The single-candidate options (-p/-f and their\n"
+                "  derivatives, -dm, -pfact/-ffact, -psr, -par, -polycos, -accelcand,\n"
+                "  -bin, ...) are not allowed.  Give each candidate's spin, DM, or par\n"
+                "  file in the -candfile instead (see prepfold_multi(1)).\n\n",
+                argv[ii]);
+        exit(1);
+    }
     cmd = parseCmdline(argc, argv);
+
+    if (!cmd->candfileP) {
+        fprintf(stderr, "\nprepfold_multi: -candfile is required.\n\n");
+        exit(1);
+    }
 
     /* Parse the candidate list up front so we fail fast on a bad file. */
     cands = parse_candfile(cmd->candfile, &ncand, &is_period);
+    for (c = 0; c < ncand; c++)
+        if (cands[c].par)
+            any_par = 1;
+    if (cmd->timingP) {
+        for (c = 0; c < ncand; c++) {
+            if (cands[c].par == NULL) {
+                fprintf(stderr,
+                        "\nprepfold_multi: -timing needs a par file for every candidate,\n"
+                        "  but candidate %d in '%s' has none.\n\n", c + 1, cmd->candfile);
+                exit(1);
+            }
+        }
+    }
 
     /* Shared spectra_info setup (mirrors prepfold's main()). */
     init_foldcand(&fcs);
@@ -438,6 +536,15 @@ int main(int argc, char *argv[])
     if (cmd->ifsP)
         s.use_poln = cmd->ifs + 1;
     obsmask.numchan = obsmask.numint = 0;
+    if (cmd->timingP) {         /* As prepfold -timing does */
+        cmd->nosearchP = 1;
+        cmd->nopsearchP = 1;
+        cmd->nopdsearchP = 1;
+        cmd->nodmsearchP = 1;
+        if (cmd->npart == 64)   /* The default value */
+            fcs.npart = 60;
+        cmd->fineP = 1;
+    }
     if (cmd->slowP) {
         cmd->fineP = 1;
         if (!cmd->proflenP)
@@ -491,11 +598,11 @@ int main(int argc, char *argv[])
                        &maskchans, &recdt, &lorec, &startTday, &numrec,
                        &reads_per_part, &T, &N, &worklen);
     tepoch = fcs.search.tepoch;
-    if (!cmd->topoP && T > USEPOLY_AUTO_SEC)
-        printf("\nWARNING:  This %.1f hr observation is long enough that the cubic\n"
-               "  topocentric correction (bary2topo) may smear the folds.  prepfold\n"
-               "  (which uses polycos for these, see -usepoly) folds them properly.\n",
-               T / 3600.0);
+    if (any_par && idata.bary) {
+        fprintf(stderr,
+                "\nprepfold_multi: candidates with par files need topocentric data.\n\n");
+        exit(1);
+    }
     shared_dt = fcs.search.dt;
     shared_filenm = fcs.search.filenm;
     shared_telescope = fcs.search.telescope;
@@ -506,22 +613,21 @@ int main(int argc, char *argv[])
            ncand == 1 ? "" : "s", is_period ? "period" : "frequency", cmd->candfile);
     printf("Reading the raw data once; dedispersing and folding per candidate.\n\n");
 
-    /* The barycentric time tables are candidate-INDEPENDENT, so build them once  */
-    /* here (one TEMPO call) and reuse for every candidate.  Skipped when folding  */
-    /* topocentrically (-topo), exactly as the single-candidate path decides.      */
-    if (!cmd->topoP)
-        compute_bary_table(tepoch, T, rastring, decstring, obs, ephem,
-                           &shared_numbarypts, &shared_barytimes,
-                           &shared_topotimes, &shared_avgvoverc);
-
-    /* Per-candidate context and scratch. */
+    /* Per-candidate context and scratch.  Each candidate gets its own copy of  */
+    /* the parsed options, because a polyco fold is expressed (as in prepfold)   */
+    /* by setting psrname/polycofile in them, which the shared code tests.       */
     fc = (foldcand *) chkmalloc(ncand * sizeof(foldcand), "candidate array");
+    cmds = (Cmdline *) chkmalloc(ncand * sizeof(Cmdline), "candidate options");
     buffers = (double **) chkmalloc(ncand * sizeof(double *), "fold buffers");
     phasesadded = (double **) chkmalloc(ncand * sizeof(double *), "phase buffers");
     fold_mem_limits(&fold_mem_warn, &fold_mem_cap);
 
     for (c = 0; c < ncand; c++) {
         prepfoldinfo *search;
+        Cmdline *cmd_c = &cmds[c];
+        char cpname[30];
+        cmds[c] = *cmd;
+        cpname[0] = '\0';
         init_foldcand(&fc[c]);
         fc[c].dm = cands[c].dm;
         fc[c].nsub = shared_nsub;
@@ -543,7 +649,9 @@ int main(int argc, char *argv[])
         search->filenm = dupstr(shared_filenm);
         search->telescope = dupstr(shared_telescope);
         set_posn(search, &idata);
-        if (idata.mjd_i && !cmd->topoP)
+        /* Par-file folds follow their polycos, so (as in prepfold -par) they */
+        /* have no barycentric epoch.                                         */
+        if (idata.mjd_i && !cmd->topoP && !cands[c].par)
             search->bepoch = multi_bary_epoch(&idata, tepoch, fc[c].dm,
                                               rastring, decstring, obs, ephem);
 
@@ -552,7 +660,29 @@ int main(int argc, char *argv[])
         printf("Output data file is '%s'.\n", fc[c].outfilenm);
         printf("Output plot file is '%s'.\n", fc[c].plotfilenm);
 
-        multi_resolve_fold_params(cmd, &idata, &fc[c], &cands[c], is_period);
+        if (cands[c].par) {
+            /* Fold with tempo2 polycos from the par file (prepfold -par/-timing) */
+            fc[c].polycos = (polycoset *) calloc(1, sizeof(polycoset));
+            cmd_c->parnameP = 1;
+            cmd_c->parname = cands[c].par;
+            make_parfile_polycos(cmd_c, &idata, &fc[c], cands[c].par);
+            load_fold_polycos(cmd_c, &idata, &fc[c], T, startTday);
+            strncpy(cpname, cmd_c->psrname, 29);
+            cpname[29] = '\0';
+            resolve_default_proflen(cmd_c, search);
+        } else {
+            multi_resolve_fold_params(cmd_c, &idata, &fc[c], &cands[c], is_period);
+            /* Long folds (or -usepoly): tempo2 polycos from the candidate's  */
+            /* barycentric parameters, instead of bary2topo().                */
+            fc[c].usepoly = decide_usepoly(cmd_c, &idata, &fc[c], insubs, T);
+            if (fc[c].usepoly) {
+                fc[c].polycos = (polycoset *) calloc(1, sizeof(polycoset));
+                setup_usepoly_polycos(cmd_c, &idata, &fc[c], T, startTday, obs,
+                                      ephem, rastring, decstring, cpname);
+            }
+        }
+        if (fc[c].polycos)
+            npolyco++;
 
         /* Memory guard: tally this candidate's fold arrays (rawfolds dominate)  */
         /* before allocating them, and bail with a clear message if the running  */
@@ -577,18 +707,23 @@ int main(int argc, char *argv[])
             }
         }
 
-        print_fold_info(cmd, &fc[c], N, T, pname);
-        allocate_fold_arrays(cmd, &fc[c]);
+        print_fold_info(cmd_c, &fc[c], N, T, cpname);
+        allocate_fold_arrays(cmd_c, &fc[c]);
 
-        /* Barycentric fold-frequency correction (or fold topocentrically).  The  */
-        /* shared tables built above feed each candidate's cheap per-candidate     */
-        /* bary2topo correction -- no extra TEMPO call here.                       */
-        if (cmd->topoP) {
+        /* Barycentric fold-frequency correction (or fold topocentrically, or   */
+        /* with polycos, which include the barycentering).  The bary tables    */
+        /* are candidate-independent, so they are built once (for the first    */
+        /* candidate that needs them) and reused for every other candidate.    */
+        if (cmd->topoP || fc[c].polycos) {
             fc[c].foldf = fc[c].f;
             fc[c].foldfd = fc[c].fd;
             fc[c].foldfdd = fc[c].fdd;
             fc[c].orig_foldf = fc[c].foldf;
         } else {
+            if (shared_barytimes == NULL)
+                compute_bary_table(tepoch, T, rastring, decstring, obs, ephem,
+                                   &shared_numbarypts, &shared_barytimes,
+                                   &shared_topotimes, &shared_avgvoverc);
             search->avgvoverc = shared_avgvoverc;
             apply_bary_fold_correction(&fc[c], shared_numbarypts,
                                        shared_barytimes, shared_topotimes);
@@ -600,7 +735,7 @@ int main(int argc, char *argv[])
         search->fold.p3 = fc[c].foldfdd;
 
         /* Per-candidate dispersion delays at this candidate's DM. */
-        compute_dispersion_delays(cmd, &idata, &fc[c], numchan, insubs);
+        compute_dispersion_delays(cmd_c, &idata, &fc[c], numchan, insubs);
 
         /* Over-dispersion guard (raw data only; mirrors read_subbands' guard). */
         if (RAWDATA &&
@@ -670,6 +805,8 @@ int main(int argc, char *argv[])
             chkfileseek(s.files[ii], lorec * SUBSBLOCKLEN, sizeof(short), SEEK_SET);
     }
 
+    if (npolyco)
+        printf("%d of the %d candidates are folded with polycos.\n", npolyco, ncand);
     printf("Folding...\n");
     printf("  Folded %lld points of %.0f", totnumfolded, N);
     for (ii = 0; ii < fcs.npart; ii++) {
@@ -694,11 +831,15 @@ int main(int argc, char *argv[])
                     tid = omp_get_thread_num();
 #endif
                     float *sub_c = subdatas[tid];
+                    double foldf = fc[c].foldf, time0 = fold_time0;
+                    if (fc[c].polycos)
+                        time0 = multi_polyco_block(cmd, &idata, &fc[c], startTday,
+                                                   fold_time0, proftime, &foldf);
                     dedisp_subbands(reader->current_clean, reader->last_clean,
                                     worklen, numchan, fc[c].idispdts, fc[c].nsub,
                                     sub_c);
                     fold_subband_block(cmd, &fc[c], sub_c, worklen, numread, ii,
-                                       fold_time0, fc[c].foldf, fc[c].foldfd,
+                                       time0, foldf, fc[c].foldfd,
                                        fc[c].foldfdd, buffers[c], phasesadded[c]);
                 }
                 rawblock_reader_advance(reader);
@@ -714,16 +855,20 @@ int main(int argc, char *argv[])
                 for (c = 0; c < ncand; c++) {
                     int tid = 0;
                     float *src = insub_data;
+                    double foldf = fc[c].foldf, time0 = fold_time0;
 #ifdef _OPENMP
                     tid = omp_get_thread_num();
 #endif
+                    if (fc[c].polycos)
+                        time0 = multi_polyco_block(cmd, &idata, &fc[c], startTday,
+                                                   fold_time0, proftime, &foldf);
                     if (cmd->runavgP) {     /* runavg mutates data: fold a copy */
                         src = subdatas[tid];
                         memcpy(src, insub_data,
                                (size_t) blockfloats * sizeof(float));
                     }
                     fold_subband_block(cmd, &fc[c], src, worklen, numread, ii,
-                                       fold_time0, fc[c].foldf, fc[c].foldfd,
+                                       time0, foldf, fc[c].foldfd,
                                        fc[c].foldfdd, buffers[c], phasesadded[c]);
                 }
             }
@@ -770,7 +915,7 @@ int main(int argc, char *argv[])
 #pragma omp parallel for default(shared) schedule(dynamic)
 #endif
     for (c = 0; c < ncand; c++) {
-        Cmdline cmd_c = *cmd;
+        Cmdline cmd_c = cmds[c];
         infodata idata_c = idata;
         plotflags pflags_c = pflags;
 
@@ -791,6 +936,12 @@ int main(int argc, char *argv[])
         }
 
         free_foldcand(&fc[c], &cmd_c, &idata_c);
+        if (fc[c].polycos) {
+            free_polycoset(fc[c].polycos);
+            free(fc[c].polycos);
+            free(cmds[c].psrname);
+            free(cmds[c].polycofile);
+        }
         vect_free(buffers[c]);
         vect_free(phasesadded[c]);
     }
@@ -813,10 +964,13 @@ int main(int argc, char *argv[])
     free(fcs.search.candnm);
     free(fcs.outfilenm);
     free(fcs.plotfilenm);
-    for (c = 0; c < ncand; c++)
+    for (c = 0; c < ncand; c++) {
         free(cands[c].name);
+        free(cands[c].par);
+    }
     free(cands);
     free(fc);
+    free(cmds);
     if (shared_barytimes)
         vect_free(shared_barytimes);
     if (shared_topotimes)
