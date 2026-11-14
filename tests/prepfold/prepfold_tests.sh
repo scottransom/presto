@@ -7,6 +7,20 @@ FAILED=0
 
 _SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
+# Check that two folds of the same data give the same TOAs (to < 1 us).
+# Extra arguments are passed to get_TOAs.py (e.g. -u for searched folds).
+check_toas() {
+    local desc="$1" pfd1="$2" pfd2="$3"
+    shift 3
+    if python3 "${_SCRIPT_DIR}/compare_toas.py" "$pfd1" "$pfd2" \
+        -t Ter5_080912_short2bits_8.66ms_Cand.pfd.bestprof --getoas-args="$*"; then
+        echo "PASS: TOAs agree ($desc)"
+    else
+        echo "FAIL: TOAs disagree ($desc)"
+        FAILED=1
+    fi
+}
+
 check_fold() {
     local f="$1"
     local pfd_file="${f%.bestprof}"
@@ -76,6 +90,19 @@ check_fold Ter5_080912_short2bits_PSR_1748-2446A.pfd.bestprof
 # Fold the raw data for Ter5A with a constant period to test barycentering
 prepfold -noxwin -noscales -nooffsets -nosearch -fine -p 8.66430621957513e-3 -pd -5.01154755640048e-11 -dm 238.30 -n 64 -nsub 64 Ter5_080912_short2bits.fits >> output.txt 2>&1
 check_fold Ter5_080912_short2bits_8.66ms_Cand.pfd.bestprof
+
+# The same fold, but with tempo2 polycos made from the candidate's barycentric
+# parameters (-usepoly, automatic for > 2 hr observations) rather than with
+# bary2topo()'s cubic topocentric approximation.  The two must give the same TOAs.
+prepfold -noxwin -noscales -nooffsets -nosearch -fine -usepoly -p 8.66430621957513e-3 -pd -5.01154755640048e-11 -dm 238.30 -n 64 -nsub 64 -o Ter5_080912_short2bits_usepoly Ter5_080912_short2bits.fits >> output.txt 2>&1
+check_fold Ter5_080912_short2bits_usepoly_8.66ms_Cand.pfd.bestprof
+check_toas "bary2topo vs -usepoly" Ter5_080912_short2bits_8.66ms_Cand.pfd Ter5_080912_short2bits_usepoly_8.66ms_Cand.pfd
+
+# Both ways again, but letting prepfold search P and Pdot from a slightly wrong
+# period.  get_TOAs.py -u times the folds as folded, so the TOAs must still agree.
+prepfold -noxwin -noscales -nooffsets -nodmsearch -p 8.66432e-3 -dm 238.30 -n 64 -nsub 64 -o Ter5_080912_short2bits_srch Ter5_080912_short2bits.fits >> output.txt 2>&1
+prepfold -noxwin -noscales -nooffsets -nodmsearch -usepoly -p 8.66432e-3 -dm 238.30 -n 64 -nsub 64 -o Ter5_080912_short2bits_srchpoly Ter5_080912_short2bits.fits >> output.txt 2>&1
+check_toas "searched bary2topo vs -usepoly, get_TOAs.py -u" Ter5_080912_short2bits_srch_8.66ms_Cand.pfd Ter5_080912_short2bits_srchpoly_8.66ms_Cand.pfd -u
 
 # Test folding barycentric events
 prepfold -noxwin -fine -nosearch -events -mjds -par M28A.par -n 64 M28A_bary.events >> output.txt 2>&1

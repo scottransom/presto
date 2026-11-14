@@ -12,6 +12,11 @@ typedef struct s_Cmdline Cmdline;
 
 #define TDT 20.0
 
+/* Raw-data candidate folds longer than this (s) switch automatically from   */
+/* bary2topo()'s cubic topocentric approximation to tempo2 polycos made from */
+/* the candidate's barycentric parameters (as -usepoly does on demand).      */
+#define USEPOLY_AUTO_SEC 7200.0
+
 /* Simple linear interpolation macro */
 #define LININTERP(X, xlo, xhi, ylo, yhi) ((ylo)+((X)-(xlo))*((yhi)-(ylo))/((xhi)-(xlo)))
 
@@ -108,6 +113,10 @@ typedef struct FOLDCAND {
   /* polyco state */
   int polyco_index;
   double polyco_phase0;
+  /* -usepoly: fold with polycos made from the candidate's barycentric     */
+  /* params (cand_f/fd/fdd at search.bepoch), not with bary2topo().        */
+  int usepoly;
+  double cand_f, cand_fd, cand_fdd;
   /* optimization results */
   foldstats beststats;
   double *bestprof;
@@ -266,6 +275,13 @@ void compute_obs_timing(Cmdline *cmd, struct spectra_info *s, infodata *idata,
 void resolve_fold_params(Cmdline *cmd, infodata *idata, foldcand *fc,
                          int insubs, double T, double startTday, double recdt,
                          long long lorec, char *pname);
+
+int decide_usepoly(Cmdline *cmd, infodata *idata, foldcand *fc, int insubs,
+                   double T);
+
+void setup_usepoly_polycos(Cmdline *cmd, infodata *idata, foldcand *fc,
+                           double T, double startTday, char *obs, char *ephem,
+                           char *rastring, char *decstring, char *pname);
 
 void setup_orbit_delays(Cmdline *cmd, infodata *idata, foldcand *fc,
                         int insubs, double T, double *N_out);

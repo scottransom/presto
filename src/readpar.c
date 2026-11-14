@@ -84,7 +84,10 @@ int get_psr_from_parfile(char *parfilenm, double epoch, psrparams * psr)
         if (keyword != NULL) {
             if (strncmp("PSR", keyword, 80) == 0
                 || strncmp("PSRJ", keyword, 80) == 0) {
-                strncpy(psr->jname, strtok(NULL, " \t\n"), 12);
+                value = strtok(NULL, " \t\n");
+                /* jname holds 12 chars + NUL; strncpy doesn't add the NUL */
+                strncpy(psr->jname, value ? value : "", 12);
+                psr->jname[12] = '\0';
                 if (psr->jname[0] == 'J' || psr->jname[0] == 'B') {
                     int ii = 0;
                     do {

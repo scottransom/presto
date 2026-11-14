@@ -68,6 +68,8 @@ static Cmdline cmd = {
     /* absphaseP = */ 0,
     /***** -barypolycos: Force the use of polycos for barycentered events */
     /* barypolycosP = */ 0,
+    /***** -usepoly: not a prepfold_multi option (shared-struct placeholder; always 0) */
+    /* usepolyP = */ 0,
     /***** -debug: Show debugging output when calling tempo2 for polycos */
     /* debugP = */ 0,
     /***** -samples: Treat the data as samples and not as finite-duration integrated data */

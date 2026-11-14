@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import os
 import sys
 import getopt
 import numpy as np
@@ -80,6 +81,9 @@ usage:  get_TOAs.py [options which must include -t or -g] pfd_file
   [-A code, --fftfit=code]           : FFTFIT algorithm: "classic" (default) or
                                        "aarchiba" (handles near-sinusoidal profiles)
   [-2, --tempo2]                     : Write Tempo2 format TOAs
+  [-u, --unadjusted]                 : Time the fold with the parameters it was
+                                       folded with (or its polycos), ignoring
+                                       any best-fit p/pdot from a prepfold search
   pfd_file                           : The .pfd file containing the folds
 
   The program generates TOAs from a .pfd file using Joe Taylor's
@@ -108,6 +112,11 @@ usage:  get_TOAs.py [options which must include -t or -g] pfd_file
   is assumed, but if you don't specify "-s", all the subbands (if any
   are present) are integrated together.
   
+  With "-u", the fold need not have been made with "-nosearch": the
+  profiles are used exactly as folded, and the TOAs come from the
+  folding parameters (or the polycos) rather than the best-fit ones.
+  (The DM used to combine subbands is still the best DM, or "-d".)
+
   If you specify the "-f" flag, an additional line of output is
   displayed for each TOA that shows the "b +/- berr" and "SNR +/-
   SNRerr" params from FFTFIT.
@@ -119,7 +128,7 @@ if __name__ == "__main__":
     try:
         opts, args = getopt.getopt(
             sys.argv[1:],
-            "herfp2s:n:d:g:t:o:k:i:A:",
+            "herfp2us:n:d:g:t:o:k:i:A:",
             [
                 "help",
                 "event",
@@ -127,6 +136,7 @@ if __name__ == "__main__":
                 "FFTFITouts",
                 "phase",
                 "tempo2",
+                "unadjusted",
                 "subbands=",
                 "numtoas=",
                 "dm=",
@@ -159,6 +169,7 @@ if __name__ == "__main__":
     offset = 0.0
     events = 0
     t2format = False
+    unadjusted = False
     fftfit_code = "classic"
     kill = []
     kints = []
@@ -175,6 +186,8 @@ if __name__ == "__main__":
             rotate_prof = False
         if o in ("-2", "--tempo2"):
             t2format = True
+        if o in ("-u", "--unadjusted"):
+            unadjusted = True
         if o in ("-e", "--event"):
             lowfreq = 0.0
             DM = 0.0
@@ -220,7 +233,7 @@ if __name__ == "__main__":
     fold_pfd = pfd(sys.argv[-1])
 
     # Check to make sure we can use this .pfd for timing purposes
-    if not fold_pfd.use_for_timing():
+    if not unadjusted and not fold_pfd.use_for_timing():
         sys.stderr.write(
             "Error: '%s' was made allowing prepfold to search!\n" % sys.argv[-1]
         )
@@ -333,18 +346,34 @@ if __name__ == "__main__":
         except KeyError:
             sys.stderr.write("Unknown telescope!!! : " + fold_pfd.telescope)
 
-    # Read the polyco file (if required)
-    if fold.psr and fold.topo:
+    # Read the polyco file (if required).  Topocentric folds with a
+    # .polycos file were folded with them: either a pulsar (-par, -timing,
+    # or -polycos) or a candidate folded with prepfold's -usepoly (whose
+    # polycos name the pulsar after the candidate, so get it from there).
+    polycofilenm = sys.argv[-1] + ".polycos"
+    if fold.topo and os.path.exists(polycofilenm):
         if "polycos" in fold_pfd.__dict__ and not fold_pfd.polycos == 0:
             pcs = fold_pfd.polycos
         else:
-            pcs = polycos(fold.psr, sys.argv[-1] + ".polycos")
+            psrname = fold.psr
+            if psrname is None:
+                with open(polycofilenm) as pcfile:
+                    psrname = pcfile.readline().split()[0]
+            pcs = polycos(psrname, polycofilenm)
         (fold.phs0, fold.f0) = pcs.get_phs_and_freq(fold.epochi, fold.epochf)
         fold.f1 = fold.f2 = 0.0
     else:
         pcs = None
         fold.phs0 = 0.0
-        (fold.f0, fold.f1, fold.f2) = psr_utils.p_to_f(fold.p0, fold.p1, fold.p2)
+        if unadjusted:
+            # The spin parameters (at the fold epoch) used for the fold
+            (fold.f0, fold.f1, fold.f2) = (
+                fold_pfd.fold_p1,
+                fold_pfd.fold_p2,
+                fold_pfd.fold_p3,
+            )
+        else:
+            (fold.f0, fold.f1, fold.f2) = psr_utils.p_to_f(fold.p0, fold.p1, fold.p2)
 
     #
     # Calculate the TOAs

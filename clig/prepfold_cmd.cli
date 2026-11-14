@@ -25,6 +25,7 @@ Flag   -invert  invert  {For rawdata, flip (or invert) the band}
 Flag   -zerodm  zerodm  {Subtract the mean of all channels from each sample (i.e. remove zero DM)}
 Flag   -absphase absphase  {Use the absolute phase associated with polycos}
 Flag   -barypolycos barypolycos  {Force the use of polycos for barycentered events}
+Flag   -usepoly usepoly  {Fold raw data with tempo2 polycos from the candidate's barycentric params, not bary2topo() (automatic if > 2 hr)}
 Flag   -debug  debug {Show debugging output when calling tempo2 for polycos}
 Flag   -samples samples {Treat the data as samples and not as finite-duration integrated data}
 Flag   -normalize normalize {Bandpass flatten the data by normalizing the subbands}
@@ -174,6 +175,24 @@ and profile-bin count automatically, and produces a
 .I .pfd
 suitable for TOA generation with
 .IR get_TOAs.py .
+.PP
+When folding raw data, prepfold barycenters the fold by converting the
+candidate's barycentric period and derivatives into topocentric ones
+(a cubic approximation to the topocentric pulse phase).  The Earth's
+rotation makes that approximation fail for long observations, so for
+raw-data observations longer than 2 hours (or with
+.BR -usepoly )
+prepfold instead writes the candidate's barycentric parameters, at the
+barycentric start epoch, to a par file
+.RI ( <outfile>.pfd.par ),
+makes polycos from it with tempo2
+.RI ( <outfile>.pfd.polycos ),
+and folds with those, as for
+.BR -par .
+The plot then shows both the topocentric period at the start of the
+observation and the best barycentric period.  This needs the
+.B tempo2
+executable.
 .PP
 .B -fine
 narrows the searched p/pd/pdd/DM volume (good for a well-constrained,

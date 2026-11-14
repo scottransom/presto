@@ -1,4 +1,27 @@
 ## Development (unreleased, since v6.2.0):
+ * `prepfold` can now fold raw-data (filterbank, PSRFITS or subband) candidates with tempo2
+   polycos rather than with `bary2topo()`, which converts the barycentric fold parameters
+   to topocentric ones with a cubic fit.  The Earth's rotation makes that fit fail for long
+   observations: for a 2-ms pulsar the phase error is ~0.002 turns at 2 hr, ~0.1 at 8 hr
+   and ~3 turns at 20 hr.  The new `-usepoly` flag writes the candidate's barycentric
+   F0/F1/F2 (plus a BT orbit for `-bin`), with PEPOCH at the barycentric start epoch, to
+   `<outfile>.pfd.par`, makes `<outfile>.pfd.polycos` from it with tempo2, and folds with
+   those as for `-par`.  This happens automatically for observations longer than 2 hours
+   when `tempo2` is on the `PATH`.  The plot shows the topocentric period at the start of
+   the observation and the best barycentric period (the search's topocentric offsets
+   mapped back).  `prepfold_multi` does not support this yet; it warns for observations
+   longer than 2 hours.  On the Terzan 5 test data, `-usepoly` and `bary2topo()` folds give
+   TOAs that agree to < 0.35 us.  On a synthetic 20-hr MeerKAT observation of a 20-ms
+   pulsar, the polyco fold's reduced chi^2 is 62.8, against 12.0 with `bary2topo()`.
+ * `get_TOAs.py` has a new `-u`/`--unadjusted` option, which times a fold with the
+   parameters it was folded with (or its polycos), ignoring any best-fit p/pdot from a
+   `prepfold` search, so folds made without `-nosearch` can be timed.  It now uses a fold's
+   `.polycos` file whenever it has one, so `-usepoly` candidate folds are timed with their
+   polycos rather than (wrongly) with the topocentric period from the `.bestprof`.  It no
+   longer fails on raw-data `-psr` folds, which have no polycos.
+ * Fixed `get_psr_from_parfile()` leaving the pulsar name unterminated (printing as
+   garbage) for par-file names of 12 or more characters, and crashing on a `PSRJ` line
+   with no name.
  * Fixed `accelsearch` candidate optimization for FFTs with 2^31 or more bins (PR #233,
    thanks to Aaron Pearlman).  `corr_complex()` took the number of bins as an `int`, so
    jerk (`-wmax`) optimization exited with "'numdata' = 0 (out of bounds)", and

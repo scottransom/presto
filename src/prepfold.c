@@ -170,9 +170,17 @@ int main(int argc, char *argv[])
                        &maskchans, &recdt, &lorec, &startTday, &numrec,
                        &reads_per_part, &T, &N, &worklen);
 
+    /* Fold long raw-data observations (or -usepoly ones) with polycos? */
+    fc.usepoly = decide_usepoly(cmd, &idata, &fc, insubs, T);
+
     /* Resolve the fold parameters and determine the profile length. */
     resolve_fold_params(cmd, &idata, &fc, insubs, T, startTday, recdt, lorec,
                         pname);
+
+    /* Make polycos from the candidate's barycentric parameters. */
+    if (fc.usepoly)
+        setup_usepoly_polycos(cmd, &idata, &fc, T, startTday, obs, ephem,
+                              rastring, decstring, pname);
 
     /* Determine the phase delays caused by the orbit if needed. */
     setup_orbit_delays(cmd, &idata, &fc, insubs, T, &N);

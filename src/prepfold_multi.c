@@ -491,6 +491,11 @@ int main(int argc, char *argv[])
                        &maskchans, &recdt, &lorec, &startTday, &numrec,
                        &reads_per_part, &T, &N, &worklen);
     tepoch = fcs.search.tepoch;
+    if (!cmd->topoP && T > USEPOLY_AUTO_SEC)
+        printf("\nWARNING:  This %.1f hr observation is long enough that the cubic\n"
+               "  topocentric correction (bary2topo) may smear the folds.  prepfold\n"
+               "  (which uses polycos for these, see -usepoly) folds them properly.\n",
+               T / 3600.0);
     shared_dt = fcs.search.dt;
     shared_filenm = fcs.search.filenm;
     shared_telescope = fcs.search.telescope;

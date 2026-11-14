@@ -630,6 +630,39 @@ empirical inflation factor against the coverage tests.
 `clig/prepfold_multi_cmd.cli`. Fix the generator or the `.cli` so it regenerates cleanly like
 every other tool. Until then, do not blindly overwrite the hand edits.
 
+### Polyco folding in `prepfold_multi`
+
+`prepfold -usepoly` (automatic for raw-data folds longer than 2 hr) folds a search candidate
+with tempo2 polycos made from its barycentric F0/F1/F2, instead of `bary2topo()`'s cubic
+topocentric fit, which drifts by more than a turn over ~20 hr. `prepfold_multi` cannot do this
+yet: it only warns for long barycentric folds and recommends single `prepfold` runs. Nor can it
+fold `-par`/`-timing` candidates with polycos. A moderate job (a few hours plus testing):
+
+- **Per-candidate polyco state.** `src/polycos.c` keeps the loaded polycos in file-scope
+  statics (`f0[]`, `coeff[][]`, `mjdmid[]`, `isets`, `nblk`, `ncoeff`, ...), so only one
+  pulsar can be loaded at a time. Move them into a `polycoset` struct with
+  `getpoly_set()`/`phcalc_set()`, keep `getpoly()`/`phcalc()` as wrappers on a static default
+  set (so `prepfold` and `check_polycos_t2.c` don't change), and give each `foldcand` a
+  `polycoset *`. That also makes `phcalc` safe to call from the OpenMP candidate loop.
+- **Setup per candidate.** Call `decide_usepoly()` and `setup_usepoly_polycos()` per
+  candidate after `multi_resolve_fold_params()`. `setup_usepoly_polycos()` sets
+  `cmd->psrname`/`cmd->polycofile`, and shared code (`write_results_and_plot`,
+  `setup_orbit_delays`, ...) tests `cmd->polycofileP`; those must become per-candidate
+  (`fc->usepoly` / `fc->polycos`).
+- **tempo2 calls.** `make_polycos()` uses `chdir()`, which is process-wide, so it can't run in
+  parallel. Run `cd tmpdir && tempo2 ...` inside the `system()` call instead. At ~1–2 s per
+  candidate, serial generation is tolerable for long folds; parallel is easy after that fix.
+- **Fold loop.** In the per-block candidate loop (`prepfold_multi.c`, around the
+  `fold_subband_block()` call), polyco candidates need what `fold_timeseries()` does: phase at
+  the block start and frequency at mid-block from `phcalc`, setting `fc->phs`, folding with
+  `fold_time0 = 0`. Factor that out of `fold_timeseries()` into a helper both programs use.
+  Skip `apply_bary_fold_correction()` for those candidates, and reset `foldf` to `orig_foldf`
+  before optimizing, as `prepfold.c` does. The topo→bary mapping of the best fold offsets is
+  already in `write_results_and_plot()`.
+- **Options and tests.** Exposing `-usepoly` means editing the hand-maintained
+  `prepfold_multi_cmd.[ch]` (see above); the automatic >2 hr switch needs no option. Add a
+  `-usepoly` multi-vs-singles case on the Ter5 file to `prepfold_multi_tests.sh`.
+
 ### Python docstrings, type hints and ruff
 
 Continue adding numpy-style docstrings and type hints across `python/presto`, especially

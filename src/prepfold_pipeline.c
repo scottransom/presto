@@ -1,4 +1,5 @@
 #include <ctype.h>
+#include <unistd.h>
 #include "prepfold.h"
 #include "prepfold_cmd.h"
 #include "mask.h"
@@ -592,6 +593,50 @@ void compute_obs_timing(Cmdline *cmd, struct spectra_info *s, infodata *idata,
 }
 
 
+/* Read the polycos in cmd->polycofile for cmd->psrname, and set the fold to  */
+/* follow them:  fc->f becomes the topocentric spin frequency at the fold     */
+/* start (fd = fdd = 0, since the polycos track the phase from then on), and */
+/* fc->polyco_index / fc->polyco_phase0 are set for fold_timeseries().        */
+/* The polyco DM is used unless a DM was given.                              */
+static void load_fold_polycos(Cmdline *cmd, infodata *idata, foldcand *fc,
+                              double T, double startTday)
+{
+    prepfoldinfo *search = &fc->search;
+    FILE *polycofileptr;
+    int numsets;
+    double polyco_dm, f, epoch = search->tepoch;
+
+    if (idata->bary)
+        epoch = search->bepoch;
+    polycofileptr = chkfopen(cmd->polycofile, "r");
+    numsets = getpoly(epoch, T / SECPERDAY, &polyco_dm,
+                      polycofileptr, cmd->psrname);
+    fclose(polycofileptr);
+    if (fc->dm > 0.0) {
+        printf("\nRead %d set(s) of polycos for PSR %s at %18.12f\n",
+               numsets, cmd->psrname, epoch);
+        printf("Overriding polyco DM = %f with %f\n", polyco_dm, fc->dm);
+    } else {
+        printf
+            ("\nRead %d set(s) of polycos for PSR %s at %18.12f (DM = %.5g)\n",
+             numsets, cmd->psrname, epoch, polyco_dm);
+        fc->dm = polyco_dm;
+    }
+    fc->polyco_index = phcalc(idata->mjd_i, idata->mjd_f + startTday,
+                              fc->polyco_index, &fc->polyco_phase0, &f);
+    fc->f = f;
+    fc->fd = fc->fdd = 0.0;
+    search->topo.p1 = 1.0 / f;
+    search->topo.p2 = 0.0;
+    search->topo.p3 = 0.0;
+    if (idata->bary) {
+        search->bary.p1 = search->topo.p1;
+        search->bary.p2 = search->topo.p2;
+        search->bary.p3 = search->topo.p3;
+    }
+}
+
+
 /* Phase 4+5: resolve the fold parameters (polycos / psr database / par file / */
 /* accelcand / binary / explicit p-f), apply -pfact/-ffact, and determine the  */
 /* profile length.                                                             */
@@ -629,36 +674,13 @@ void resolve_fold_params(Cmdline *cmd, infodata *idata, foldcand *fc,
     /* Read the pulsar database if needed */
     if (cmd->psrnameP) {
         if (cmd->polycofileP) {
-            FILE *polycofileptr;
-            int numsets;
-            double polyco_dm, epoch = search->tepoch;
-
-            if (idata->bary)
-                epoch = search->bepoch;
-            polycofileptr = chkfopen(cmd->polycofile, "r");
-            numsets = getpoly(epoch, T / SECPERDAY, &polyco_dm,
-                              polycofileptr, cmd->psrname);
-            fclose(polycofileptr);
-            if (fc->dm > 0.0) {
-                printf("\nRead %d set(s) of polycos for PSR %s at %18.12f\n",
-                       numsets, cmd->psrname, epoch);
-                printf("Overriding polyco DM = %f with %f\n", polyco_dm, fc->dm);
-            } else {
-                printf
-                    ("\nRead %d set(s) of polycos for PSR %s at %18.12f (DM = %.5g)\n",
-                     numsets, cmd->psrname, epoch, polyco_dm);
-                fc->dm = polyco_dm;
-            }
-            polyco_index = phcalc(idata->mjd_i, idata->mjd_f + startTday,
-                                  polyco_index, &polyco_phase0, &f);
-            search->topo.p1 = 1.0 / f;
-            search->topo.p2 = fd = 0.0;
-            search->topo.p3 = fdd = 0.0;
-            if (idata->bary) {
-                search->bary.p1 = search->topo.p1;
-                search->bary.p2 = search->topo.p2;
-                search->bary.p3 = search->topo.p3;
-            }
+            fc->polyco_index = polyco_index;
+            load_fold_polycos(cmd, idata, fc, T, startTday);
+            f = fc->f;
+            fd = fc->fd;
+            fdd = fc->fdd;
+            polyco_index = fc->polyco_index;
+            polyco_phase0 = fc->polyco_phase0;
             strcpy(pname, cmd->psrname);
         } else {                /* Use the database */
             int pnum;
@@ -856,6 +878,176 @@ void resolve_fold_params(Cmdline *cmd, infodata *idata, foldcand *fc,
     fc->binary = binary;
     fc->polyco_index = polyco_index;
     fc->polyco_phase0 = polyco_phase0;
+}
+
+
+/* Return 1 if an executable called prog is somewhere on $PATH. */
+static int program_on_path(const char *prog)
+{
+    char *path = getenv("PATH"), *copy, *dir, *saveptr = NULL, *full;
+    int found = 0;
+
+    if (path == NULL)
+        return 0;
+    copy = (char *) malloc(strlen(path) + 1);
+    strcpy(copy, path);
+    for (dir = strtok_r(copy, ":", &saveptr); dir && !found;
+         dir = strtok_r(NULL, ":", &saveptr)) {
+        full = (char *) malloc(strlen(dir) + strlen(prog) + 2);
+        sprintf(full, "%s/%s", (*dir) ? dir : ".", prog);
+        found = (access(full, X_OK) == 0);
+        free(full);
+    }
+    free(copy);
+    return found;
+}
+
+
+/* Decide whether to fold a raw-data candidate with polycos made from its    */
+/* barycentric parameters (-usepoly) instead of with bary2topo()'s cubic     */
+/* topocentric approximation, which breaks down for long observations as the */
+/* Earth's rotation makes the topocentric phase far from a cubic.  This is   */
+/* automatic for observations longer than USEPOLY_AUTO_SEC (if tempo2 is     */
+/* available).  Call after compute_obs_timing() (it needs T and the bepoch). */
+int decide_usepoly(Cmdline *cmd, infodata *idata, foldcand *fc, int insubs,
+                   double T)
+{
+    const char *why = NULL;
+    (void) idata;
+
+    if (!(RAWDATA || insubs) || cmd->eventsP)
+        why = "it only applies to raw (or subband) data that prepfold barycenters";
+    else if (cmd->topoP)
+        why = "the fold is topocentric (-topo)";
+    else if (cmd->polycofileP || cmd->timingP || cmd->parnameP)
+        why = "the fold already uses polycos (-par, -timing, or -polycos)";
+    else if (cmd->psrnameP)
+        why = "-psr folds use the pulsar database (use -par or -timing instead)";
+    else if (fc->search.bepoch == 0.0)
+        why = "the data have no start epoch";
+
+    if (why) {
+        if (cmd->usepolyP)
+            printf("\nWARNING:  Ignoring -usepoly since %s.\n", why);
+        else if (cmd->psrnameP && (RAWDATA || insubs) && !cmd->topoP &&
+                 !cmd->polycofileP && T > USEPOLY_AUTO_SEC)
+            printf("\nWARNING:  This %.1f hr observation is long enough that the\n"
+                   "  topocentric correction for the -psr fold may smear it.\n"
+                   "  Use -par or -timing (with a par file) instead.\n",
+                   T / 3600.0);
+        return 0;
+    }
+    if (cmd->usepolyP)
+        return 1;
+    if (T > USEPOLY_AUTO_SEC) {
+        if (program_on_path("tempo2")) {
+            printf("\nThe observation is %.1f hr long (> %.0f hr), so the fold will use\n"
+                   "  tempo2 polycos made from the candidate's barycentric parameters\n"
+                   "  (as with -usepoly).\n", T / 3600.0, USEPOLY_AUTO_SEC / 3600.0);
+            return 1;
+        }
+        printf("\nWARNING:  This %.1f hr observation is long enough that the\n"
+               "  topocentric correction may smear the fold, but 'tempo2' is not on\n"
+               "  your PATH, so polycos (-usepoly) cannot be used.\n", T / 3600.0);
+    }
+    return 0;
+}
+
+
+/* For -usepoly: write a par file holding the candidate's barycentric spin  */
+/* (and -bin orbital) parameters at the barycentric fold epoch, make tempo2 */
+/* polycos from it, and set up the fold to follow them, exactly as if they  */
+/* had come from -par.  The par file is <outfile>.pfd.par, next to the      */
+/* <outfile>.pfd.polycos.  Call right after resolve_fold_params().          */
+void setup_usepoly_polycos(Cmdline *cmd, infodata *idata, foldcand *fc,
+                           double T, double startTday, char *obs, char *ephem,
+                           char *rastring, char *decstring, char *pname)
+{
+    prepfoldinfo *search = &fc->search;
+    char *parfilenm, *polycofilenm;
+    FILE *parfile;
+
+    /* The (barycentric) candidate parameters at search->bepoch */
+    fc->cand_f = fc->f;
+    fc->cand_fd = fc->fd;
+    fc->cand_fdd = fc->fdd;
+    if (fc->cand_f <= 0.0) {
+        printf("\nError:  -usepoly needs a positive folding frequency.\n\n");
+        exit(1);
+    }
+
+    parfilenm = (char *) calloc(strlen(fc->outfilenm) + 5, sizeof(char));
+    sprintf(parfilenm, "%s.par", fc->outfilenm);
+    parfile = chkfopen(parfilenm, "w");
+    fprintf(parfile, "PSRJ           %s\n", search->candnm);
+    fprintf(parfile, "RAJ            %s\n", rastring);
+    fprintf(parfile, "DECJ           %s\n", decstring);
+    fprintf(parfile, "F0             %.17g\n", fc->cand_f);
+    fprintf(parfile, "F1             %.17g\n", fc->cand_fd);
+    fprintf(parfile, "F2             %.17g\n", fc->cand_fdd);
+    fprintf(parfile, "PEPOCH         %.15f\n", search->bepoch);
+    fprintf(parfile, "DM             %.6f\n", fc->dm);
+    if (fc->binary) {
+        /* Only -bin gets here (-psr and -par folds never use -usepoly) */
+        fprintf(parfile, "BINARY         BT\n");
+        fprintf(parfile, "PB             %.17g\n", cmd->pb / SECPERDAY);
+        fprintf(parfile, "A1             %.17g\n", cmd->asinic);
+        fprintf(parfile, "E              %.17g\n", cmd->e);
+        fprintf(parfile, "T0             %.15f\n", cmd->To);
+        fprintf(parfile, "OM             %.17g\n", cmd->w);
+        if (cmd->wdot != 0.0)
+            fprintf(parfile, "OMDOT          %.17g\n", cmd->wdot);
+    }
+    fprintf(parfile, "EPHEM          %s\n", ephem);
+    fprintf(parfile, "UNITS          TDB\n");
+    fclose(parfile);
+    printf("\nWrote the candidate's barycentric ephemeris to '%s'.\n", parfilenm);
+
+    /* Make the polycos and fold with them (as for -par). */
+    polycofilenm = (char *) calloc(strlen(fc->outfilenm) + 9, sizeof(char));
+    sprintf(polycofilenm, "%s.polycos", fc->outfilenm);
+    cmd->psrname = make_polycos(parfilenm, idata, polycofilenm, cmd->debugP);
+    cmd->psrnameP = 1;
+    cmd->polycofile = polycofilenm;
+    cmd->polycofileP = 1;
+    printf("Polycos used are in '%s'.\n", polycofilenm);
+    free(parfilenm);
+    load_fold_polycos(cmd, idata, fc, T, startTday);
+    strncpy(pname, search->candnm, 29);
+    pname[29] = '\0';
+
+    /* The polycos include the orbit, so fold() must not apply it again. */
+    /* Keep search->orb for the plot, with orb.t as the MJD of periastron */
+    /* (as setup_orbit_delays() leaves it for a bary2topo() fold).        */
+    if (fc->binary) {
+        search->orb.t = -search->orb.t / SECPERDAY + search->bepoch;
+        fc->binary = 0;
+    }
+
+    /* The candidate's barycentric parameters, for the info output.  The */
+    /* best ones are found from the topocentric search at the end.       */
+    switch_f_and_p(fc->cand_f, fc->cand_fd, fc->cand_fdd,
+                   &search->bary.p1, &search->bary.p2, &search->bary.p3);
+
+    /* The mean Doppler factor (v/c) over the fold, for the per-channel */
+    /* dispersion delays and the plots (bary2topo folds get it from     */
+    /* their barycentering table).                                      */
+    {
+        int ii, num = 2 + (int) (T / 600.0);
+        double *topotimes = gen_dvect(num), *barytimes = gen_dvect(num);
+        double *voverc = gen_dvect(num), avgvoverc = 0.0;
+
+        for (ii = 0; ii < num; ii++)
+            topotimes[ii] = search->tepoch + (T * ii / (num - 1)) / SECPERDAY;
+        barycenter(topotimes, barytimes, voverc, num, rastring, decstring,
+                   obs, ephem);
+        for (ii = 0; ii < num; ii++)
+            avgvoverc += voverc[ii];
+        search->avgvoverc = avgvoverc / num;
+        vect_free(topotimes);
+        vect_free(barytimes);
+        vect_free(voverc);
+    }
 }
 
 
@@ -1982,6 +2174,29 @@ void write_results_and_plot(Cmdline *cmd, infodata *idata, foldcand *fc,
                 printf("Best p-dotdot  (s/s^2)  =  %s\n", out);
                 if (idata->bary)
                     search->topo.p1 = 0.0;
+
+                if (fc->usepoly) {
+                    /* The search found small topocentric offsets from the    */
+                    /* polyco fold (which started at search->fold.p1 Hz).     */
+                    /* Barycentric time runs slower by fold.p1 / cand_f, so   */
+                    /* scale them by that and add them to the candidate's     */
+                    /* barycentric parameters (at search->bepoch).            */
+                    double r = fc->cand_f / search->fold.p1;
+
+                    switch_f_and_p(search->topo.p1, search->topo.p2,
+                                   search->topo.p3, &f, &fd, &fdd);
+                    f = fc->cand_f + (f - search->fold.p1) * r;
+                    fd = fc->cand_fd + fd * r * r;
+                    fdd = fc->cand_fdd + fdd * r * r * r;
+                    switch_f_and_p(f, fd, fdd, &search->bary.p1,
+                                   &search->bary.p2, &search->bary.p3);
+                    nice_output_2(out, search->bary.p1, perr, 0);
+                    printf("Best barycentric period        (s)  =  %s\n", out);
+                    nice_output_2(out, search->bary.p2, pderr, 0);
+                    printf("Best barycentric p-dot       (s/s)  =  %s\n", out);
+                    nice_output_2(out, search->bary.p3, pdderr, 0);
+                    printf("Best barycentric p-dotdot  (s/s^2)  =  %s\n", out);
+                }
             }
 
         } else {
