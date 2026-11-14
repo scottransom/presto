@@ -28,8 +28,15 @@ conda-forge package in sync. Replace `X.Y.Z` with the new version throughout.
 git tag -a vX.Y.Z -m "PRESTO vX.Y.Z"
 git push origin master
 git push origin vX.Y.Z
-gh release create vX.Y.Z --title "PRESTO vX.Y.Z" --notes-file <changelog excerpt>
+gh release create vX.Y.Z --title "PRESTO vX.Y.Z" --notes-file <release notes>
 ```
+
+Keep the GitHub release notes **short**: about half the length of the version's
+`CHANGELOG.md` section or less, with only the main points. Give a one-line summary, the
+new features, and the user-visible fixes, one or two lines each, and end with a link to
+`CHANGELOG.md` for details. Leave out implementation details, internal API changes,
+measurements and test changes; people can read the CHANGELOG, the commits or the code.
+(The v6.3.0 notes are a good model.)
 
 After tagging, `python determine_version.py` (no args) should print exactly `X.Y.Z`.
 
