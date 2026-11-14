@@ -8,6 +8,13 @@ PRESTO is a large suite of pulsar search and analysis software developed primari
 
 **PRESTO has discovered well over 1500 pulsars, including ~500 recycled and/or binary pulsars!**
 
+## Version 6.3.1:
+ * **`coherentsearch` is 1.2-1.35x faster** in the conda-forge packages (and any build
+   for a baseline x86-64 CPU): it now picks AVX2/FMA or AVX-512 versions of its hot
+   kernels to suit the CPU. Results are unchanged.
+ * New `-perfinfo` flag for `accelsearch` and `coherentsearch`: it shows the CPU, the
+   SIMD kernels in use, OpenMP threads, and whether FFTW's wisdom was found.
+
 ## Version 6.3.0:
  * **`prepfold` folds long raw-data searches with tempo2 polycos.** The cubic topocentric
    fit it used before drifts badly on long observations (~0.1 turn at 8 hr, ~3 turns at

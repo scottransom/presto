@@ -40,7 +40,8 @@ of `bin/coherent_sift.py`, so change both. On Ter5 DM238.50 the two codes' defau
 **v6.3.0** (2026-11-14) added polyco folding for long raw-data searches (`prepfold
 -usepoly`) and for `prepfold_multi` (par-file candidates and `-timing`, for many-pulsar
 TOAs; see "Polyco folding in `prepfold_multi`" below), plus the 64-bit `accelsearch`
-optimizer fix from PR #233.
+optimizer fix from PR #233. **v6.3.1** (2026-11-14) added runtime SIMD dispatch of
+coherentsearch's kernels for the conda-forge packages (1.2-1.35x) and `-perfinfo`.
 
 ## The coherent harmonic search in PRESTO (shipped in v6.2.0)
 

@@ -1,4 +1,10 @@
-## Development (unreleased, since v6.3.0):
+## Development (unreleased, since v6.3.1):
+
+## Version 6.3.1:
+ * **A speed release for the conda-forge packages.**  `coherentsearch` picks
+   AVX2/FMA or AVX-512 versions of its hot kernels at run time, making it 1.2-1.35x faster
+   on x86-64 Linux packages, and `accelsearch` and `coherentsearch` have a new `-perfinfo`
+   flag.
  * `coherentsearch` is 1.2-1.35x faster in builds for a baseline x86-64 CPU, such as the
    conda-forge packages.  Its two hot kernels are now also compiled for x86-64-v3
    (AVX2+FMA) and x86-64-v4 (AVX-512), and the best version for the CPU is picked when the
