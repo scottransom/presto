@@ -14,6 +14,8 @@ typedef struct s_Cmdline {
   int ncpusP;
   int ncpus;
   int ncpusC;
+  /***** -perfinfo: Print what decides the speed: CPU, SIMD kernels used, compiler and build target, OpenMP threads, and the FFTW version and wisdom */
+  int perfinfoP;
   /***** -lobin: The first Fourier frequency in the data file */
   int lobinP;
   int lobin;

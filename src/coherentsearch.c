@@ -123,6 +123,22 @@ int main(int argc, char *argv[])
 
     printf("\n    Coherent Harmonic Summing Pulsar Search Routine\n");
     printf("                by Scott M. Ransom\n");
+    if (cmd->perfinfoP) {
+        char simd[160];
+#ifdef CS_DISPATCH
+        const int lev = cs_simd_level();
+        snprintf(simd, sizeof(simd), "%s, chosen at run time (CS_GROUP_V = %d)",
+                 lev == 4 ? "x86-64-v4 (AVX-512)" : lev == 3 ? "x86-64-v3 (AVX2+FMA)"
+                 : "baseline", CS_GROUP_V);
+#else
+        snprintf(simd, sizeof(simd), "as compiled (CS_GROUP_V = %d)", CS_GROUP_V);
+#endif
+#ifdef _OPENMP
+        print_perfinfo(simd, cmd->ncpus);
+#else
+        print_perfinfo(simd, -1);
+#endif
+    }
 
     for (int fi = 0; fi < cmd->argc; fi++) {
         const char *infile = cmd->argv[fi];

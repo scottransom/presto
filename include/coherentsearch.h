@@ -104,6 +104,74 @@ typedef struct {
     fcomplex *gA;            /* (ngrp, CS_GROUP_V) per-lane scale */
 } cs_hplan;
 
+/* Runtime CPU dispatch for the two hot kernels (cs_fill_row and
+ * cs_boxcar_batch).  Builds for a baseline x86-64 CPU (e.g. conda-forge's
+ * -march=nocona) also compile them for x86-64-v3 (AVX2+FMA) and x86-64-v4
+ * (AVX-512), and an ifunc resolver picks one when the program loads:
+ * cs_simd_level() below.  ifunc limits this to x86-64 ELF (Linux), and
+ * builds that already target AVX2 (e.g. -march=native) don't need it.
+ * Define CS_NO_DISPATCH to turn it off.  The results are identical at every
+ * level (FMA included) on the Ter5 test data. */
+#if !defined(CS_NO_DISPATCH) && !defined(__AVX2__) && defined(__x86_64__) && \
+    defined(__ELF__) && defined(__GNUC__) && defined(__has_attribute)
+#if __has_attribute(ifunc) && __has_attribute(target)
+#define CS_DISPATCH 1
+#endif
+#endif
+
+/* The kernel version the CPU gets: 4 (x86-64-v4), 3 (x86-64-v3) or 0 (the
+ * build's baseline).  v4 needs AVX512_VBMI2 too, i.e. Ice Lake, Sapphire
+ * Rapids, Zen 4 or newer: on Skylake-SP and Cascade Lake, 512-bit vectors
+ * lower the clock so much that the v4 kernels are slower than v3, and even
+ * than the baseline (measured: coherentsearch 0.94x the baseline's speed on
+ * a Xeon Silver 4114, against 1.35x on a Sapphire Rapids w5-3433). */
+/* The ifunc resolvers run while the program is being relocated, before
+ * any sanitizer runtime is set up, so they must not be instrumented. */
+#if defined(__has_attribute)
+#if __has_attribute(no_sanitize)
+#define CS_NO_SANITIZE __attribute__((no_sanitize("address", "undefined")))
+#endif
+#endif
+#ifndef CS_NO_SANITIZE
+#define CS_NO_SANITIZE
+#endif
+CS_NO_SANITIZE static inline int cs_simd_level(void)
+{
+#ifdef CS_DISPATCH
+    __builtin_cpu_init();
+    if (__builtin_cpu_supports("x86-64-v4") && __builtin_cpu_supports("avx512vbmi2"))
+        return 4;
+    if (__builtin_cpu_supports("x86-64-v3"))
+        return 3;
+#endif
+    return 0;
+}
+
+/* Define a dispatched kernel NAME(PARAMS) whose body is the always-inline
+ * NAME##_impl(ARGS): one copy is compiled per level and an ifunc resolver
+ * binds NAME to the one cs_simd_level() picks, once, at load time.  R is
+ * `return' (or nothing, for a void kernel: CS_DISPATCHED_VOID). */
+#ifdef CS_DISPATCH
+#define CS_DISPATCHED_(RET, NAME, PARAMS, ARGS, R)                              \
+    __attribute__((target("arch=x86-64-v4"))) static RET NAME##_v4 PARAMS       \
+    { R NAME##_impl ARGS; }                                                     \
+    __attribute__((target("arch=x86-64-v3"))) static RET NAME##_v3 PARAMS       \
+    { R NAME##_impl ARGS; }                                                     \
+    static RET NAME##_base PARAMS { R NAME##_impl ARGS; }                       \
+    CS_NO_SANITIZE static RET (*NAME##_resolve(void)) PARAMS                    \
+    {                                                                           \
+        const int lev = cs_simd_level();                                        \
+        return lev == 4 ? NAME##_v4 : lev == 3 ? NAME##_v3 : NAME##_base;       \
+    }                                                                           \
+    RET NAME PARAMS __attribute__((ifunc(#NAME "_resolve")));
+#else
+#define CS_DISPATCHED_(RET, NAME, PARAMS, ARGS, R) \
+    RET NAME PARAMS { R NAME##_impl ARGS; }
+#endif
+#define CS_DISPATCHED(RET, NAME, PARAMS, ARGS) CS_DISPATCHED_(RET, NAME, PARAMS, ARGS, return)
+#define CS_DISPATCHED_VOID(NAME, PARAMS, ARGS) CS_DISPATCHED_(void, NAME, PARAMS, ARGS, )
+#define CS_INLINE static inline __attribute__((always_inline))
+
 /* Trials per interpolation group: the kernel keeps 2 x CS_GROUP_V float
  * accumulators live, so the best size follows the register file.  Measured
  * (PM0063, 1 thread): with 16 vector registers (SSE, AVX2) 16 beats 32 on a

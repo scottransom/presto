@@ -1,4 +1,18 @@
 ## Development (unreleased, since v6.3.0):
+ * `coherentsearch` is 1.2-1.35x faster in builds for a baseline x86-64 CPU, such as the
+   conda-forge packages.  Its two hot kernels are now also compiled for x86-64-v3
+   (AVX2+FMA) and x86-64-v4 (AVX-512), and the best version for the CPU is picked when the
+   program starts.  The v4 kernels are used only on CPUs with AVX512_VBMI2 (Ice Lake,
+   Sapphire Rapids, Zen 4 or newer): on Skylake-SP and Cascade Lake, 512-bit vectors lower
+   the clock so much that they are slower than the baseline.  Measured on the Ter5 test
+   data with 1 thread: 11.05 to 8.17 s on a Sapphire Rapids Xeon (v4), and 21.42 to 18.09 s
+   on a Skylake-SP Xeon (v3).  Results are byte-identical.  This needs ifunc support, so
+   it applies to Linux x86-64 builds; builds that already target AVX2 (e.g.
+   `-march=native`) are unchanged, and `-DCS_NO_DISPATCH` turns it off.
+ * New `-perfinfo` flag for `accelsearch` and `coherentsearch`.  It prints what decides
+   their speed: the CPU, the SIMD kernels in use, the compiler and build target, OpenMP
+   threads, `OPENBLAS_NUM_THREADS`, and the FFTW version and whether its wisdom was found
+   and accepted.  This comes from a new libpresto function, `print_perfinfo()`.
 
 ## Version 6.3.0:
  * **The polyco-folding release.**  `prepfold` can fold long raw-data searches with tempo2

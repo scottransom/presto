@@ -3,12 +3,18 @@
 #include "stdint.h"
 #include "string.h"
 #include <errno.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 // Following gives the same as FFTW's fftwf_alignment_of when
 // BYTE_COUNT = 16, which is what we need for SSE.
 // 0 means that it is aligned on BYTE_COUNT boundaries
 #define is_aligned(POINTER, BYTE_COUNT) \
     ((uintptr_t)(const void *)(POINTER)) % (BYTE_COUNT)
+
+/* What read_wisdom() found, for print_perfinfo() */
+static enum { WISDOM_UNREAD, WISDOM_OK, WISDOM_MISSING, WISDOM_REJECTED } wisdom_state;
+static char wisdom_path[4096];
 
 void read_wisdom(void)
 {
@@ -18,24 +24,117 @@ void read_wisdom(void)
     /* First try to import the system wisdom if available */
     fftwf_import_system_wisdom();
     wisdomfilenm = presto_data_path("fftw_wisdom.txt");
+    snprintf(wisdom_path, sizeof(wisdom_path), "%s", wisdomfilenm);
     wisdomfile = fopen(wisdomfilenm, "r");
+    wisdom_state = WISDOM_OK;
     if (wisdomfile == NULL) {
+        wisdom_state = WISDOM_MISSING;
         printf("Warning:  Couldn't open '%s'\n"
                "          You should run 'makewisdom'.  See INSTALL.md.\n",
                wisdomfilenm);
     } else {
-        if (!fftwf_import_wisdom_from_file(wisdomfile))
+        if (!fftwf_import_wisdom_from_file(wisdomfile)) {
+            wisdom_state = WISDOM_REJECTED;
             printf("Warning:  FFTW rejected the wisdom in '%s'.\n"
                    "          It was likely written by a different FFTW build or\n"
                    "          version than the one in use now (the wisdom cookie is\n"
                    "          per-build).  Re-run 'makewisdom' with the same FFTW.\n"
                    "          See INSTALL.md.\n",
                    wisdomfilenm);
+        }
         fclose(wisdomfile);
     }
     free(wisdomfilenm);
     // The following resets errno if one of the wisdom files was not found
     errno = 0;
+}
+
+
+
+/* The CPU's model name (Linux), or NULL */
+static char *cpu_model_name(char *buf, int len)
+{
+    FILE *f = fopen("/proc/cpuinfo", "r");
+    char line[512];
+    char *res = NULL;
+
+    if (f == NULL)
+        return NULL;
+    while (fgets(line, sizeof(line), f)) {
+        char *colon = strchr(line, ':');
+        if (colon && strncmp(line, "model name", 10) == 0) {
+            colon++;
+            while (*colon == ' ' || *colon == '\t')
+                colon++;
+            colon[strcspn(colon, "\n")] = '\0';
+            snprintf(buf, len, "%s", colon);
+            res = buf;
+            break;
+        }
+    }
+    fclose(f);
+    return res;
+}
+
+
+void print_perfinfo(const char *simd, int nthreads)
+/* Print the build and runtime facts that decide a tool's speed (for its   */
+/* -perfinfo flag): version, compiler and target, CPU, the SIMD kernels    */
+/* used (simd, from the tool; NULL if it has no dispatched kernels), its   */
+/* OpenMP threads (nthreads; < 0 if built without OpenMP), the             */
+/* OPENBLAS_NUM_THREADS setting, and the FFTW version and wisdom.          */
+{
+    char cpu[256];
+    const char *ob = getenv("OPENBLAS_NUM_THREADS");
+    const char *target =
+#if defined(__AVX512F__)
+        "AVX-512";
+#elif defined(__AVX2__)
+        "AVX2";
+#elif defined(__AVX__)
+        "AVX";
+#elif defined(__x86_64__)
+        "baseline x86-64 (SSE2-SSE3)";
+#elif defined(__aarch64__) || defined(__ARM_NEON)
+        "ARM (NEON)";
+#else
+        "generic";
+#endif
+
+    if (wisdom_state == WISDOM_UNREAD)
+        read_wisdom();
+    printf("\nPerformance information (-perfinfo):\n");
+#ifdef PRESTO_VERSION
+    printf("  PRESTO version        %s\n", PRESTO_VERSION);
+#endif
+#if defined(__clang__)
+    printf("  Compiler              clang %s\n", __clang_version__);
+#elif defined(__GNUC__)
+    printf("  Compiler              gcc %s\n", __VERSION__);
+#endif
+    printf("  Compiled for          %s%s\n", target,
+#if defined(__FMA__)
+           ", with FMA"
+#else
+           ""
+#endif
+        );
+    printf("  CPU                   %s\n",
+           cpu_model_name(cpu, sizeof(cpu)) ? cpu : "(unknown)");
+    printf("  SIMD kernels          %s\n",
+           simd ? simd : "as compiled (no runtime-dispatched kernels in this program)");
+    if (nthreads < 0)
+        printf("  OpenMP threads        (not built with OpenMP)\n");
+    else
+        printf("  OpenMP threads        %d (of %ld online CPUs)\n", nthreads,
+               sysconf(_SC_NPROCESSORS_ONLN));
+    printf("  OPENBLAS_NUM_THREADS  %s\n",
+           ob ? ob : "unset (set it to 1 to stop idle OpenBLAS threads spinning)");
+    printf("  FFTW                  %s\n", fftwf_version);
+    printf("  FFTW wisdom           %s (%s)\n\n", wisdom_path,
+           wisdom_state == WISDOM_OK ? "imported" :
+           wisdom_state == WISDOM_MISSING ? "MISSING: run makewisdom" :
+           "REJECTED: rerun makewisdom with this FFTW");
 }
 
 

@@ -214,8 +214,22 @@ Options, in the order to pursue them:
 **Plan** (revised 2026-11-10, after the measurements above): (0) is done and (1) dropped.
 Cheapest first, and let measurements decide on Highway:
 
-a. **`target_clones` on coherentsearch's two kernels now**, as a stopgap ahead of any
-   Highway work. `__attribute__((target_clones("arch=x86-64-v4", "arch=x86-64-v3",
+a. **[DONE 2026-11-14, in v6.3.1] Runtime dispatch of coherentsearch's two kernels.**
+   Plain `target_clones` was tried first and dropped: its v4 clone made fitzroy
+   (Skylake-SP) *slower* than the baseline (22.81 vs 21.37 s; a full `-march=x86-64-v4`
+   build took 25.47 s), because 512-bit vectors lower that CPU's clock. (`-march=native`
+   avoids it, since gcc's skylake-avx512 tuning keeps 256-bit vectors.) So
+   `include/coherentsearch.h` has its own `ifunc` resolver (`CS_DISPATCHED`,
+   `cs_simd_level()`): v4 only with AVX512_VBMI2 (Ice Lake, SPR, Zen 4+), else v3, else the
+   baseline. `group_lanes` must be always-inline, or the v3/v4 versions call a baseline
+   copy. Measured with `bench_march.sh` (`nocona` vs `dispatch`), 1 thread, Ter5 DM238.50,
+   `.cohout` byte-identical: eiger 11.05 to 8.17 s (1.35x, faster than its native build's
+   9.76 s), fitzroy 21.42 to 18.09 s (1.18x; native 17.77 s). foops (laptop) was too noisy
+   to call. `CS_GROUP_V` stays 16 in every version; a v4 group of 32 might add a little on
+   eiger. `-perfinfo` reports the version in use. The original plan follows.
+
+   *Original plan:* **`target_clones` on coherentsearch's two kernels now**, as a stopgap
+   ahead of any Highway work. `__attribute__((target_clones("arch=x86-64-v4", "arch=x86-64-v3",
    "default")))` on `cs_boxcar_batch` and `cs_fill_row` (its static helpers, such as
    `group_lanes`, inline into each clone). It sits behind a macro that is defined only for
    GCC/Clang on x86-64 ELF and is a no-op elsewhere. ARM baselines already have NEON, so

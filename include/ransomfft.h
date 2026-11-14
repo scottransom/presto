@@ -34,6 +34,12 @@ typedef fcomplex rawtype;
 #include "fftw3.h"
 void fftwcall(fcomplex *indata, long nn, int isign);
 void read_wisdom(void);
+void print_perfinfo(const char *simd, int nthreads);
+/* Print the build and runtime facts that decide a tool's speed (for its   */
+/* -perfinfo flag): version, compiler and target, CPU, the SIMD kernels    */
+/* used (simd, from the tool; NULL if it has no dispatched kernels), its   */
+/* OpenMP threads (nthreads; < 0 if built without OpenMP), the             */
+/* OPENBLAS_NUM_THREADS setting, and the FFTW version and wisdom.          */
 #ifndef COMPLEXFFT
 #define COMPLEXFFT    fftwcall
 #endif

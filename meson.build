@@ -97,6 +97,7 @@ add_project_arguments(_global_c_args, language : 'c')
 # as an override for running from a source tree.
 presto_datadir = get_option('prefix') / get_option('datadir') / 'presto'
 add_project_arguments('-DPRESTO_DATADIR="' + presto_datadir + '"', language : 'c')
+add_project_arguments('-DPRESTO_VERSION="' + meson.project_version() + '"', language : 'c')
 
 # Bake an RPATH to the install libdir into libpresto and every installed
 # executable, so at runtime they load the FFTW (and other deps) that ship in

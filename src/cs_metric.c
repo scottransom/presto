@@ -231,9 +231,11 @@ float cs_profile_boxcar(const float *prof, int nbins, const int *widths, int nw,
  * CS_BC_BATCH floats, T (nbins + widths[nw-1] + 1) * CS_BC_BATCH, and work
  * 3 * CS_BC_BATCH; out gets CS_BC_BATCH metrics.
  */
-void cs_boxcar_batch(const float *restrict profs, int nbins, const int *widths, int nw,
-                     float invsigma, const double *shape, float *restrict X,
-                     float *restrict T, float *restrict work, float *restrict out)
+CS_INLINE void cs_boxcar_batch_impl(const float *restrict profs, int nbins,
+                                    const int *widths, int nw, float invsigma,
+                                    const double *shape, float *restrict X,
+                                    float *restrict T, float *restrict work,
+                                    float *restrict out)
 {
     enum { B = CS_BC_BATCH };
     if (!(invsigma > 0.0f)) {
@@ -286,3 +288,9 @@ void cs_boxcar_batch(const float *restrict profs, int nbins, const int *widths, 
     for (int b = 0; b < B; b++)
         out[b] = best[b];
 }
+
+CS_DISPATCHED_VOID(cs_boxcar_batch,
+                   (const float *restrict profs, int nbins, const int *widths, int nw,
+                    float invsigma, const double *shape, float *restrict X,
+                    float *restrict T, float *restrict work, float *restrict out),
+                   (profs, nbins, widths, nw, invsigma, shape, X, T, work, out))

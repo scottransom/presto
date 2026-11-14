@@ -132,6 +132,13 @@ int main(int argc, char *argv[])
 #endif
         printf("Starting the search.\n\n");
     }
+    if (cmd->perfinfoP) {
+#ifdef _OPENMP
+        print_perfinfo(NULL, omp_get_max_threads());
+#else
+        print_perfinfo(NULL, -1);
+#endif
+    }
     /* Don't use the *.txtcand files on short in-memory searches */
     if (!obs.dat_input) {
         printf("  Working candidates in a test format are in '%s'.\n\n",

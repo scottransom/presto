@@ -335,9 +335,11 @@ static void fill_row_slow(const cs_hplan *hp, const cs_fft *fft, long long t0, i
  * horizontal reduce.  (Measured: this plain form beats both a single
  * V-float GCC vector type, which gcc lowers badly onto 16-byte registers,
  * and an array of 4-float vectors.) */
-static inline void group_lanes(const float *restrict w, int nj, const float *restrict re,
-                               const float *restrict im, float *restrict ar,
-                               float *restrict ai)
+/* always_inline (CS_INLINE): each of cs_fill_row's per-CPU versions (see
+ * CS_DISPATCHED) must get its own copy, compiled for its target; gcc won't
+ * inline it into them otherwise, and they then call a baseline-SSE one. */
+CS_INLINE void group_lanes(const float *restrict w, int nj, const float *restrict re,
+                 const float *restrict im, float *restrict ar, float *restrict ai)
 {
     enum { V = CS_GROUP_V };
     float sr[V], si[V];
@@ -357,8 +359,9 @@ static inline void group_lanes(const float *restrict w, int nj, const float *res
     }
 }
 
-int cs_fill_row(const cs_hplan *hp, const cs_fft *fft, long long t0, int n,
-                fcomplex *out, int stride, float *re, float *im, long nplane)
+CS_INLINE int cs_fill_row_impl(const cs_hplan *hp, const cs_fft *fft, long long t0,
+                               int n, fcomplex *out, int stride, float *re, float *im,
+                               long nplane)
 {
     enum { V = CS_GROUP_V };
     if (n < 1)
@@ -418,3 +421,8 @@ int cs_fill_row(const cs_hplan *hp, const cs_fft *fft, long long t0, int n,
     }
     return 1;
 }
+
+CS_DISPATCHED(int, cs_fill_row,
+              (const cs_hplan *hp, const cs_fft *fft, long long t0, int n, fcomplex *out,
+               int stride, float *re, float *im, long nplane),
+              (hp, fft, t0, n, out, stride, re, im, nplane))

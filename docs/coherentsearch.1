@@ -8,7 +8,7 @@
 .\" Remove a pair to hand-edit that section instead.
 .\"
 .\" cligPart TITLE
-.TH "coherentsearch" 1 "10Nov26" "pyCLIG-manuals" "Programmer's Manual"
+.TH "coherentsearch" 1 "14Nov26" "pyCLIG-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -20,6 +20,7 @@ coherentsearch \- Search normalised FFTs for pulsars by coherently summing many 
 .SH SYNOPSIS
 .B coherentsearch
 [-ncpus ncpus]
+[-perfinfo]
 [-deep]
 [-threshold threshold]
 [-nharms nharms]
@@ -55,6 +56,8 @@ Number of processors to use with OpenMP,
 1 Int value between 1 and oo.
 .br
 Default: `1'
+.IP -perfinfo
+Print what decides the speed: CPU, SIMD kernels used, compiler and build target, OpenMP threads, and the FFTW version and wisdom.
 .IP -deep
 Deep pass for slow, very narrow pulses: -nharms 120 -maxdecim 12 -hifreq 5 unless those are given, writing <input>_deep.cohout.
 .IP -threshold

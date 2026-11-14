@@ -14,6 +14,8 @@ typedef struct s_Cmdline {
   int ncpusP;
   int ncpus;
   int ncpusC;
+  /***** -perfinfo: Print what decides the speed: CPU, SIMD kernels used, compiler and build target, OpenMP threads, and the FFTW version and wisdom */
+  int perfinfoP;
   /***** -deep: Deep pass for slow, very narrow pulses: -nharms 120 -maxdecim 12 -hifreq 5 unless those are given, writing <input>_deep.cohout */
   int deepP;
   /***** -threshold: S/N cutoff for candidates */

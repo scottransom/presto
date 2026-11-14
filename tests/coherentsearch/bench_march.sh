@@ -40,14 +40,17 @@ ls "$BUILD"/src/libpresto.so* >/dev/null 2>&1 || { echo "no libpresto in $BUILD/
 command -v hyperfine >/dev/null || { echo "hyperfine not found"; exit 1; }
 
 declare -A FLAGS=(
-    [nocona]="-march=nocona -mtune=haswell"            # conda-forge's x86-64 flags
+    # conda-forge's x86-64 flags, without the runtime dispatch of the hot
+    # kernels (CS_DISPATCH, as in the packages up to 6.3.0), and with it
+    [nocona]="-march=nocona -mtune=haswell -DCS_NO_DISPATCH"
+    [dispatch]="-march=nocona -mtune=haswell"
     [avx2nofma]="-march=nocona -mtune=haswell -mavx2"  # wider vectors, no FMA
     [v3]="-march=x86-64-v3"                            # AVX2+FMA, portable (Haswell+, Zen+)
     [v4]="-march=x86-64-v4"                            # AVX-512
     [native]="-march=native"
 )
 if [ -z "${VARIANTS:-}" ]; then
-    VARIANTS="nocona avx2nofma v3"
+    VARIANTS="nocona dispatch avx2nofma v3"
     grep -q avx512f /proc/cpuinfo && VARIANTS="$VARIANTS v4"
     VARIANTS="$VARIANTS native"
 fi
@@ -131,7 +134,10 @@ if [ "${CALLGRIND:-0}" = 1 ]; then
     # valgrind can't decode AVX-512, so skip v4 (and native on AVX-512 CPUs).
     cgv=""
     for v in $VARIANTS; do
-        case $v in v4) continue ;; native) grep -q avx512f /proc/cpuinfo && continue ;; esac
+        case $v in
+        v4) continue ;;
+        native | dispatch) grep -q avx512f /proc/cpuinfo && continue ;;  # may pick v4
+        esac
         cgv="$cgv $v"
     done
     for v in $cgv; do
@@ -144,8 +150,8 @@ if [ "${CALLGRIND:-0}" = 1 ]; then
         a=$(callgrind_annotate "$OUT/v_$v/cg.out" 2>/dev/null)
         printf "  %-10s %16s %16s %16s\n" "$v" \
             "$(echo "$a" | awk '/PROGRAM TOTALS/{print $1; exit}')" \
-            "$(echo "$a" | awk '/cs_fill_row \[/{print $1; exit}')" \
-            "$(echo "$a" | awk '/cs_boxcar_batch \[/{print $1; exit}')"
+            "$(echo "$a" | awk '/cs_fill_row[a-z0-9_.]* \[/{print $1; exit}')" \
+            "$(echo "$a" | awk '/cs_boxcar_batch[a-z0-9_.]* \[/{print $1; exit}')"
     done | tee -a "$LOG"
 fi
 echo "results in $OUT"

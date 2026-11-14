@@ -25,6 +25,8 @@ static Cmdline cmd = {
     /* ncpusP = */ 1,
     /* ncpus = */ 1,
     /* ncpusC = */ 1,
+    /***** -perfinfo: Print what decides the speed: CPU, SIMD kernels used, compiler and build target, OpenMP threads, and the FFTW version and wisdom */
+    /* perfinfoP = */ 0,
     /***** -deep: Deep pass for slow, very narrow pulses: -nharms 120 -maxdecim 12 -hifreq 5 unless those are given, writing <input>_deep.cohout */
     /* deepP = */ 0,
     /***** -threshold: S/N cutoff for candidates */
@@ -310,6 +312,13 @@ void showOptionValues(void)
         }
     }
 
+    /***** -perfinfo: Print what decides the speed: CPU, SIMD kernels used, compiler and build target, OpenMP threads, and the FFTW version and wisdom */
+    if (!cmd.perfinfoP) {
+        printf("-perfinfo not found.\n");
+    } else {
+        printf("-perfinfo found:\n");
+    }
+
     /***** -deep: Deep pass for slow, very narrow pulses: -nharms 120 -maxdecim 12 -hifreq 5 unless those are given, writing <input>_deep.cohout */
     if (!cmd.deepP) {
         printf("-deep not found.\n");
@@ -562,11 +571,12 @@ void showOptionValues(void)
 
 void usage(void)
 {
-    fputs("   [-ncpus ncpus] [-deep] [-threshold threshold] [-nharms nharms] [-maxdecim maxdecim] [-lofreq lofreq] [-lobin lobin] [-hifreq hifreq] [-hidr hidr] [-m m] [-measuredsigma] [-ncands ncands] [-drtol drtol] [-numharm numharm] [-noremove] [-noharmremove] [-noperiodic] [-blocksize blocksize] [-o outfile] [-outdir outdir] [-plot] [-replot] [-rewrite] [-noprogress] [-verbose] [--] infile ...\n", stderr);
+    fputs("   [-ncpus ncpus] [-perfinfo] [-deep] [-threshold threshold] [-nharms nharms] [-maxdecim maxdecim] [-lofreq lofreq] [-lobin lobin] [-hifreq hifreq] [-hidr hidr] [-m m] [-measuredsigma] [-ncands ncands] [-drtol drtol] [-numharm numharm] [-noremove] [-noharmremove] [-noperiodic] [-blocksize blocksize] [-o outfile] [-outdir outdir] [-plot] [-replot] [-rewrite] [-noprogress] [-verbose] [--] infile ...\n", stderr);
     fputs("      Search normalised FFTs for pulsars by coherently summing many harmonics and scoring the folded profiles with boxcar matched filters.\n", stderr);
     fputs("            -ncpus: Number of processors to use with OpenMP\n", stderr);
     fputs("                    1 int value between 1 and oo\n", stderr);
     fputs("                    default: `1'\n", stderr);
+    fputs("         -perfinfo: Print what decides the speed: CPU, SIMD kernels used, compiler and build target, OpenMP threads, and the FFTW version and wisdom\n", stderr);
     fputs("             -deep: Deep pass for slow, very narrow pulses: -nharms 120 -maxdecim 12 -hifreq 5 unless those are given, writing <input>_deep.cohout\n", stderr);
     fputs("        -threshold: S/N cutoff for candidates\n", stderr);
     fputs("                    1 double value between 0.0 and oo\n", stderr);
@@ -618,7 +628,7 @@ void usage(void)
     fputs("          -verbose: Report the trial grid and chunking before searching\n", stderr);
     fputs("            infile: Input '.fft' file(s), each with a matching '.inf' file.  They should be normalised (e.g. by rednoise) so that Fourier powers have mean 1\n", stderr);
     fputs("                    1...16384 values\n", stderr);
-    fputs("  CLI code generated: 10Nov26\n", stderr);
+    fputs("  CLI code generated: 14Nov26\n", stderr);
     fputs("  ", stderr);
     exit(EXIT_FAILURE);
 }
@@ -645,6 +655,11 @@ Cmdline *parseCmdline(int argc, char **argv)
             i = getIntOpt(argc, argv, i, &cmd.ncpus, 1);
             cmd.ncpusC = i - keep;
             checkIntHigher("-ncpus", &cmd.ncpus, cmd.ncpusC, 1);
+            continue;
+        }
+
+        if (0 == strcmp("-perfinfo", argv[i])) {
+            cmd.perfinfoP = 1;
             continue;
         }
 
