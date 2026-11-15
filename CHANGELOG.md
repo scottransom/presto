@@ -1,4 +1,14 @@
 ## Development (unreleased, since v6.3.1):
+ * `accelsearch` now runs threads over blocks of the spectrum: each thread searches a whole
+   block (fundamental, subharmonics, harmonic sums), and the blocks' candidates are added
+   in order, so ACCEL files are byte-identical to before for any `-ncpus`.  Before, the
+   threads split many small loops within each block, so 8 threads gave only ~1.4x.  Now,
+   for `-zmax 200 -numharm 8` on a 16-core Sapphire Rapids Xeon (`-march=native`), 1, 2,
+   4, 8 and 16 threads take 18.6, 9.9, 5.4, 3.4 and 4.6 s (before: 20.5, 16.7, 14.8, 14.0
+   and 15.6 s).  It is also faster with 1 thread, because the FFTW plans and buffers are
+   now made once instead of on every call: 9-11% for acceleration searches and 2% for
+   jerk searches on that machine, and ~5% on a Skylake-SP Xeon.  `read_wisdom()` now
+   does nothing after its first call, so tools no longer print its warnings twice.
  * `accelsearch` is 1.2-1.45x faster.  Its threshold scan (`search_ffdotpows`) took
    20-30% of a run and now takes 2-6%: a vectorized pass first counts the powers above
    the cutoff in each (w, z) row, in parallel over rows, and only rows with hits go

@@ -184,6 +184,14 @@ active `presto_src/` binding.
 Python entry-point scripts live in `bin/` (e.g. `DDplan.py`, `single_pulse_search.py`,
 `get_TOAs.py`, `waterfaller.py`, `simple_zapbirds.py`); `bin/meson.build` installs them.
 
+## Performance priorities
+
+Large-scale searches parallelize over **DM trials**: many `accelsearch` (or
+`coherentsearch`) runs at once, **each on a single thread**. So **single-threaded speed
+matters most**. Benchmark at `-ncpus 1` first, and don't trade 1-thread speed for
+multithreaded scaling. Multithreaded runs (one big search on a workstation) still matter,
+but come second. The same held for CoherentSearch.jl.
+
 ## Conventions
 
 - Version numbers live in several places and must be kept in sync when releasing: top-level

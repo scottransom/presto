@@ -113,8 +113,6 @@ typedef struct subharminfo{
     int numkern_wdim;  /* Number of kernels calculated in the w dimension */
     int numkern;       /* Total number of kernels in the vector */
     kernel **kern;     /* A 2D array of the kernels themselves, with dimensions of z and w */
-    unsigned short *rinds; /* Table of lookup indices for Fourier Freqs: subharmonic r values corresponding to "fundamental" r values */
-    unsigned short *zinds; /* Table of lookup indices for Fourier F-dots */
 } subharminfo;
 
 typedef struct ffdotpows{
@@ -128,6 +126,16 @@ typedef struct ffdotpows{
     unsigned short *rinds; /* Table of lookup indices for Fourier Freqs */
     unsigned short *zinds; /* Table of lookup indices for Fourier f-dots */
 } ffdotpows;
+
+typedef struct accelhit{
+    float pow;          /* Summed power */
+    float sig;          /* Its sigma */
+    int numharm;        /* Number of harmonics summed */
+    double rr, zz, ww;  /* Its r, z and w at the fundamental */
+} accelhit;
+
+/* Per-thread buffers for searching one block of the spectrum (accel_utils.c) */
+typedef struct accelwork accelwork;
 
 /* accel_utils.c */
 
@@ -144,9 +152,15 @@ void output_harmonics(GSList *list, accelobs *obs, infodata *idata);
 void free_accelcand(gpointer data, gpointer user_data);
 void print_accelcand(gpointer data, gpointer user_data);
 fcomplex *get_fourier_amplitudes(long long lobin, int numbins, accelobs *obs);
-ffdotpows *subharm_fderivs_vol(int numharm, int harmnum, 
-			       double fullrlo, double fullrhi, 
-			       subharminfo *shi, accelobs *obs);
+void accel_make_plans(subharminfo **shis, accelobs *obs);
+void accel_free_plans(void);
+accelwork *create_accelwork(subharminfo **shis, accelobs *obs);
+void free_accelwork(accelwork *ws);
+ffdotpows *subharm_fderivs_vol(int numharm, int harmnum,
+                               double fullrlo, double fullrhi,
+                               subharminfo *shi, accelobs *obs, accelwork *ws);
+ffdotpows *ffdotplane_to_fund(double fullrlo, double fullrhi, subharminfo *shi,
+                              accelobs *obs, accelwork *ws, int trans);
 ffdotpows *copy_ffdotpows(ffdotpows *orig);
 void fund_to_ffdotplane(ffdotpows *ffd, accelobs *obs);
 void inmem_add_ffdotpows(ffdotpows *fundamental, accelobs *obs,
@@ -159,6 +173,7 @@ void add_ffdotpows_ptrs(ffdotpows *fundamental, ffdotpows *subharmonic,
                         int numharm, int harmnum);
 void add_ffdotpows(ffdotpows *fundamental, ffdotpows *subharmonic, 
                    int numharm, int harmnum);
-GSList *search_ffdotpows(ffdotpows *ffdot, int numharm, 
-                         accelobs *obs, GSList *cands);
+void search_ffdotpows(ffdotpows *ffdot, int numharm, accelobs *obs,
+                      accelwork *ws);
+GSList *insert_accelhits(GSList *cands, accelwork *ws, accelobs *obs);
 void free_accelobs(accelobs *obs);

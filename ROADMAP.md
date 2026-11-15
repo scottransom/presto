@@ -290,8 +290,17 @@ the run):
   shows odd per-function slowdowns, check `idq.mite_uops` before anything else
   (`-Wa,-mbranches-within-32B-boundaries` is the general fix, at some code-size cost).
 - **Thread scaling is poor**: 8 threads give 1.7–2.2x on eiger (16 is slower than 8), and
-  16 give 2.1–2.4x on fitzroy. The single-threaded scan, gather and planning between the
-  parallel correlations are the likely limit.
+  16 give 2.1–2.4x on fitzroy. Measured again after item 1 (eiger, native, `-zmax 200
+  -numharm 8`): 1/4/8/16 threads take 20.6/14.1/13.8/16.0 s wall, with 20/56/109/254 s of
+  user CPU (idle threads spin at barriers). With `OMP_WAIT_POLICY=passive`, 4 threads take
+  19.1 s, about as long as 1 thread, so a thread wake-up costs about as much as the work
+  it gets. Two causes:
+  - About 35–40% of a 1-thread run is serial: `add_ffdotpows` (~26%, no OpenMP at all),
+    then the per-call FFTW planning (~5%), median (~2.5%), mallocs and forward FFT in
+    `subharm_fderivs_vol`.
+  - The parallel regions are tiny: about 12 per block, and blocks are small (below). The
+    1/8 harmonic, for example, is 27 kernels of 384-point FFTs.
+  See item 4 below.
 - On a tiny frequency band, FFTW planning (`fftwf_plan_dft_1d` in `subharm_fderivs_vol`)
   was ~65% of the run, so planning per call is worth caching for short searches.
 
@@ -312,9 +321,15 @@ FFTW 8.5 s, `search_ffdotpows` 6.9 s, `add_ffdotpows` 5.6 s, `subharm_fderivs_vo
   into the fundamental, and `search_ffdotpows` scans the fundamental after each stage.
 - **Each add and each scan streams the whole fundamental.** With `-numharm 8` that is 7
   adds and 4 scans per block, and with `-numharm 16`, 15 and 5.
-  - For `-zmax 200` the fundamental is 201 z rows × ~7470 floats, ~6 MB: larger than L2 on
-    both test machines, and close to foops' 8 MB L3.
-  - For `-zmax 50 -wmax 160` it is 17 × 51 = 867 rows, about 4x as many.
+  - Blocks are small. For `-zmax 200`, `maxkernlen` is 504, so `fftlen` is 2048 and
+    `corr_uselen` is 1544 interpolated bins (772 Fourier bins). The fundamental is 201 z
+    rows × 1544 floats = 1.2 MB, which fits in eiger's 2 MB L2 but not fitzroy's 1 MB.
+    All the kernels together are 12 MB. (An earlier version of this note said ~6 MB,
+    which was wrong.)
+  - For `-zmax 50 -wmax 200`, `fftlen` is 2048 (`fftlen_from_kernwidth` gives 1024, but
+    `create_accelobs` raises anything below 2048 to 2048), so the fundamental is 21 w × 51 z = 1071 rows ×
+    1804 floats = 7.7 MB.
+  - So there are thousands of blocks per search, each doing ~12 small parallel loops.
 
 **Shared by both searches:**
 1. **[DONE] Threshold scan (`search_ffdotpows`).** Every element used to go through an
@@ -359,6 +374,55 @@ FFTW 8.5 s, `search_ffdotpows` 6.9 s, `add_ffdotpows` 5.6 s, `subharm_fderivs_vo
    full pass per stage and is simple. Beyond that, tile the fundamental by rows and do all
    of a stage's adds plus its scan per tile while the tile is in cache. That needs the
    stage's subharmonic planes computed first: more memory, the same reads from them.
+   - For acceleration searches the fundamental (1.2 MB) already sits in L2, so the
+     gather is instruction-bound, not memory-bound: ~5 uops per element (index load,
+     gathered load, load, add, store). Do all of a stage's adds row by row plus that
+     row's scan in one pass, with item 2's periodic offsets in plain C, so every build
+     gains (conda-forge's included). That removes 3 of the 4 read-modify-write passes in
+     the 8-harmonic stage. Then add item 2's SIMD permute kernel behind the ifunc
+     dispatch from `coherentsearch` (nocona has no SSSE3 shuffles). Guess: `add_ffdotpows`
+     from ~26% to 8–10% of the run, ~1.2x overall.
+4. **[DONE] Parallelize over blocks, not within them.** Done as described below, with
+   two-pass in-memory mode. Every subharmonic shares one per-thread buffer: separate
+   buffers made jerk searches ~3% slower on eiger (cache footprint). ACCEL files are
+   byte-identical for any `-ncpus`. eiger, native, 1 thread: accel8 20.5 → 18.6 s,
+   accel16 39.4 → 35.2 s, jerk 94.7 → 92.4 s. accel8 with 1/2/4/8/16 threads: 18.6, 9.9,
+   5.4, 3.4, 4.6 s (was 20.5, 16.7, 14.8, 14.0, 15.6). Why 16 threads are slower than
+   8 is still open: the serial kernel generation and candidate optimization (item 5),
+   the `ordered` replay, all-core turbo, or shared L3. The original plan: Each thread does a whole block
+   (fundamental, subharmonics, adds, scans) single-threaded, in its own buffers. Kernels
+   and FFTW plans (made once, up front) are shared and read-only. Use a dynamic schedule
+   over the thousands of blocks.
+   - **Keep results byte-identical:** each block records its hits (pow, sigma, numharm,
+     r, z, w) in scan order. The master feeds them to `insert_new_accelcand` and the
+     workfile in block order, the same sequence as a 1-thread run. Results then don't
+     depend on `-ncpus`.
+   - To handle: `get_fourier_amplitudes`' non-mmap path reads a shared `FILE` (use
+     `pread` or a lock); FFTW planning isn't thread-safe; and in-memory mode needs the
+     lower-frequency plane first, so it takes two passes (fill the plane in parallel,
+     then do the harmonic sums in parallel).
+   - Memory per thread is ~2 MB for accel and ~15 MB for jerk. Expect near-linear
+     scaling until the shared kernels stop fitting in L3 (12 MB for `-zmax 200`, against
+     fitzroy's 13.75 MB).
+   - **It must not slow the 1-thread path**, which is the main one: big searches run
+     one single-threaded accelsearch per DM trial. Plan caching and buffer reuse come
+     with it and help 1 thread (~7%).
+5. **Smaller items.**
+   - The candidate optimization loop after the search is serial, and each candidate is
+     independent: `omp parallel for schedule(dynamic)`.
+   - Batched inverse FFTs (`fftwf_plan_many_dft`): a few percent at 2048 points, mostly
+     from lower per-call overhead.
+   - Re-tune `fftlen_from_kernwidth`. Its table dates from FFTW 3.3.7, and its 2048
+     floor wastes 25% of each FFT for `-zmax 200`. 4096 points would keep 88% (maybe ~7%
+     less FFT time) but double the kernel memory, which may hurt fitzroy. **This changes
+     ACCEL files**, because the block edges move, so keep it separate.
+   - Don't use `OMP_WAIT_POLICY=passive` as a workaround: it is much slower (8 threads:
+     20.6 vs 13.8 s).
+
+   Order (1-thread gains first): item 4 (done), then the fused adds and scan of item 3,
+   then item 2's SIMD gather, then item 5. The fused adds need all of a stage's
+   subharmonic planes at once, so they bring back separate buffers: measure the
+   jerk footprint cost against the saved passes.
 
 **Acceleration searches (`-zmax`, w = 0):**
 - The work per row is light (one plane, no w loop), so the scan and gather (~45% of the

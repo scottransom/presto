@@ -165,71 +165,117 @@ int main(int argc, char *argv[])
         }
     }
 
-    /* Start the main search loop */
+    /* Start the main search loop.  Blocks of the spectrum are searched in
+     * parallel, one block per thread, and each block's hits are added to
+     * the candidate list in block order, so the results do not depend on
+     * the number of threads. */
     {
-        double startr, lastr, nextr;
-        ffdotpows *fundamental;
+        long numblocks = 0, numpreblocks = 0;
+        double *starts = NULL, *prestarts = NULL;
 
-        /* Populate the saved F-Fdot plane at low freqs for in-memory
-         * searches of harmonics that are below obs.rlo */
-        if (obs.inmem) {
-            startr = 8;  // Choose a very low Fourier bin
-            lastr = 0;
-            nextr = 0;
-            while (startr < obs.rlo) {
-                nextr = startr + rstep;
-                lastr = nextr - ACCEL_DR;
-                // Compute the F-Fdot plane
-                fundamental = subharm_fderivs_vol(1, 1, startr, lastr,
-                                                  &subharminfs[0][0], &obs);
-                // Copy it into the full in-core one
-                fund_to_ffdot(fundamental, &obs);
-                free_ffdotpows(fundamental);
-                startr = nextr;
+        /* The blocks' starting r values, from the same sums as a serial
+         * walk through the spectrum (obs.rlo need not be an integer) */
+        {
+            double startr;
+            long maxblocks = (long) (fmax(obs.highestbin - obs.rlo, 0.0) / rstep) + 2;
+            starts = (double *) malloc(maxblocks * sizeof(double));
+            for (startr = obs.rlo; startr + rstep < obs.highestbin; startr += rstep)
+                starts[numblocks++] = startr;
+            if (obs.inmem) {
+                /* The saved F-Fdot plane at low freqs, for in-memory
+                 * searches of harmonics that are below obs.rlo */
+                long maxpre = (long) (fmax(obs.rlo, 0.0) / rstep) + 2;
+                prestarts = (double *) malloc(maxpre * sizeof(double));
+                for (startr = 8; startr < obs.rlo; startr += rstep)  // a very low Fourier bin
+                    prestarts[numpreblocks++] = startr;
             }
-        }    
-        
-        /* Reset indices if needed and search for real */
-        startr = obs.rlo;
-        lastr = 0;
-        nextr = 0;
-        while (startr + rstep < obs.highestbin) {
-            /* Search the fundamental */
-            print_percent_complete(startr - obs.rlo,
-                                   obs.highestbin - obs.rlo, "search", 0);
-            nextr = startr + rstep;
-            lastr = nextr - ACCEL_DR;
-            fundamental = subharm_fderivs_vol(1, 1, startr, lastr,
-                                              &subharminfs[0][0], &obs);
-            cands = search_ffdotpows(fundamental, 1, &obs, cands);
+        }
 
-            if (obs.numharmstages > 1) {        /* Search the subharmonics */
-                int stage, harmtosum, harm;
-                ffdotpows *subharmonic;
+        accel_make_plans(subharminfs, &obs);
 
-                // Copy the fundamental's ffdot plane to the full in-core one
+        if (obs.inmem) {
+            /* First fill the full in-core F-Fdot plane with the fundamentals.
+             * The low-frequency blocks go first: the first search block
+             * overwrites where they overlap it. */
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            {
+                accelwork *ws = create_accelwork(subharminfs, &obs);
+#ifdef _OPENMP
+#pragma omp for schedule(dynamic, 1)
+#endif
+                for (long blk = 0; blk < numpreblocks; blk++) {
+                    double lastr = (prestarts[blk] + rstep) - ACCEL_DR;
+                    fund_to_ffdot(subharm_fderivs_vol(1, 1, prestarts[blk], lastr,
+                                                      &subharminfs[0][0], &obs, ws),
+                                  &obs);
+                }
+#ifdef _OPENMP
+#pragma omp for schedule(dynamic, 1)
+#endif
+                for (long blk = 0; blk < numblocks; blk++) {
+                    double lastr = (starts[blk] + rstep) - ACCEL_DR;
+                    fund_to_ffdot(subharm_fderivs_vol(1, 1, starts[blk], lastr,
+                                                      &subharminfs[0][0], &obs, ws),
+                                  &obs);
+                }
+                free_accelwork(ws);
+            }
+        }
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        {
+            accelwork *ws = create_accelwork(subharminfs, &obs);
+#ifdef _OPENMP
+#pragma omp for schedule(dynamic, 1) ordered
+#endif
+            for (long blk = 0; blk < numblocks; blk++) {
+                double startr = starts[blk];
+                double lastr = (startr + rstep) - ACCEL_DR;
+                ffdotpows *fundamental;
+
+                /* Search the fundamental */
                 if (obs.inmem)
-                    fund_to_ffdot(fundamental, &obs);
-                for (stage = 1; stage < obs.numharmstages; stage++) {
-                    harmtosum = 1 << stage;
-                    for (harm = 1; harm < harmtosum; harm += 2) {
+                    fundamental = ffdotplane_to_fund(startr, lastr, &subharminfs[0][0],
+                                                     &obs, ws, cmd->otheroptP);
+                else
+                    fundamental = subharm_fderivs_vol(1, 1, startr, lastr,
+                                                      &subharminfs[0][0], &obs, ws);
+                search_ffdotpows(fundamental, 1, &obs, ws);
+
+                /* Search the subharmonics */
+                for (int stage = 1; stage < obs.numharmstages; stage++) {
+                    int harmtosum = 1 << stage;
+                    for (int harm = 1; harm < harmtosum; harm += 2) {
                         if (obs.inmem) {
                             inmem_add_subharm(fundamental, &obs, harmtosum, harm);
                         } else {
-                            subharmonic =
+                            ffdotpows *subharmonic =
                                 subharm_fderivs_vol(harmtosum, harm, startr, lastr,
                                                     &subharminfs[stage][harm - 1],
-                                                    &obs);
+                                                    &obs, ws);
                             add_subharm(fundamental, subharmonic, harmtosum, harm);
-                            free_ffdotpows(subharmonic);
                         }
                     }
-                    cands = search_ffdotpows(fundamental, harmtosum, &obs, cands);
+                    search_ffdotpows(fundamental, harmtosum, &obs, ws);
+                }
+#ifdef _OPENMP
+#pragma omp ordered
+#endif
+                {
+                    cands = insert_accelhits(cands, ws, &obs);
+                    print_percent_complete(startr - obs.rlo,
+                                           obs.highestbin - obs.rlo, "search", 0);
                 }
             }
-            free_ffdotpows(fundamental);
-            startr = nextr;
+            free_accelwork(ws);
         }
+        accel_free_plans();
+        free(starts);
+        free(prestarts);
         print_percent_complete(obs.highestbin - obs.rlo,
                                obs.highestbin - obs.rlo, "search", 0);
     }

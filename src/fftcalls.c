@@ -17,10 +17,14 @@ static enum { WISDOM_UNREAD, WISDOM_OK, WISDOM_MISSING, WISDOM_REJECTED } wisdom
 static char wisdom_path[4096];
 
 void read_wisdom(void)
+/* Import the system and PRESTO FFTW wisdom.  Only the first call does */
+/* anything, so callers need not track whether it was read already.    */
 {
     FILE *wisdomfile;
     char *wisdomfilenm;
 
+    if (wisdom_state != WISDOM_UNREAD)
+        return;
     /* First try to import the system wisdom if available */
     fftwf_import_system_wisdom();
     wisdomfilenm = presto_data_path("fftw_wisdom.txt");
