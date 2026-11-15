@@ -1,4 +1,10 @@
-## Development (unreleased, since v6.3.1):
+## Development (unreleased, since v6.3.2):
+
+## Version 6.3.2:
+ * **A speed release for `accelsearch`**, following v6.3.1's for `coherentsearch`.  With
+   one thread (the usual way to run it, one search per DM trial) it is 1.3-1.4x faster in
+   the conda-forge packages, and multithreaded runs now scale (8 threads: ~5.5x faster
+   than one).  Results are unchanged.
  * `accelsearch` now runs threads over blocks of the spectrum: each thread searches a whole
    block (fundamental, subharmonics, harmonic sums), and the blocks' candidates are added
    in order, so ACCEL files are byte-identical to before for any `-ncpus`.  Before, the

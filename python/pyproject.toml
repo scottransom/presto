@@ -4,7 +4,7 @@ requires = ['meson-python', 'numpy']
 
 [project]
 name = 'presto'
-version = '6.3.1'
+version = '6.3.2'
 description = 'PulsaR Exploration and Search TOolkit'
 requires-python = '>=3.12'
 dependencies = ['numpy', 'scipy', 'astropy', 'matplotlib']
