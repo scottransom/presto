@@ -261,9 +261,31 @@ e. **Don't move to `-O3`.** Phase 4 found coherentsearch 1.65x slower at `-O3`, 
 
 ### Restructuring accelsearch's hot loops
 
-The profile from item (0), `-zmax 200`, 1 thread, ~27 s with the `fmaf` fix: FFTW 8.5 s,
-`search_ffdotpows` 6.9 s, `add_ffdotpows` 5.6 s, `subharm_fderivs_vol` 5.9 s. There is no
-profile of a jerk search yet; take one first (gperftools as in (0)).
+**Profiles, 2026-11-14** (`tests/accelsearch/profile_accel.sh`, perf, 1 thread, Ter5
+DM 238.50, conda-forge flags `-O2 -march=nocona -mtune=haswell -ftree-vectorize`; share of
+the run):
+
+| search | eiger (SPR) | fitzroy (SKX) | `subharm_fderivs_vol` | `search_ffdotpows` | `add_ffdotpows` | FFTW |
+|---|---|---|---|---|---|---|
+| `-zmax 200 -numharm 8`  | 28.6 s | 57.4 s | 22–24% | 21–24% | 17–19% | 30–31% |
+| `-zmax 200 -numharm 16` | 49.6 s | 104.3 s | | | | |
+| `-zmax 50 -wmax 200 -numharm 8` | 132 s | 241 s | 23–30% | 27% | 19–23% | 23–25% |
+
+- **The jerk profile looks like the acceleration one**, so items 1–3 below matter for both.
+- **gcc `-O2` without `-ftree-vectorize` leaves `subharm_fderivs_vol`'s loops scalar**
+  (1.3–1.5x slower overall); fixed in `meson.build` (see CHANGELOG). Everything above was
+  measured with it.
+- **`-march=native`** (with `-ftree-vectorize`) gains 7% on eiger and nothing on fitzroy,
+  where `search_ffdotpows` gets *slower* (jerk: 64 → 94 s). Check that loop's native code
+  when restructuring it.
+- **Thread scaling is poor**: 8 threads give 1.7–2.2x on eiger (16 is slower than 8), and
+  16 give 2.1–2.4x on fitzroy. The single-threaded scan, gather and planning between the
+  parallel correlations are the likely limit.
+- On a tiny frequency band, FFTW planning (`fftwf_plan_dft_1d` in `subharm_fderivs_vol`)
+  was ~65% of the run, so planning per call is worth caching for short searches.
+
+The earlier profile from item (0), `-zmax 200`, 1 thread, ~27 s with the `fmaf` fix:
+FFTW 8.5 s, `search_ffdotpows` 6.9 s, `add_ffdotpows` 5.6 s, `subharm_fderivs_vol` 5.9 s.
 
 **Code paths (from `accelsearch.c`, `accel_utils.c`):**
 - **In-memory mode** (`obs.inmem`) is chosen only for `-zmax` searches, when the full f-fdot
@@ -334,9 +356,8 @@ profile of a jerk search yet; take one first (gperftools as in (0)).
     exist. A gather ordered by subharmonic plane would keep each plane in cache.
 - Items 1 and 2 still apply, now with a w loop outside.
 
-Measure each change with A/B runs in the style of `tests/coherentsearch/bench_march.sh`:
-one libpresto, FFTW and wisdom for all variants, hyperfine, and an output comparison. A
-version of it for accelsearch is the obvious first tool to write. Keep ACCEL files byte-identical, as the
+Measure each change with A/B runs with `tests/accelsearch/profile_accel.sh` (one FFTW
+and wisdom for all variants, hyperfine, perf profiles, and an ACCEL md5 comparison). Keep ACCEL files byte-identical, as the
 `fmaf` fix did, or explain any change.
 
 ### Scope of the port

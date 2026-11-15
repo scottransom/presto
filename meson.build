@@ -11,13 +11,13 @@ project('PRESTO', 'c',
 #                                #   the default, so we keep the debug symbols.
 #    'buildtype=debugoptimized', # -O2 plus -g  (the default, above)
 #    'buildtype=debug',
-# The optimization level is not the interesting knob:  what actually speeds up
-# the compute-bound tools is letting the compiler use the vector instructions
-# of the machine you are on.  Adding '-Dc_args=-march=native' to 'meson setup'
-# makes accelsearch ~10% faster on a modern x86-64 CPU (AVX2+FMA); before
-# v6.1.2 it was ~2.4x, but mostly because of a since-fixed fmaf() slowdown.
-# Only do that for builds you will run on that same machine, though -- see the
-# notes in INSTALL.md.
+# The optimization level is not the interesting knob, but loop vectorization
+# is: gcc's -O2 vectorizes only "very cheap" loops, which leaves accelsearch's
+# correlation loops scalar, so -ftree-vectorize is added below (it is what -O3
+# gets you, and what conda's CFLAGS already set).  Beyond that, adding
+# '-Dc_args=-march=native' to 'meson setup' makes accelsearch 0-8% faster on a
+# modern x86-64 CPU (AVX2+FMA).  Only do that for builds you will run on that
+# same machine, though -- see the notes in INSTALL.md.
 # Can also set install prefix as option via e.g. 'prefix=/home/sransom'
 #    'prefix=/home/sransom'
 
@@ -82,6 +82,8 @@ inc = include_directories('include')
 
 _global_c_args = cc.get_supported_arguments(
   '-DUSE_FFTW_MALLOC',
+  # gcc -O2 alone skips the vectorization of accelsearch's hot loops (1.3-1.5x slower)
+  '-ftree-vectorize',
   '-Wno-unused-but-set-variable',
   '-Wno-unused-function',
   '-Wno-conversion',

@@ -1,4 +1,11 @@
 ## Development (unreleased, since v6.3.1):
+ * `accelsearch` is 1.3-1.5x faster when built with gcc outside a conda environment
+   (e.g. with a system compiler).  gcc's `-O2` vectorizes only "very cheap" loops, which
+   left the correlation loops in `subharm_fderivs_vol` scalar; `meson.build` now adds
+   `-ftree-vectorize`.  conda and conda-forge builds already got it from conda's `CFLAGS`
+   and are unchanged.  Measured with 1 thread on the Ter5 test data (`-zmax 200
+   -numharm 8`): 39.9 to 27.1 s on a Sapphire Rapids Xeon, 73.6 to 57.4 s on a Skylake-SP
+   Xeon.  ACCEL files are unchanged.
 
 ## Version 6.3.1:
  * **A speed release for the conda-forge packages.**  `coherentsearch` picks

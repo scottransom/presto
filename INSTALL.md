@@ -149,14 +149,18 @@ choice, and switching to `buildtype=release` (`-O3`, no `-g`) is *not* worth it 
 measurable difference to run times, and the debug symbols cost nothing at runtime while making
 any crash report far more useful.
 
-What *does* help is letting the compiler use your CPU's vector instructions:
+What matters is loop vectorization. At `-O2`, gcc only vectorizes loops it judges "very
+cheap", which leaves `accelsearch`'s correlation loops scalar, so PRESTO's `meson.build`
+adds `-ftree-vectorize` (as conda's compiler flags already do). Without it, `accelsearch` is
+1.3-1.5x slower. If you override the flags, keep it (or use `-O3`).
+
+Beyond that, you can let the compiler use your CPU's own vector instructions:
 
     meson setup build --prefix=$CONDA_PREFIX -Dc_args=-march=native
 
-On a modern x86-64 machine (i.e. one with AVX2 and FMA) that makes `accelsearch` about 10%
-faster (`-zmax 200`: 30 s → 26 s on a Comet Lake laptop). Before v6.1.2 the gain was ~2.4x,
-but most of that came from a bug: explicit `fmaf()` calls that were very slow without FMA
-hardware, which hurt every build that did not use `-march`. Three caveats:
+On a modern x86-64 machine (i.e. one with AVX2 and FMA) that makes `accelsearch` 0-8%
+faster: `-zmax 200 -numharm 8` went from 28.6 s to 26.5 s on a Sapphire Rapids Xeon, with
+no gain on a Skylake-SP Xeon (and a 5% loss for a jerk search). Three caveats:
   * **Only use this for builds you will run on the machine that compiled them.** A binary built
     with `-march=native` will die with an illegal-instruction error on an older CPU, so don't do
     this for a shared cluster install, a container, or a package you distribute.
