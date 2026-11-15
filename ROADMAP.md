@@ -275,9 +275,20 @@ the run):
 - **gcc `-O2` without `-ftree-vectorize` leaves `subharm_fderivs_vol`'s loops scalar**
   (1.3–1.5x slower overall); fixed in `meson.build` (see CHANGELOG). Everything above was
   measured with it.
-- **`-march=native`** (with `-ftree-vectorize`) gains 7% on eiger and nothing on fitzroy,
-  where `search_ffdotpows` gets *slower* (jerk: 64 → 94 s). Check that loop's native code
-  when restructuring it.
+- **`-march=native`** (with `-ftree-vectorize`) gained 7% on eiger and nothing on fitzroy,
+  where the old `search_ffdotpows` got *slower* (jerk: 64 → 94 s). The cause was the
+  Skylake **JCC erratum** microcode, not that loop's instructions: the native and nocona
+  loops were the same scalar code, but in the native binary the loop's back-edge `jmp`
+  ended exactly on a 32-byte boundary, so the loop could not run from the uop cache. perf
+  showed 40% of its uops from legacy decode (`idq.mite_uops`), against ~0% for nocona, and
+  1.45x the cycles for the same instruction count. AVX-512 frequency licenses were ruled
+  out: every build, nocona included, spends ~90% of its cycles in license level 1 (from
+  FFTW's own kernels), none in level 2, and `-march=native -mno-avx512f` timed the same as
+  native. Sapphire Rapids lacks the erratum. The restructured scan (item 1) removed that
+  loop, and native is now 8–13% faster than nocona on fitzroy. Hot loops in other
+  functions can land on a boundary by chance in the same way; if a fitzroy profile
+  shows odd per-function slowdowns, check `idq.mite_uops` before anything else
+  (`-Wa,-mbranches-within-32B-boundaries` is the general fix, at some code-size cost).
 - **Thread scaling is poor**: 8 threads give 1.7–2.2x on eiger (16 is slower than 8), and
   16 give 2.1–2.4x on fitzroy. The single-threaded scan, gather and planning between the
   parallel correlations are the likely limit.
@@ -306,14 +317,32 @@ FFTW 8.5 s, `search_ffdotpows` 6.9 s, `add_ffdotpows` 5.6 s, `subharm_fderivs_vo
   - For `-zmax 50 -wmax 160` it is 17 × 51 = 867 rows, about 4x as many.
 
 **Shared by both searches:**
-1. **Threshold scan (`search_ffdotpows`).** Today every element goes through an `omp
-   parallel for collapse(3)` that recomputes three indices and branches. Almost no element
-   passes `powcut`. Instead:
-   - First pass per row: count `v > powcut`. That is an integer reduction, which should
-     vectorize at baseline flags without `-ffast-math`; check with `-fopt-info-vec`.
-   - Run the existing scalar code (sigma, r/z/w, `insert_new_accelcand` under `critical`)
-     only on rows with hits.
-   - Parallelize over rows, so the critical section is never reached in the common case.
+1. **[DONE] Threshold scan (`search_ffdotpows`).** Every element used to go through an
+   `omp parallel for collapse(3)` that recomputed three indices and branched, though almost
+   no element passes `powcut`. Now:
+   - A first pass, parallel over (w, z) rows, counts `!(v <= powcut)` per row (NaNs count,
+     as before). It vectorizes at baseline flags (16-byte vectors at nocona, 32 at native).
+   - The scalar code (sigma, r/z/w, `insert_new_accelcand`) runs serially, only on rows
+     with hits, in (w, z, r) order. So there is no critical section, and the candidates no
+     longer depend on the thread count (before, they did).
+   - Results (1 thread, `-ncpus 1`, Ter5 DM 238.50; nocona → new nocona, native → new
+     native). ACCEL files are byte-identical:
+
+     | search | eiger | fitzroy |
+     |---|---|---|
+     | `-zmax 200 -numharm 8` | 28.2 → 22.6 s, 26.5 → 20.5 s | 57.8 → 46.7 s, 57.5 → 40.7 s |
+     | `-zmax 200 -numharm 16` | 49.9 → 42.2 s, 46.9 → 39.6 s | (not run) |
+     | `-zmax 50 -wmax 200 -numharm 8` | 131.0 → 101.8 s, 122.8 → 94.2 s | 242.5 → 188.5 s, 253.5 → 173.8 s |
+
+     `search_ffdotpows` drops from 17–32% of the profile to 2–6%; `add_ffdotpows` and
+     `subharm_fderivs_vol` are now the top two. With 8 threads on eiger the gain is only
+     4% (14.8 → 14.2 s), since the old scan was already parallel, and the serial work
+     between the parallel loops still limits scaling.
+   - `.txtcand` (the workfile this function writes) can differ in sigma's last printed
+     digit between two runs of the *same* binary (FFTW planning, it seems), and `.cand`
+     holds uninitialized struct padding, so compare the ACCEL files themselves.
+     `profile_accel.sh`'s md5 check used to include both and reported "DIFFERS"
+     spuriously; it now checks only the ACCEL files.
 2. **Harmonic-sum gather (`add_ffdotpows`).** For harmonic h of N, the subharmonic r index
    table is periodic: `rinds[kk + 2N] = rinds[kk] + 2h`. The period is 2N, not N, because
    `rint()` rounds ties to even; checked numerically for every N ≤ 32 and odd h.

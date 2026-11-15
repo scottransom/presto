@@ -1,4 +1,14 @@
 ## Development (unreleased, since v6.3.1):
+ * `accelsearch` is 1.2-1.45x faster.  Its threshold scan (`search_ffdotpows`) took
+   20-30% of a run and now takes 2-6%: a vectorized pass first counts the powers above
+   the cutoff in each (w, z) row, in parallel over rows, and only rows with hits go
+   through the scalar candidate code.  Measured with 1 thread on the Ter5 test data
+   (`-zmax 200 -numharm 8`, and `-zmax 50 -wmax 200 -numharm 8`): 28.2 to 22.6 s and
+   131 to 102 s on a Sapphire Rapids Xeon, and 57.8 to 46.7 s and 243 to 189 s on a
+   Skylake-SP Xeon (`-march=native` builds: 26.5 to 20.5 s, 123 to 94 s, 57.5 to 40.7 s and
+   254 to 174 s).  ACCEL files are unchanged.  Candidates are now also the same for any
+   `-ncpus`; before, with more than one thread they depended on the order the threads
+   found them in.
  * `accelsearch` is 1.3-1.5x faster when built with gcc outside a conda environment
    (e.g. with a system compiler).  gcc's `-O2` vectorizes only "very cheap" loops, which
    left the correlation loops in `subharm_fderivs_vol` scalar; `meson.build` now adds

@@ -1413,45 +1413,69 @@ void inmem_add_ffdotpows_trans(ffdotpows *fundamental, accelobs *obs,
 }
 
 
-GSList *search_ffdotpows(ffdotpows *ffdot, int numharm, accelobs *obs, GSList *cands)
+static inline int count_row_hits(const float *restrict row, int numrs, float powcut)
+/* The number of powers in a row that are not <= powcut (so NaNs count, as in */
+/* the scalar test in search_ffdotpows()).  An integer reduction, so it       */
+/* vectorizes without -ffast-math.                                            */
 {
+    int count = 0;
+    for (int kk = 0; kk < numrs; kk++)
+        count += !(row[kk] <= powcut);
+    return count;
+}
 
-    float powcut = obs->powcut[twon_to_index(numharm)];
-    long long numindep = obs->numindep[twon_to_index(numharm)];
+
+GSList *search_ffdotpows(ffdotpows *ffdot, int numharm, accelobs *obs, GSList *cands)
+/* Add every power in ffdot above the stage's power cutoff to the candidate */
+/* list.  Almost no power passes, so a parallel, vectorized pass first      */
+/* counts the hits in each (w, z) row, and only the rows with hits go       */
+/* through the scalar code.  Those rows are taken in (w, z, r) order, so    */
+/* the candidates (which depend on insertion order) are the same for any    */
+/* number of threads.                                                       */
+{
+    const float powcut = obs->powcut[twon_to_index(numharm)];
+    const long long numindep = obs->numindep[twon_to_index(numharm)];
+    const int numrs = ffdot->numrs, numzs = ffdot->numzs;
+    const int numrows = ffdot->numws * numzs;
+    /* The rows are contiguous (gen_f3Darr()) */
+    const float *powers = ffdot->powers[0][0];
+    int *hits = gen_ivect(numrows);
+    int anyhits = 0;
 
 #ifdef _OPENMP
-#pragma omp parallel for collapse(3) shared(ffdot,powcut,obs,numharm,numindep)
+#pragma omp parallel for reduction(|:anyhits)
 #endif
-    for (int ii = 0; ii < ffdot->numws; ii++) {
-        for (int jj = 0; jj < ffdot->numzs; jj++) {
-            for (int kk = 0; kk < ffdot->numrs; kk++) {
-                float pow = ffdot->powers[ii][jj][kk];
+    for (int row = 0; row < numrows; row++) {
+        hits[row] = count_row_hits(powers + (size_t) row * numrs, numrs, powcut);
+        anyhits |= (hits[row] > 0);
+    }
 
-                if (pow <= powcut) {
-                    continue;
-                }
+    for (int row = 0; anyhits && row < numrows; row++) {
+        if (!hits[row])
+            continue;
+        const int ii = row / numzs, jj = row % numzs;
+        const float *rowpows = powers + (size_t) row * numrs;
+        const double zz = (ffdot->zlo + jj * (double) ACCEL_DZ) / (double) numharm;
+        const double ww = (ffdot->wlo + ii * (double) ACCEL_DW) / (double) numharm;
+        for (int kk = 0; kk < numrs; kk++) {
+            const float pow = rowpows[kk];
 
-                float sig = candidate_sigma(pow, numharm, numindep);
-                double rr = (ffdot->rlo + kk * (double) ACCEL_DR) / (double) numharm;
-                double zz = (ffdot->zlo + jj * (double) ACCEL_DZ) / (double) numharm;
-                double ww = (ffdot->wlo + ii * (double) ACCEL_DW) / (double) numharm;
+            if (pow <= powcut)
+                continue;
 
-                int added = 0;
-#ifdef _OPENMP
-#pragma omp critical
-#endif
-                {
-                    cands = insert_new_accelcand(cands, pow, sig, numharm,
-                                                 rr, zz, ww, &added);
-                }
-                if (added && !obs->dat_input) {
-                    fprintf(obs->workfile,
-                            "%-7.2f  %-7.4f  %-2d  %-14.4f  %-14.9f  %-10.4f %-10.4f\n",
-                            pow, sig, numharm, rr, rr / obs->T, zz, ww);
-                }
+            float sig = candidate_sigma(pow, numharm, numindep);
+            double rr = (ffdot->rlo + kk * (double) ACCEL_DR) / (double) numharm;
+            int added = 0;
+
+            cands = insert_new_accelcand(cands, pow, sig, numharm, rr, zz, ww, &added);
+            if (added && !obs->dat_input) {
+                fprintf(obs->workfile,
+                        "%-7.2f  %-7.4f  %-2d  %-14.4f  %-14.9f  %-10.4f %-10.4f\n",
+                        pow, sig, numharm, rr, rr / obs->T, zz, ww);
             }
         }
     }
+    vect_free(hits);
     return cands;
 }
 

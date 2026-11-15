@@ -98,7 +98,10 @@ for s in $SEARCHES; do
         tee "$OUT/time_$s.txt"
     for n in "${names[@]}"; do
         d=$OUT/$n/$s
-        md5sum "$d"/*_ACCEL_* 2>/dev/null | sed "s#$d/##" > "$d/accel.md5" || true
+        # Only the ACCEL files: .cand holds uninitialized struct padding, and the
+        # .txtcand sigmas can change in the last digit between runs of one binary.
+        md5sum $(ls "$d"/*_ACCEL_* 2>/dev/null | grep -Ev '\.(txt)?cand$') 2>/dev/null |
+            sed "s#$d/##" > "$d/accel.md5" || true
         # Flat profile, then a DWARF call graph (no frame pointers in these builds).
         echo "== $s: perf, $n"
         (cd "$d" && ${PRE[$n]} perf record -q -F "$PERF_FREQ" -o perf.data \
