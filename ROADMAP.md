@@ -83,7 +83,9 @@ conda-forge's x86-64 builds target a baseline CPU (no AVX2/FMA), whereas Julia J
 the host. FFTW dispatches at runtime, but only among the codelets it was built with:
 conda-forge's single-precision FFTW has SSE/SSE2/AVX on x86 (no AVX2/FMA, no AVX-512) and
 *none* on linux-aarch64 or osx-arm64, where the feedstock disables NEON. On x86 that costs
-at most ~4% (measured below), so there our own loops are what matter. ARM is unmeasured.
+at most ~4% (measured below), so there our own loops are what matter. On Apple silicon,
+NEON makes the FFTs 2–3x faster (measured below); on Linux aarch64 with GCC the gain
+looked much smaller (one test, in a container).
 Options, in the order to pursue them:
 
 0. **Measure the ceiling first (free).** Build PRESTO at the default flags and again with
@@ -166,7 +168,28 @@ Options, in the order to pursue them:
      The transforms here are small (8K points) and AVX is already 8 floats wide, so AVX2
      adds only FMA. This is **not** worth a feedstock request for x86. NEON on ARM is a
      separate question: the feedstock disables it (its build script cites feedstock issue
-     #94 and FFTW/fftw3#129). Measure on an aarch64 or Apple-silicon host before asking.
+     #94 and FFTW/fftw3#129).
+   - **Per transform, measured 2026-11-16** (FFTW's `tests/bench`, FFTW 3.3.11 built with
+     the feedstock's flags and CFLAGS, pinned, best of 3; `fftw_avx_bench.sh`, results in
+     `/data1/simd_bench/fftw_avx/` on eiger and fitzroy). Speedup over the feedstock's
+     SSE/SSE2/AVX build: complex FFTs of 256–8192 points 1.04–1.15x with AVX2 on both
+     hosts; with AVX-512 too, ~1.3x on eiger (Sapphire Rapids) but 0.98–1.12x on fitzroy
+     (Skylake-SP: the 512-bit clock penalty). Batched 2048 x 240-point c2r 1.35x
+     everywhere, 1M-point real FFT 1.06–1.16x. All builds pass `bench --verify`. With FFTW
+     at ~1/4–1/3 of accelsearch, that is 2–3% of a search, as measured above.
+   - **NEON, measured 2026-11-16** on an Apple M5 (macOS, Apple clang 21), FFTW 3.3.11
+     single precision built with and without `--enable-neon`, FFTW's `tests/bench`, best
+     of 3 (script: `fftw_neon_bench.sh`, kept by Scott). Every NEON transform passes
+     `bench --verify` (relative errors ~2e-7, as on x86). Complex FFTs of 256–8192
+     points are 2.4–3.2x faster, coherentsearch's batched 2048 x 48/120/240-point c2r
+     transforms 1.3–1.8x, and a 1M-point real FFT 2.0x. An M5 Max matches it
+     (2.6–3.3x). In a Linux aarch64 Docker container (Debian, GCC 12.2), apparently on
+     the same kind of Apple-silicon host (its non-NEON times match the M5's), everything
+     verifies but the gains are smaller (1.2–1.6x on complex FFTs, 1.9x on the larger
+     c2r batches) and two cases are slower (2048 x 48-point c2r 0.81x, 1M real 0.96x):
+     GCC seems to compile FFTW's NEON code much less well than Apple clang. Requested on the fftw
+     feedstock 2026-11-16: conda-forge/fftw-feedstock#106 (enable NEON for single
+     precision, at least on osx-arm64). Real Linux ARM server hardware is still untested.
    - **Thread scaling** (eiger, same file, `-ncpus N`; Julia `-t N`, wall time including
      its ~1 s start-up):
 
@@ -428,10 +451,35 @@ FFTW 8.5 s, `search_ffdotpows` 6.9 s, `add_ffdotpows` 5.6 s, `subharm_fderivs_vo
      independent: `omp parallel for schedule(dynamic)`.
    - Batched inverse FFTs (`fftwf_plan_many_dft`): a few percent at 2048 points, mostly
      from lower per-call overhead.
-   - Re-tune `fftlen_from_kernwidth`. Its table dates from FFTW 3.3.7, and its 2048
-     floor wastes 25% of each FFT for `-zmax 200`. 4096 points would keep 88% (maybe ~7%
-     less FFT time) but double the kernel memory, which may hurt fitzroy. **This changes
-     ACCEL files**, because the block edges move, so keep it separate.
+   - **[Measured 2026-11-16, branch `accel-fftlen-tuning`] FFT lengths.**
+     `tests/accelsearch/fftlen_bench.c` times multiply + inverse FFT for every 7-smooth
+     length. The subharmonic lengths (`next_good_fftlen()`) now come from its lower
+     envelope on eiger and fitzroy: within 0.3–1% of each host's own best, with FFTW
+     3.3.5, 3.3.8 and 3.3.10. With `-nonorm` (identical ACCEL files), old vs new list:
+     eiger −0.3/−1.6/−3.5/−10.4/−4.6%, fitzroy −3.0/−2.3/−1.7/−6.3/−3.9% (accel8,
+     accel16, jerk, `-zmax 400`, big jerk). It needs fresh wisdom: `makewisdom` now plans
+     accelsearch's exact transforms for every length, and `makewisdom -check` says if the
+     wisdom is stale. Without it, every new length is re-measured on every run, which
+     costs more than it saves.
+   - **The fundamental (main) FFT length: 2048 floor kept in default mode.** Sweeping it
+     (512–2048, via a temporary `PRESTO_ACCEL_FUNDLEN` override) gave 1280 as the only
+     length that never loses much: 0–4.5% faster for `-zmax 50`/`100` on both hosts, ~3%
+     slower for `-zmax 0` (which takes <0.5 s). `-zmax 50 -wmax 200` was 22% faster at
+     768 on eiger but only 3.6% at 1280 on fitzroy. Too small to justify the change in
+     default mode, where the block median would then span 640 bins instead of 1024
+     (`numdata = fftlen/2` is the whole block; its scatter is ~1.44/sqrt(N) in power).
+     **With `-nonorm`, which has no block median, the floor is now 1280** (2026-11-16).
+     Changing the fundamental length changes ACCEL files, even with `-nonorm` (see the
+     next item).
+   - **Candidate merging is insertion-order dependent.** `insert_new_accelcand` keeps the
+     higher-sigma of two hits within 15 bins, so in a crowded region which hit survives
+     depends on arrival order, which depends on the blocking. Example: Ter5 DM 238.50,
+     `-zmax 100 -numharm 8 -nonorm`, fundamental 1024 vs 2048. Both runs find the same
+     40,823 hits near r = 149594 (powers within 0.01), but a weak sidelobe of Ter5A's
+     2nd harmonic (sigma 3.91, z = 98) survives only at 2048. That is not an edge bug
+     and only affects weak hits next to strong ones. An order-independent merge (keep
+     each cluster's maximum) would make output independent of block size and thread
+     count, which would make testing easier, but it is not needed for correctness.
    - Don't use `OMP_WAIT_POLICY=passive` as a workaround: it is much slower (8 threads:
      20.6 vs 13.8 s).
 
