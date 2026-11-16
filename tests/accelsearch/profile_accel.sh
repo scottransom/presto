@@ -99,7 +99,8 @@ for s in $SEARCHES; do
         d=$(rundir "$n" "$s")
         # -perfinfo, if this accelsearch has it (6.3.1 on)
         # (With no arguments it prints its usage and exits non-zero.)
-        if { ${PRE[$n]} "${BIN[$n]}" 2>&1 || true; } | grep -q -- -perfinfo; then
+        # (grep -c, not -q: with pipefail, grep -q's early exit can fail the pipeline)
+        if [ "$({ ${PRE[$n]} "${BIN[$n]}" 2>&1 || true; } | grep -c -- -perfinfo)" -gt 0 ]; then
             (cd "$d" && ${PRE[$n]} "${BIN[$n]}" -perfinfo $a -flo 100 -fhi 101 "$base" > perfinfo_run.log 2>&1;
                 echo "exit status $?" >> perfinfo_run.log) || true
             sed -n '/Performance information/,/FFTW wisdom/p' "$d/perfinfo_run.log" > "$d/perfinfo.txt"

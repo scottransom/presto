@@ -84,7 +84,8 @@ for nb in "$@"; do
 
     # Wisdom, checked by FFTW itself for this build's FFT lengths
     mw=$d/makewisdom
-    if [ -x "$mw" ] && strings "$mw" | grep -q -- 'makewisdom -check'; then
+    # (grep -c, not -q: with pipefail, grep -q's early exit can fail the pipeline)
+    if [ -x "$mw" ] && [ "$(strings "$mw" | grep -c -- 'makewisdom -check')" -gt 0 ]; then
         out=$($pre "$mw" -check 2>&1); st=$?
         line=$(echo "$out" | grep -E '^(OK|STALE|MISSING|REJECTED)' | head -1)
         wf=$(echo "$out" | sed -n 's/^Wisdom: *//p')
