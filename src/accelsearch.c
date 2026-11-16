@@ -134,9 +134,9 @@ int main(int argc, char *argv[])
     }
     if (cmd->perfinfoP) {
 #ifdef _OPENMP
-        print_perfinfo(NULL, omp_get_max_threads());
+        print_perfinfo(accel_simd_name(), omp_get_max_threads());
 #else
-        print_perfinfo(NULL, -1);
+        print_perfinfo(accel_simd_name(), -1);
 #endif
     }
     /* Don't use the *.txtcand files on short in-memory searches */
@@ -147,7 +147,6 @@ int main(int argc, char *argv[])
 
     /* Function pointers to make code a bit cleaner */
     void (*fund_to_ffdot)(ffdotpows *, accelobs *) = NULL;
-    void (*add_subharm)(ffdotpows *, ffdotpows *, int, int) = NULL;
     void (*inmem_add_subharm)(ffdotpows *, accelobs *, int, int) = NULL;
     if (obs.inmem) {
         if (cmd->otheroptP) {
@@ -156,12 +155,6 @@ int main(int argc, char *argv[])
         } else {
             fund_to_ffdot = &fund_to_ffdotplane;
             inmem_add_subharm = &inmem_add_ffdotpows;
-        }
-    } else {
-        if (cmd->otheroptP) {
-            add_subharm = &add_ffdotpows_ptrs;
-        } else {
-            add_subharm = &add_ffdotpows;
         }
     }
 
@@ -249,18 +242,22 @@ int main(int argc, char *argv[])
                 /* Search the subharmonics */
                 for (int stage = 1; stage < obs.numharmstages; stage++) {
                     int harmtosum = 1 << stage;
-                    for (int harm = 1; harm < harmtosum; harm += 2) {
-                        if (obs.inmem) {
+                    if (obs.inmem) {
+                        for (int harm = 1; harm < harmtosum; harm += 2)
                             inmem_add_subharm(fundamental, &obs, harmtosum, harm);
-                        } else {
-                            ffdotpows *subharmonic =
+                        search_ffdotpows(fundamental, harmtosum, &obs, ws);
+                    } else {
+                        /* Compute all of the stage's subharmonics, then add
+                         * them and search, row by row */
+                        ffdotpows *subharmonics[ACCEL_MAXSTAGESUBS];
+                        for (int harm = 1; harm < harmtosum; harm += 2)
+                            subharmonics[harm / 2] =
                                 subharm_fderivs_vol(harmtosum, harm, startr, lastr,
                                                     &subharminfs[stage][harm - 1],
                                                     &obs, ws);
-                            add_subharm(fundamental, subharmonic, harmtosum, harm);
-                        }
+                        add_search_ffdotpows(fundamental, subharmonics, harmtosum,
+                                             &obs, ws);
                     }
-                    search_ffdotpows(fundamental, harmtosum, &obs, ws);
                 }
 #ifdef _OPENMP
 #pragma omp ordered

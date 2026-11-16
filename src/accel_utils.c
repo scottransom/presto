@@ -1101,10 +1101,9 @@ void accel_free_plans(void)
 
 
 /* An ffdotpows with buffers that are reused from call to call.  Slot 0  */
-/* is the fundamental and slot 1 holds every subharmonic in turn: each   */
-/* one is added to the fundamental before the next is computed, and one  */
-/* shared buffer stays in cache (separate ones made jerk searches ~3%    */
-/* slower).                                                              */
+/* is the fundamental, and slot 1 + harmnum / 2 holds odd subharmonic    */
+/* harmnum of the current stage: add_search_ffdotpows() needs all of a   */
+/* stage's subharmonics at once.                                         */
 typedef struct accelslot {
     ffdotpows ffdot;
     float *buf;                 /* the powers, rows contiguous */
@@ -1113,7 +1112,7 @@ typedef struct accelslot {
     size_t numrows;
     float ***planes;
     int numplanes;
-    unsigned short *rinds;      /* corr_uselen r indices */
+    int *rinds;                 /* corr_uselen r indices */
     unsigned short *zinds;      /* numz z indices */
 } accelslot;
 
@@ -1131,15 +1130,14 @@ struct accelwork {
 
 static inline int harm_slot(int numharm, int harmnum)
 {
-    (void) harmnum;
-    return (numharm == 1) ? 0 : 1;
+    return (numharm == 1) ? 0 : 1 + harmnum / 2;
 }
 
 accelwork *create_accelwork(subharminfo **shis, accelobs *obs)
 {
     accelwork *ws = (accelwork *) calloc(1, sizeof(accelwork));
 
-    ws->numslots = (obs->numharmstages > 1) ? 2 : 1;
+    ws->numslots = 1 + ((obs->numharmstages > 1) ? (1 << (obs->numharmstages - 1)) / 2 : 0);
     ws->slots = (accelslot *) calloc(ws->numslots, sizeof(accelslot));
     ws->maxfftlen = shis[0][0].kern[0][0].fftlen;
     /* In-memory searches have no subharmonic kernels */
@@ -1150,8 +1148,7 @@ accelwork *create_accelwork(subharminfo **shis, accelobs *obs)
                 ws->maxfftlen = shis[ii][jj - 1].kern[0][0].fftlen;
     }
     for (int ii = 1; ii < ws->numslots; ii++) {
-        ws->slots[ii].rinds =
-            (unsigned short *) malloc(obs->corr_uselen * sizeof(unsigned short));
+        ws->slots[ii].rinds = (int *) malloc(obs->corr_uselen * sizeof(int));
         ws->slots[ii].zinds =
             (unsigned short *) malloc(obs->numz * sizeof(unsigned short));
     }
@@ -1191,7 +1188,8 @@ static void slot_powers(accelslot *sl, int numws, int numzs, int numrs)
 /* gen_f3Darr() does, growing the buffers if needed.                   */
 {
     size_t numrows = (size_t) numws * numzs;
-    size_t size = numrows * numrs;
+    /* add_gathered_row() may read a little past a subharmonic's last row */
+    size_t size = numrows * numrs + ACCEL_ROWPAD;
 
     if (size > sl->bufsize) {
         if (sl->buf)
@@ -1467,57 +1465,6 @@ void free_ffdotpows(ffdotpows *ffd)
     free(ffd);
 }
 
-void add_ffdotpows(ffdotpows *fundamental,
-                   ffdotpows *subharmonic, int numharm, int harmnum)
-{
-    const double harm_fract = (double) harmnum / (double) numharm;
-
-    for (int ii = 0; ii < fundamental->numws; ii++) {
-        int ww = fundamental->wlo + ii * ACCEL_DW;
-        int subw = calc_required_w(harm_fract, ww);
-        int wind = index_from_w(subw, subharmonic->wlo);
-
-        for (int jj = 0; jj < fundamental->numzs; jj++) {
-            int zind = subharmonic->zinds[jj];
-
-            for (int kk = 0; kk < fundamental->numrs; kk++) {
-                int rind = subharmonic->rinds[kk];
-                fundamental->powers[ii][jj][kk] +=
-                    subharmonic->powers[wind][zind][rind];
-
-            }
-        }
-    }
-}
-
-void add_ffdotpows_ptrs(ffdotpows *fundamental,
-                        ffdotpows *subharmonic, int numharm, int harmnum)
-{
-    int ii, jj, kk, ww, wind, subw;
-    const int wlo = fundamental->wlo;
-    const int numrs = fundamental->numrs;
-    const int numzs = fundamental->numzs;
-    const int numws = fundamental->numws;
-    const double harm_fract = (double) harmnum / (double) numharm;
-    float *outpows, *inpows;
-    unsigned short *rindsptr, *zindsptr;
-
-    for (ii = 0; ii < numws; ii++) {
-        ww = wlo + ii * ACCEL_DW;
-        subw = calc_required_w(harm_fract, ww);
-        wind = index_from_w(subw, subharmonic->wlo);
-        zindsptr = subharmonic->zinds;
-        for (jj = 0; jj < numzs; jj++) {
-            inpows = subharmonic->powers[wind][*zindsptr++];
-            outpows = fundamental->powers[ii][jj];
-            rindsptr = subharmonic->rinds;
-            for (kk = 0; kk < numrs; kk++)
-                *outpows++ += inpows[*rindsptr++];
-        }
-    }
-}
-
-
 void inmem_add_ffdotpows(ffdotpows *fundamental, accelobs *obs,
                          int numharm, int harmnum)
 {
@@ -1608,13 +1555,45 @@ void inmem_add_ffdotpows_trans(ffdotpows *fundamental, accelobs *obs,
 
 static inline int count_row_hits(const float *restrict row, int numrs, float powcut)
 /* The number of powers in a row that are not <= powcut (so NaNs count, as in */
-/* the scalar test in search_ffdotpows()).  An integer reduction, so it       */
+/* the scalar test in record_row_hits()).  An integer reduction, so it        */
 /* vectorizes without -ffast-math.                                            */
 {
     int count = 0;
     for (int kk = 0; kk < numrs; kk++)
         count += !(row[kk] <= powcut);
     return count;
+}
+
+
+static void record_row_hits(const ffdotpows *ffdot, int ii, int jj, int numharm,
+                            const accelobs *obs, accelwork *ws)
+/* Append the powers in row (ii, jj) of ffdot that are above the stage's */
+/* power cutoff to ws's hits, in r order.                               */
+{
+    const float powcut = obs->powcut[twon_to_index(numharm)];
+    const long long numindep = obs->numindep[twon_to_index(numharm)];
+    const int numrs = ffdot->numrs;
+    const float *rowpows = ffdot->powers[ii][jj];
+    const double zz = (ffdot->zlo + jj * (double) ACCEL_DZ) / (double) numharm;
+    const double ww = (ffdot->wlo + ii * (double) ACCEL_DW) / (double) numharm;
+
+    for (int kk = 0; kk < numrs; kk++) {
+        const float pow = rowpows[kk];
+
+        if (pow <= powcut)
+            continue;
+        if (ws->numhits == ws->maxhits) {
+            ws->maxhits *= 2;
+            ws->hits = (accelhit *) realloc(ws->hits, ws->maxhits * sizeof(accelhit));
+        }
+        accelhit *hit = ws->hits + ws->numhits++;
+        hit->pow = pow;
+        hit->sig = candidate_sigma(pow, numharm, numindep);
+        hit->numharm = numharm;
+        hit->rr = (ffdot->rlo + kk * (double) ACCEL_DR) / (double) numharm;
+        hit->zz = zz;
+        hit->ww = ww;
+    }
 }
 
 
@@ -1626,36 +1605,48 @@ void search_ffdotpows(ffdotpows *ffdot, int numharm, accelobs *obs, accelwork *w
 /* hits to the candidate list.                                           */
 {
     const float powcut = obs->powcut[twon_to_index(numharm)];
-    const long long numindep = obs->numindep[twon_to_index(numharm)];
-    const int numrs = ffdot->numrs, numzs = ffdot->numzs;
-    const int numrows = ffdot->numws * numzs;
-    /* The rows are contiguous (as from gen_f3Darr()) */
-    const float *powers = ffdot->powers[0][0];
 
-    for (int row = 0; row < numrows; row++) {
-        const float *rowpows = powers + (size_t) row * numrs;
-        if (!count_row_hits(rowpows, numrs, powcut))
-            continue;
-        const int ii = row / numzs, jj = row % numzs;
-        const double zz = (ffdot->zlo + jj * (double) ACCEL_DZ) / (double) numharm;
-        const double ww = (ffdot->wlo + ii * (double) ACCEL_DW) / (double) numharm;
-        for (int kk = 0; kk < numrs; kk++) {
-            const float pow = rowpows[kk];
+    for (int ii = 0; ii < ffdot->numws; ii++)
+        for (int jj = 0; jj < ffdot->numzs; jj++)
+            if (count_row_hits(ffdot->powers[ii][jj], ffdot->numrs, powcut))
+                record_row_hits(ffdot, ii, jj, numharm, obs, ws);
+}
 
-            if (pow <= powcut)
-                continue;
-            if (ws->numhits == ws->maxhits) {
-                ws->maxhits *= 2;
-                ws->hits = (accelhit *) realloc(ws->hits,
-                                                ws->maxhits * sizeof(accelhit));
+
+void add_search_ffdotpows(ffdotpows *fundamental, ffdotpows **subharmonics,
+                          int numharm, accelobs *obs, accelwork *ws)
+/* One harmonic-summing stage: add subharmonics[k], harmonic 2k+1 of     */
+/* numharm (numharm / 2 of them), to the fundamental, then search it as   */
+/* search_ffdotpows() does.  Row by row, so each row of the fundamental  */
+/* takes all the adds and the threshold scan while it is in L1 cache.    */
+/* The harmonics are added in the same order as one add per harmonic    */
+/* would, so the sums are identical.                                     */
+{
+    const int numsubs = numharm / 2;
+    const int numrs = fundamental->numrs, numzs = fundamental->numzs;
+    const float powcut = obs->powcut[twon_to_index(numharm)];
+    int winds[ACCEL_MAXSTAGESUBS];
+
+    if (numsubs > ACCEL_MAXSTAGESUBS) {
+        fprintf(stderr, "add_search_ffdotpows: too many harmonics (%d)\n", numharm);
+        exit(1);
+    }
+    for (int ii = 0; ii < fundamental->numws; ii++) {
+        const int ww = fundamental->wlo + ii * ACCEL_DW;
+        for (int ss = 0; ss < numsubs; ss++) {
+            const double harm_fract = (double) (2 * ss + 1) / (double) numharm;
+            const int subw = calc_required_w(harm_fract, ww);
+            winds[ss] = index_from_w(subw, subharmonics[ss]->wlo);
+        }
+        for (int jj = 0; jj < numzs; jj++) {
+            float *outpows = fundamental->powers[ii][jj];
+            for (int ss = 0; ss < numsubs; ss++) {
+                const ffdotpows *sub = subharmonics[ss];
+                add_gathered_row(outpows, sub->powers[winds[ss]][sub->zinds[jj]],
+                                 sub->rinds, numrs);
             }
-            accelhit *hit = ws->hits + ws->numhits++;
-            hit->pow = pow;
-            hit->sig = candidate_sigma(pow, numharm, numindep);
-            hit->numharm = numharm;
-            hit->rr = (ffdot->rlo + kk * (double) ACCEL_DR) / (double) numharm;
-            hit->zz = zz;
-            hit->ww = ww;
+            if (count_row_hits(outpows, numrs, powcut))
+                record_row_hits(fundamental, ii, jj, numharm, obs, ws);
         }
     }
 }

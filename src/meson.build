@@ -54,9 +54,17 @@ libpresto = library(
 INSTRUMENTOBJS= ['backend_common.c', 'psrfits.c', 'sigproc_fb.c', 'zerodm.c']
 PLOT2DOBJS = ['powerplot.c', 'xyline.c']
 
-executable('accelsearch', 'accelsearch.c', 'accelsearch_cmd.c', 'accel_utils.c', 'zapping.c',
+executable('accelsearch', 'accelsearch.c', 'accelsearch_cmd.c', 'accel_utils.c', 'accel_gather.c', 'zapping.c',
     dependencies: [glib, fftw, gsl, libm, omp], c_args: '-DUSEMMAP',
     include_directories: inc, link_with: libpresto, install: true, install_rpath: presto_rpath)
+
+# Checks every version of accelsearch's harmonic-sum gather against the
+# scalar one, for tests/test_accel_gather.py (not installed).
+executable('accel_gather_test',
+    sources: [files('../tests/accelsearch/gather_test.c'), 'accel_gather.c'],
+    dependencies: [glib, fftw, libm],
+    include_directories: inc,
+    install: false)
 
 executable('bary', 'bary.c',
     dependencies: [fftw, gsl, libm], include_directories: inc, link_with: libpresto, install: true, install_rpath: presto_rpath)

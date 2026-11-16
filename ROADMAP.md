@@ -358,30 +358,46 @@ FFTW 8.5 s, `search_ffdotpows` 6.9 s, `add_ffdotpows` 5.6 s, `subharm_fderivs_vo
      holds uninitialized struct padding, so compare the ACCEL files themselves.
      `profile_accel.sh`'s md5 check used to include both and reported "DIFFERS"
      spuriously; it now checks only the ACCEL files.
-2. **Harmonic-sum gather (`add_ffdotpows`).** For harmonic h of N, the subharmonic r index
-   table is periodic: `rinds[kk + 2N] = rinds[kk] + 2h`. The period is 2N, not N, because
-   `rint()` rounds ties to even; checked numerically for every N ≤ 32 and odd h.
-   - So each block of 2N outputs reads a contiguous window of 2h+1 inputs, in a fixed
-     pattern per (h, N).
-   - Options, cheapest first:
-     - `int32` indices (now `unsigned short`) with `restrict`, so gcc can use `vgatherdps`
-       in v3/v4 clones;
-     - unrolling by the period with a small constant offset table;
-     - a window load plus a fixed permute per (h, N). That is explicit SIMD, the strongest
-       Highway candidate in accelsearch if the compiler won't do it.
-   - `zinds` only selects rows and is not a cost.
-3. **Fusing and blocking.** Fold the scan into the last add of each stage, which saves one
-   full pass per stage and is simple. Beyond that, tile the fundamental by rows and do all
-   of a stage's adds plus its scan per tile while the tile is in cache. That needs the
-   stage's subharmonic planes computed first: more memory, the same reads from them.
-   - For acceleration searches the fundamental (1.2 MB) already sits in L2, so the
-     gather is instruction-bound, not memory-bound: ~5 uops per element (index load,
-     gathered load, load, add, store). Do all of a stage's adds row by row plus that
-     row's scan in one pass, with item 2's periodic offsets in plain C, so every build
-     gains (conda-forge's included). That removes 3 of the 4 read-modify-write passes in
-     the 8-harmonic stage. Then add item 2's SIMD permute kernel behind the ifunc
-     dispatch from `coherentsearch` (nocona has no SSSE3 shuffles). Guess: `add_ffdotpows`
-     from ~26% to 8–10% of the run, ~1.2x overall.
+2. **[DONE] Harmonic-sum gather (`add_ffdotpows`, now `add_gathered_row` in
+   `accel_gather.c`).** The subharmonic's r step is h/N < 1 of the fundamental's, so
+   consecutive `rinds` differ by 0 or 1, and any V consecutive outputs read from V
+   consecutive inputs. So no period tables are needed: per V outputs, load V inputs at
+   `in + rinds[k]` and permute them with `rinds[k..k+V) - rinds[k]` (`vpermps` for
+   AVX2, `vpermps zmm` for AVX-512, `tbl` with byte indices for NEON). The SIMD reads
+   go up to V-1 floats past a row, so the slot buffers carry `ACCEL_ROWPAD` floats of
+   padding. AVX2/AVX-512 sit behind the ifunc dispatch, now shared with coherentsearch
+   in `include/simd_dispatch.h`; NEON needs none. Every kernel adds the same floats in
+   the same order, so sums are bit-identical; `tests/test_accel_gather.py` checks every
+   kernel the CPU has against the scalar loop for all harmonics up to `-numharm 32`.
+   - The (r, z) period of 2N noted earlier (ties round to even) still holds, but the
+     permute doesn't need it.
+   - Not done: an SSE2 version for x86 builds without dispatch (macOS x86-64, or
+     `-DPRESTO_NO_DISPATCH`). SSE2 has no variable float permute; it would need a
+     switch over the 8 possible 0/1 step patterns per 4 outputs.
+3. **[DONE, the row-wise part] Fusing.** `add_search_ffdotpows` computes all of a stage's
+   subharmonics first (one slot each, `1 + harmnum/2`), then, per fundamental row, does
+   every add and that row's threshold count while the row is in L1, so the fundamental
+   is read and written once per stage instead of once per harmonic plus once for the
+   scan. The extra memory is about the sum of (h/N)^2 (accel) or (h/N)^3 (jerk) times
+   the fundamental per stage: 1.3x for the 8-harmonic stage, 2.7x for the 16-harmonic
+   one. The earlier ~3% jerk penalty for separate subharmonic buffers is more than paid
+   back.
+   - Results (1 thread, `-ncpus 1`, Ter5 DM 238.50, 2 runs + warm-up; master → new).
+     ACCEL files are byte-identical in every build, search and host:
+
+     | search | eiger nocona | eiger native | fitzroy nocona | fitzroy native |
+     |---|---|---|---|---|
+     | `-zmax 200 -numharm 8` | 20.6 → 17.6 s | 18.6 → 15.0 s | 44.0 → 37.1 s | 38.4 → 31.2 s |
+     | `-zmax 200 -numharm 16` | 39.4 → 33.2 s | 35.8 → 28.8 s | (not run) | (not run) |
+     | `-zmax 50 -wmax 200 -numharm 8` | 102.7 → 86.3 s | 92.8 → 74.5 s | 185.0 → 152.7 s | 171.0 → 131.9 s |
+
+     nocona runs pick v4 on eiger and v3 on fitzroy (no VBMI2). The fused plain-C path
+     alone (nocona, `-DPRESTO_NO_DISPATCH`) gives 4-7% on eiger. `-march=x86-64-v3` on
+     eiger is within 3% of native. The gather now takes 8-16% of a run (was 23-30%), and
+     `subharm_fderivs_vol` plus FFTW are most of the rest.
+   - Not done: tiling the fundamental by rows across stages, or computing subharmonic
+     rows lazily per tile. With the fundamental already in L2 for accel searches, the
+     gain left is small; for jerk (7.7 MB fundamental) it may still be worth a look.
 4. **[DONE] Parallelize over blocks, not within them.** Done as described below, with
    two-pass in-memory mode. Every subharmonic shares one per-thread buffer: separate
    buffers made jerk searches ~3% slower on eiger (cache footprint). ACCEL files are

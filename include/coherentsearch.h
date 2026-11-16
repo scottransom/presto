@@ -26,6 +26,7 @@
 
 #include "presto.h"
 #include "cs_fftplan.h"
+#include "simd_dispatch.h"
 
 #define CS_MAXDECIM 64          /* most decimation factors in one search */
 #define CS_SIGMA_SAMPLES 8192   /* bins pooled for the measured noise scale */
@@ -105,47 +106,13 @@ typedef struct {
 } cs_hplan;
 
 /* Runtime CPU dispatch for the two hot kernels (cs_fill_row and
- * cs_boxcar_batch).  Builds for a baseline x86-64 CPU (e.g. conda-forge's
- * -march=nocona) also compile them for x86-64-v3 (AVX2+FMA) and x86-64-v4
- * (AVX-512), and an ifunc resolver picks one when the program loads:
- * cs_simd_level() below.  ifunc limits this to x86-64 ELF (Linux), and
- * builds that already target AVX2 (e.g. -march=native) don't need it.
- * Define CS_NO_DISPATCH to turn it off.  The results are identical at every
+ * cs_boxcar_batch); see simd_dispatch.h.  The results are identical at every
  * level (FMA included) on the Ter5 test data. */
-#if !defined(CS_NO_DISPATCH) && !defined(__AVX2__) && defined(__x86_64__) && \
-    defined(__ELF__) && defined(__GNUC__) && defined(__has_attribute)
-#if __has_attribute(ifunc) && __has_attribute(target)
+#ifdef PRESTO_SIMD_DISPATCH
 #define CS_DISPATCH 1
 #endif
-#endif
-
-/* The kernel version the CPU gets: 4 (x86-64-v4), 3 (x86-64-v3) or 0 (the
- * build's baseline).  v4 needs AVX512_VBMI2 too, i.e. Ice Lake, Sapphire
- * Rapids, Zen 4 or newer: on Skylake-SP and Cascade Lake, 512-bit vectors
- * lower the clock so much that the v4 kernels are slower than v3, and even
- * than the baseline (measured: coherentsearch 0.94x the baseline's speed on
- * a Xeon Silver 4114, against 1.35x on a Sapphire Rapids w5-3433). */
-/* The ifunc resolvers run while the program is being relocated, before
- * any sanitizer runtime is set up, so they must not be instrumented. */
-#if defined(__has_attribute)
-#if __has_attribute(no_sanitize)
-#define CS_NO_SANITIZE __attribute__((no_sanitize("address", "undefined")))
-#endif
-#endif
-#ifndef CS_NO_SANITIZE
-#define CS_NO_SANITIZE
-#endif
-CS_NO_SANITIZE static inline int cs_simd_level(void)
-{
-#ifdef CS_DISPATCH
-    __builtin_cpu_init();
-    if (__builtin_cpu_supports("x86-64-v4") && __builtin_cpu_supports("avx512vbmi2"))
-        return 4;
-    if (__builtin_cpu_supports("x86-64-v3"))
-        return 3;
-#endif
-    return 0;
-}
+#define CS_NO_SANITIZE PRESTO_NO_SANITIZE
+#define cs_simd_level presto_simd_level
 
 /* Define a dispatched kernel NAME(PARAMS) whose body is the always-inline
  * NAME##_impl(ARGS): one copy is compiled per level and an ifunc resolver

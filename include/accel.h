@@ -123,7 +123,7 @@ typedef struct ffdotpows{
     int numzs;          /* Number of Fourier f-dots present */
     int numws;          /* Number of Fourier f-dot-dots present */
     float ***powers;     /* 3D Matrix of the powers */
-    unsigned short *rinds; /* Table of lookup indices for Fourier Freqs */
+    int *rinds;         /* Table of lookup indices for Fourier Freqs */
     unsigned short *zinds; /* Table of lookup indices for Fourier f-dots */
 } ffdotpows;
 
@@ -169,10 +169,22 @@ void fund_to_ffdotplane_trans(ffdotpows *ffd, accelobs *obs);
 void inmem_add_ffdotpows_trans(ffdotpows *fundamental, accelobs *obs,
                                int numharm, int harmnum);
 void free_ffdotpows(ffdotpows *ffd);
-void add_ffdotpows_ptrs(ffdotpows *fundamental, ffdotpows *subharmonic,
-                        int numharm, int harmnum);
-void add_ffdotpows(ffdotpows *fundamental, ffdotpows *subharmonic, 
-                   int numharm, int harmnum);
+/* Most subharmonics in one harmonic-summing stage (numharm is at most 32) */
+#define ACCEL_MAXSTAGESUBS 16
+void add_search_ffdotpows(ffdotpows *fundamental, ffdotpows **subharmonics,
+                          int numharm, accelobs *obs, accelwork *ws);
+
+/* accel_gather.c */
+
+/* Floats of padding a subharmonic's powers need after them, since the */
+/* SIMD versions of add_gathered_row() read a little past the end.    */
+#define ACCEL_ROWPAD 16
+typedef void (*accel_gather_fn)(float *restrict out, const float *restrict in,
+                                const int *restrict rinds, int n);
+void add_gathered_row(float *restrict out, const float *restrict in,
+                      const int *restrict rinds, int n);
+const char *accel_simd_name(void);
+int accel_gather_kernels(const char **names, accel_gather_fn *fns, int maxnum);
 void search_ffdotpows(ffdotpows *ffdot, int numharm, accelobs *obs,
                       accelwork *ws);
 GSList *insert_accelhits(GSList *cands, accelwork *ws, accelobs *obs);

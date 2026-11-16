@@ -1,4 +1,18 @@
 ## Development (unreleased, since v6.3.2):
+ * `accelsearch` is 15-23% faster with 1 thread, in the conda-forge packages too, with
+   byte-identical ACCEL files.  Two changes to the harmonic sums: each stage now adds all
+   of its subharmonics and runs the threshold scan row by row while the row is in cache
+   (`add_search_ffdotpows`), and the gather that adds a subharmonic row uses a vector
+   load plus a lane permute instead of a scalar loop (AVX2 or AVX-512, picked at run
+   time on baseline x86-64 builds such as conda-forge's, and NEON on aarch64).  Measured
+   on the Ter5 test data: `-zmax 200 -numharm 8` 20.6 to 17.6 s and `-zmax 50 -wmax 200
+   -numharm 8` 103 to 86 s on a Sapphire Rapids Xeon (conda-forge-like `-march=nocona`
+   build), and 44.0 to 37.1 s and 185 to 153 s on a Skylake-SP Xeon (`-march=native`:
+   15-23% faster on both).  `-perfinfo` reports which gather kernel runs.  The runtime
+   CPU dispatch that `coherentsearch` uses moved to `include/simd_dispatch.h`
+   (`-DPRESTO_NO_DISPATCH`, or the old `-DCS_NO_DISPATCH`, turns it off), and the new
+   test `tests/test_accel_gather.py` checks every gather kernel against the scalar one.
+   The `-otheropt` flag now affects only in-memory searches.
 
 ## Version 6.3.2:
  * **A speed release for `accelsearch`**, following v6.3.1's for `coherentsearch`.  With

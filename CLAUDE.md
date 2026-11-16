@@ -69,7 +69,9 @@ inside `pixi run bash`; reconfigure with `-Db_sanitize=none` afterwards. The tes
 `tests/test_maximize_rz.py`, `tests/test_pipeline_synthetic.py`, `tests/test_sifting.py`,
 `tests/test_coherentsearch.py` (reference numbers for the coherentsearch port; see
 `tests/coherentsearch/README.md`), `tests/test_coherent_sift.py` (the `.cohout`
-sifter in `bin/coherent_sift.py`), the fftfit suite in
+sifter in `bin/coherent_sift.py`), `tests/test_accel_gather.py` (every SIMD version of
+accelsearch's harmonic-sum gather, via the uninstalled `accel_gather_test`, against the
+scalar loop), the fftfit suite in
 `python/fftfit_src/` (needs `hypothesis`), and `tests/test_presto_python.py`. Add a new test
 to that list when you add it.
 
