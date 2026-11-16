@@ -1,17 +1,33 @@
 #include "presto.h"
 
 int next_good_fftlen(int N)
-/* Return one of the shortest, yet best performing, FFT lengths larger
- * than N.  This assumes FFTW. */
+/* Return the FFT length >= N that is cheapest for accelsearch's      */
+/* correlations (complex multiply + inverse FFT).  This assumes FFTW. */
 {
-    int fftlens[17] = {128, 192, 256, 384, 512, 768, 1024, 1280, 2048, 4096,
-                       5120, 7680, 10240, 12288, 15360, 16384, 25600};
+    // Up to 8192, these are the lengths that are cheaper than every
+    // longer one on both a Sapphire Rapids and a Skylake-SP Xeon (their
+    // system FFTWs, 3.3.8 and 3.3.5, single thread), timed with
+    // accel_fftlen_bench (tests/accelsearch/fftlen_bench.c), plus 5376
+    // (cheapest on Skylake-SP, neutral on Sapphire Rapids).  On each
+    // machine, this list is within ~1% of that machine's own best lengths
+    // on average, and within 0.6% with conda-forge's FFTW 3.3.10.
+    // Powers of 2 are much faster per point than other lengths, so the
+    // others only pay off just above a power of 2.  The lengths above
+    // 8192 are from the older, FFTW 3.3.7-era list.
+    static const int fftlens[] = {
+        128, 160, 192, 240, 256, 320, 384, 400, 512, 640, 768, 1024,
+        1280, 1344, 1536, 2048, 2304, 2400, 2560, 2880, 3072, 3200, 4096,
+        4800, 5120, 5376, 6144, 6400, 6912, 7680, 8192,
+        10240, 12288, 15360, 16384, 25600
+    };
+    const int numlens = sizeof(fftlens) / sizeof(fftlens[0]);
     int ii = 0;
     if (N <= fftlens[0])
         return fftlens[0];
-    if (N > fftlens[16])
+    if (N > fftlens[numlens - 1])
         return next2_to_n(N);
-    while (N > fftlens[ii]) ii++;
+    while (N > fftlens[ii])
+        ii++;
     return fftlens[ii];
 }
 

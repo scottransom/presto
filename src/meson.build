@@ -7,9 +7,6 @@ executable('fitsdelcol', 'fitsdelcol.c',
 executable('fitsdelrow', 'fitsdelrow.c',
     dependencies: [fits, libm], include_directories: inc, install: true, install_rpath: presto_rpath)
 
-executable('makewisdom', 'makewisdom.c', 'datadir.c',
-    dependencies: [fftw, libm], include_directories: inc, install: true, install_rpath: presto_rpath)
-
 executable('mjd2cal', 'mjd2cal.c',
     dependencies: [erfa, libm], include_directories: inc, install: true, install_rpath: presto_rpath)
 
@@ -65,6 +62,20 @@ executable('accel_gather_test',
     dependencies: [glib, fftw, libm],
     include_directories: inc,
     install: false)
+
+# Times accelsearch's correlation step (multiply + inverse FFT) for every
+# candidate FFT length, to tune next_good_fftlen() and
+# fftlen_from_kernwidth() per machine (not installed).
+executable('accel_fftlen_bench', '../tests/accelsearch/fftlen_bench.c',
+    dependencies: [glib, fftw, libm],
+    include_directories: inc,
+    link_with: libpresto,
+    install: false)
+
+# makewisdom plans accelsearch's FFT lengths too, from next_good_fftlen().
+executable('makewisdom', 'makewisdom.c', 'datadir.c',
+    dependencies: [fftw, libm], include_directories: inc, link_with: libpresto,
+    install: true, install_rpath: presto_rpath)
 
 executable('bary', 'bary.c',
     dependencies: [fftw, gsl, libm], include_directories: inc, link_with: libpresto, install: true, install_rpath: presto_rpath)

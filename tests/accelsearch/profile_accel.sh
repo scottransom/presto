@@ -17,7 +17,8 @@
 # first binary.
 #
 # Environment knobs:
-#   SEARCHES="accel8 accel16 jerk"   which searches (see the table below)
+#   SEARCHES="accel8 accel16 jerk"   which searches (see the table below; also
+#                                    accel16z400 and jerkbig, for long kernels)
 #   RUNS=3 WARMUP=1                  hyperfine settings
 #   THREADS="1 2 4 8 16"             thread counts for the scaling runs ("" to skip)
 #   PERF_FREQ=999                    perf sampling frequency (Hz)
@@ -25,7 +26,7 @@
 #                                    (e.g. "-flo 100 -fhi 110" for a quick smoke test)
 set -euo pipefail
 
-[ $# -ge 3 ] || { sed -n '2,25p' "$0"; exit 1; }
+[ $# -ge 3 ] || { sed -n '2,26p' "$0"; exit 1; }
 FFT=$(realpath "$1"); INF=${FFT%.fft}.inf; OUT=$(realpath -m "$2"); shift 2
 [ -f "$INF" ] || { echo "missing $INF"; exit 1; }
 SEARCHES=${SEARCHES:-accel8 accel16 jerk}
@@ -37,6 +38,10 @@ declare -A ARGS=(
     [accel8]="-zmax 200 -numharm 8"
     [accel16]="-zmax 200 -numharm 16"
     [jerk]="-zmax 50 -wmax 200 -numharm 8"
+    # Long kernels (4096-point fundamental FFTs).  The big jerk search covers only
+    # 10-40 Hz: over the full band it takes over an hour per run.
+    [accel16z400]="-zmax 400 -numharm 16"
+    [jerkbig]="-zmax 300 -wmax 900 -numharm 8 -flo 10 -fhi 40"
 )
 # A build-tree binary must load its own libpresto, but an activated environment puts
 # its lib directory on LD_LIBRARY_PATH, which beats the binary's RUNPATH.  So when a

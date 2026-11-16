@@ -172,8 +172,8 @@ indent:
 prep:
 	touch *_cmd.c
 
-makewisdom:
-	$(CC) $(CLINKFLAGS) -o $@ makewisdom.c $(FFTLINK)
+makewisdom: libpresto
+	$(CC) $(CLINKFLAGS) -o $@ makewisdom.c datadir.c $(PRESTOLINK) $(GLIBLINK) -lm
 	./makewisdom
 	cp fftw_wisdom.txt $(PRESTO)/lib
 

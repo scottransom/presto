@@ -1,4 +1,13 @@
 ## Development (unreleased, since v6.3.2):
+ * **Rerun `makewisdom` after updating.**  `accelsearch` now picks its correlation FFT
+   lengths from a new, measured list (`next_good_fftlen()`): powers of 2, plus the
+   7-smooth lengths that beat the next power of 2 on current Xeons.  With 1 thread it is
+   0.3-3.5% faster for typical searches and 6-10% for long kernels (e.g. `-zmax 400`), with
+   identical candidates.  `makewisdom` now plans exactly the transforms `accelsearch` makes
+   for every one of those lengths (the out-of-place inverse had never had wisdom).  Without
+   fresh wisdom, `accelsearch` re-measures each new length on every run, which costs more
+   than the new lengths save.  The new `makewisdom -check` asks FFTW whether the existing
+   wisdom covers them all (exit status 0 if so).
  * `accelsearch` is 15-23% faster with 1 thread, in the conda-forge packages too, with
    byte-identical ACCEL files.  Two changes to the harmonic sums: each stage now adds all
    of its subharmonics and runs the threshold scan row by row while the row is in cache
