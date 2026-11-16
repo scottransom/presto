@@ -25,6 +25,82 @@ float get_numphotons(FILE * file)
 }
 
 
+/* The normalization check.  Normalized powers (e.g. from rednoise) are */
+/* exponential with mean 1, so median/ln 2 should be 1.  Check a block  */
+/* of bins away from the lowest frequencies, where leftover red noise    */
+/* (rednoise's running median rests on few bins there) would raise      */
+/* false alarms; the median shrugs off a pulsar or RFI in the block.    */
+/* 10000 bins give a scatter of about 1.4% in the power, 0.7% in the    */
+/* noise scale.                                                         */
+#define NORM_CHECK_LO 10000     /* first bin checked */
+#define NORM_CHECK_N 10000      /* bins checked */
+#define NORM_CHECK_TOL 0.10     /* tolerated error in the noise scale */
+#define NORM_CHECK_FATAL 2.0    /* noise scale off by more: refuse to search */
+
+void fft_norm_check_range(long long numamps, long long *lo, long long *n)
+/* The bins [*lo, *lo + *n) that check_fft_normalization() examines in */
+/* an FFT of numamps complex bins, so callers reading from a file only */
+/* need those.                                                          */
+{
+    *lo = NORM_CHECK_LO;
+    *n = NORM_CHECK_N;
+    if (numamps < *lo + *n) {   /* short FFT: the top half, at most n bins */
+        *lo = numamps / 2;
+        *n = numamps - *lo < *n ? numamps - *lo : *n;
+    }
+}
+
+static int cmp_float(const void *a, const void *b)
+{
+    float x = *(const float *) a, y = *(const float *) b;
+    return (x > y) - (x < y);
+}
+
+int check_fft_normalization(const fcomplex *amps, long long lo, long long n,
+                            const char *fname, const char *effect,
+                            const char *remedy)
+/* Check that the powers of the complex bins amps[0..n) (bins lo to   */
+/* lo+n-1 of the FFT, from fft_norm_check_range()) look normalized,   */
+/* i.e. have median ln 2.  If not, print a warning to stderr naming   */
+/* the file 'fname', how far off the noise scale is, then 'effect'    */
+/* (the consequence, as a clause starting with ", and") and 'remedy'. */
+/* Returns 1 if the powers look normalized (or n < 100), 0 if the     */
+/* noise scale is off by up to NORM_CHECK_FATAL (a warning), and -1   */
+/* if it is off by more (an error: the caller should not search, as   */
+/* nearly every trial would pass its threshold).                      */
+{
+    if (n < 100)
+        return 1;
+    float *pow = malloc(n * sizeof(float));
+    for (long long i = 0; i < n; i++)
+        pow[i] = amps[i].r * amps[i].r + amps[i].i * amps[i].i;
+    qsort(pow, n, sizeof(float), cmp_float);
+    const double med = n % 2 ? pow[n / 2] : 0.5 * (pow[n / 2 - 1] + pow[n / 2]);
+    free(pow);
+    const double ratio = sqrt(med / M_LN2);     /* (actual / assumed) noise scale */
+    if (fabs(ratio - 1.0) <= NORM_CHECK_TOL)
+        return 1;
+    const int fatal = ratio > NORM_CHECK_FATAL || ratio < 1.0 / NORM_CHECK_FATAL;
+    fprintf(stderr, "\n%s (%s): the Fourier powers do not look normalised: the noise\n"
+            "  scale is ", fatal ? "ERROR" : "WARNING", fname);
+    /* Quote a ratio, not a percentage, when it is far off: a 1000x error
+     * would otherwise read like a 99.9% one. */
+    if (ratio > 2.0 || ratio < 0.5)
+        fprintf(stderr, "off by a factor of %.3g", ratio > 1.0 ? ratio : 1.0 / ratio);
+    else
+        fprintf(stderr, "%.1f%% too %s", 100.0 * fabs(ratio - 1.0),
+                ratio > 1.0 ? "high" : "low");
+    fprintf(stderr, "%s\n"
+            "  Normalised powers have mean 1 (median ln 2 = 0.693); bins %lld-%lld have\n"
+            "  median %.4g.  %s\n", effect, lo, lo + n - 1, med, remedy);
+    if (fatal)
+        fprintf(stderr, "  That is more than %gx off, so nearly every trial would pass the\n"
+                "  threshold.  Exiting.\n", NORM_CHECK_FATAL);
+    fprintf(stderr, "\n");
+    return fatal ? -1 : 0;
+}
+
+
 double get_localpower(fcomplex * data, long numdata, double r)
   /* Return the local power level at specific FFT frequency.  */
   /* Arguments:                                               */

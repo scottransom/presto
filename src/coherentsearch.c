@@ -173,7 +173,8 @@ int main(int argc, char *argv[])
         }
         if (!p.sigma_measured) {
             fflush(stdout);
-            cs_check_normalisation(&fft, infile);
+            if (cs_check_normalisation(&fft, infile) < 0)
+                exit(1);
         }
         cs_band band = cs_make_band(&fft, &p, cmd->lofreq, cmd->hifreq,
                                     cmd->lobinP ? cmd->lobin : -1);

@@ -8,7 +8,7 @@
 .\" Remove a pair to hand-edit that section instead.
 .\"
 .\" cligPart TITLE
-.TH "coherentsearch" 1 "14Nov26" "pyCLIG-manuals" "Programmer's Manual"
+.TH "coherentsearch" 1 "16Nov26" "pyCLIG-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -188,8 +188,9 @@ every k-th harmonic
 .RB ( "k = 2 .. -maxdecim" )
 at k times each fundamental, almost for free.  The profile S/N is
 normalised by a noise scale computed from the number of harmonics
-summed, which assumes Fourier powers of mean 1; a check on a few chunks
-warns if the data disagree, and
+summed, which assumes Fourier powers of mean 1.  A check on 10000 bins
+warns if the data disagree by more than 10%, and stops with an error if
+they disagree by more than a factor of 2;
 .B -measuredsigma
 estimates the scale from the data instead.
 .PP

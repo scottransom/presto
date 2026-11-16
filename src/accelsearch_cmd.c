@@ -71,6 +71,8 @@ static Cmdline cmd = {
     /* medianP = */ 0,
     /***** -locpow: Use double-tophat local-power normalization (not usually recommended) */
     /* locpowP = */ 0,
+    /***** -nonorm: Assume the powers are already normalized (by rednoise, or as accelsearch does for .dat input): no block normalization in the search (candidate optimization still uses local powers), which also allows shorter, faster FFTs for small -zmax/-wmax.  Warns if the powers look >10% off, exits if >2x off */
+    /* nonormP = */ 0,
     /***** -zaplist: A file of freqs+widths to zap from the FFT (only if the input file is a *.[s]dat file) */
     /* zaplistP = */ 0,
     /* zaplist = */ NULL,
@@ -522,6 +524,13 @@ void showOptionValues(void)
         printf("-locpow found:\n");
     }
 
+    /***** -nonorm: Assume the powers are already normalized (by rednoise, or as accelsearch does for .dat input): no block normalization in the search (candidate optimization still uses local powers), which also allows shorter, faster FFTs for small -zmax/-wmax.  Warns if the powers look >10% off, exits if >2x off */
+    if (!cmd.nonormP) {
+        printf("-nonorm not found.\n");
+    } else {
+        printf("-nonorm found:\n");
+    }
+
     /***** -zaplist: A file of freqs+widths to zap from the FFT (only if the input file is a *.[s]dat file) */
     if (!cmd.zaplistP) {
         printf("-zaplist not found.\n");
@@ -581,7 +590,7 @@ void showOptionValues(void)
 
 void usage(void)
 {
-    fputs("   [-ncpus ncpus] [-perfinfo] [-lobin lobin] [-numharm numharm] [-zmax zmax] [-wmax wmax] [-sigma sigma] [-rlo rlo] [-rhi rhi] [-flo flo] [-fhi fhi] [-inmem] [-photon] [-median] [-locpow] [-zaplist zaplist] [-baryv baryv] [-otheropt] [-noharmpolish] [-noharmremove] [--] infile ...\n", stderr);
+    fputs("   [-ncpus ncpus] [-perfinfo] [-lobin lobin] [-numharm numharm] [-zmax zmax] [-wmax wmax] [-sigma sigma] [-rlo rlo] [-rhi rhi] [-flo flo] [-fhi fhi] [-inmem] [-photon] [-median] [-locpow] [-nonorm] [-zaplist zaplist] [-baryv baryv] [-otheropt] [-noharmpolish] [-noharmremove] [--] infile ...\n", stderr);
     fputs("      Search an FFT or short time series for pulsars using a Fourier domain acceleration search with harmonic summing.\n", stderr);
     fputs("           -ncpus: Number of processors to use with OpenMP\n", stderr);
     fputs("                   1 int value between 1 and oo\n", stderr);
@@ -615,6 +624,7 @@ void usage(void)
     fputs("          -photon: Data is poissonian so use freq 0 as power normalization\n", stderr);
     fputs("          -median: Use block-median power normalization (default)\n", stderr);
     fputs("          -locpow: Use double-tophat local-power normalization (not usually recommended)\n", stderr);
+    fputs("          -nonorm: Assume the powers are already normalized (by rednoise, or as accelsearch does for .dat input): no block normalization in the search (candidate optimization still uses local powers), which also allows shorter, faster FFTs for small -zmax/-wmax.  Warns if the powers look >10% off, exits if >2x off\n", stderr);
     fputs("         -zaplist: A file of freqs+widths to zap from the FFT (only if the input file is a *.[s]dat file)\n", stderr);
     fputs("                   1 char* value\n", stderr);
     fputs("           -baryv: The radial velocity component (v/c) towards the target during the obs\n", stderr);
@@ -625,7 +635,7 @@ void usage(void)
     fputs("    -noharmremove: Do not remove harmonically related candidates (never removed for numharm = 1)\n", stderr);
     fputs("           infile: Input file name(s) of the floating point .fft or .[s]dat file(s).  '.inf' file(s) of the same name must also exist\n", stderr);
     fputs("                   1...16384 values\n", stderr);
-    fputs("  CLI code generated: 14Nov26\n", stderr);
+    fputs("  CLI code generated: 16Nov26\n", stderr);
     fputs("  ", stderr);
     exit(EXIT_FAILURE);
 }
@@ -762,6 +772,11 @@ Cmdline *parseCmdline(int argc, char **argv)
 
         if (0 == strcmp("-locpow", argv[i])) {
             cmd.locpowP = 1;
+            continue;
+        }
+
+        if (0 == strcmp("-nonorm", argv[i])) {
+            cmd.nonormP = 1;
             continue;
         }
 

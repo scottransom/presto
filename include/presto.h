@@ -428,6 +428,21 @@ float get_numphotons(FILE * file);
   /* Arguments:                                              */
   /*   'file' is a pointer to the file you want to access.   */
 
+void fft_norm_check_range(long long numamps, long long *lo, long long *n);
+  /* The bins [*lo, *lo + *n) that check_fft_normalization() examines */
+  /* in an FFT of numamps complex bins.                               */
+
+int check_fft_normalization(const fcomplex *amps, long long lo, long long n,
+                            const char *fname, const char *effect,
+                            const char *remedy);
+  /* Check that the powers of amps[0..n) (bins lo..lo+n-1 of an FFT,  */
+  /* from fft_norm_check_range()) look normalized (median ln 2, as    */
+  /* rednoise output should be).  If not, warn on stderr, naming      */
+  /* 'fname', followed by 'effect' (a clause starting ", and") and    */
+  /* 'remedy'.  Returns 1 if they look normalized, 0 if the noise     */
+  /* scale is off by 10% to 2x (a warning), -1 if off by more than 2x */
+  /* (an error: the caller should exit rather than search).           */
+
 double get_localpower(fcomplex *data, long numdata, double r);
   /* Return the local power level at specific FFT frequency.  */
   /* Arguments:                                               */

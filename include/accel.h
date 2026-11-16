@@ -50,7 +50,7 @@ typedef struct accelobs{
     int dat_input;       /* The input file is a short time series */
     int mmap_file;       /* The file number if using MMAP */
     int inmem;           /* True if we want to keep the full f-fdot plane in RAM */
-    int norm_type;       /* 0 = old-style block median, 1 = local-means power norm */
+    int norm_type;       /* 0 = old-style block median, 1 = local-means power norm, 2 = none (-nonorm) */
     double dt;           /* Data sample length (s) */
     double T;            /* Total observation length */
     double rlo;          /* Minimum fourier freq to search */

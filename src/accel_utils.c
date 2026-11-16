@@ -1291,6 +1291,8 @@ ffdotpows *subharm_fderivs_vol(int numharm, int harmnum,
             data[ii].r *= norm;
             data[ii].i *= norm;
         }
+    } else if (obs->norm_type == 2) {
+        // -nonorm: the powers are already normalized (e.g. by rednoise)
     } else if (obs->norm_type == 0) {
         // default block median normalization
         float *powers = ws->normpows;
@@ -1676,6 +1678,32 @@ GSList *insert_accelhits(GSList *cands, accelwork *ws, accelobs *obs)
 }
 
 
+static void check_accel_normalization(accelobs *obs, const char *fname)
+/* For -nonorm: warn if the input powers do not look normalized, and */
+/* exit if they are off by more than 2x.                              */
+{
+    long long lo, n;
+    fft_norm_check_range(obs->numbins, &lo, &n);
+    if (n < 100)
+        return;
+    const char *effect = ", so every search power is off by\n  its square and the candidate sigmas are wrong.";
+    const char *remedy = "Run PRESTO's rednoise on the FFT, or drop -nonorm.";
+    int status;
+    fflush(stdout);
+    if (obs->mmap_file || obs->dat_input) {
+        status = check_fft_normalization(obs->fft + lo, lo, n, fname, effect, remedy);
+    } else {
+        fcomplex *amps = gen_cvect(n);
+        chkfileseek(obs->fftfile, lo, sizeof(fcomplex), SEEK_SET);
+        chkfread(amps, sizeof(fcomplex), n, obs->fftfile);
+        status = check_fft_normalization(amps, lo, n, fname, effect, remedy);
+        vect_free(amps);
+    }
+    if (status < 0)
+        exit(1);
+}
+
+
 void create_accelobs(accelobs *obs, infodata *idata, Cmdline *cmd, int usemmap)
 {
     int ii, rootlen, input_shorts = 0;
@@ -1820,6 +1848,12 @@ void create_accelobs(accelobs *obs, infodata *idata, Cmdline *cmd, int usemmap)
     if (cmd->zmax % ACCEL_DZ)
         cmd->zmax = (cmd->zmax / ACCEL_DZ + 1) * ACCEL_DZ;
     obs->N = (long long) idata->N;
+    if (cmd->nonormP) {
+        if (cmd->photonP || cmd->locpowP || cmd->medianP) {
+            printf("\n'-nonorm' cannot be combined with '-photon', '-locpow' or '-median'.  Exiting.\n\n");
+            exit(1);
+        }
+    }
     if (cmd->photonP) {
         if (obs->mmap_file || obs->dat_input) {
             obs->nph = obs->fft[0].r;
@@ -1832,7 +1866,11 @@ void create_accelobs(accelobs *obs, infodata *idata, Cmdline *cmd, int usemmap)
         /* For short FFTs insure that we don't pick up the DC */
         /* or Nyquist component as part of the interpolation  */
         /* for higher frequencies.                            */
-        if (cmd->locpowP) {
+        if (cmd->nonormP) {
+            obs->norm_type = 2;
+            printf("Assuming the powers are already normalized (no block normalization).\n\n");
+            check_accel_normalization(obs, cmd->argv[0]);
+        } else if (cmd->locpowP) {
             obs->norm_type = 1;
             printf("Normalizing powers using local-power determination.\n\n");
         } else if (cmd->medianP) {
@@ -1974,8 +2012,14 @@ void create_accelobs(accelobs *obs, infodata *idata, Cmdline *cmd, int usemmap)
     obs->maxkernlen =
         2 * ACCEL_NUMBETWEEN * w_resp_halfwidth(obs->zhi, obs->whi, LOWACC);
     obs->fftlen = fftlen_from_kernwidth(obs->maxkernlen);
-    if (obs->fftlen < 2048)
-        obs->fftlen = 2048;     // This gives slightly better speed empirically
+    // Shorter fundamental FFTs are faster, but the block median then
+    // spans fewer bins (numdata = fftlen / 2), so it is noisier.  With
+    // -nonorm there is no block median: 1280 is the length that was
+    // fastest, or close to it, for -zmax 50-100 and -wmax 200 searches on
+    // both a Sapphire Rapids and a Skylake-SP Xeon (2026-11-16).
+    const int minfftlen = (obs->norm_type == 2) ? 1280 : 2048;
+    if (obs->fftlen < minfftlen)
+        obs->fftlen = minfftlen;
     obs->corr_uselen = obs->fftlen - obs->maxkernlen;
     // Make sure that obs->corr_uselen is an integer number of
     // full (i.e. un-interpolated) Fourier bins

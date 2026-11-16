@@ -289,6 +289,7 @@ long long *cs_chunk_starts(const cs_hplan *plans, const cs_fft *fft, const cs_pa
 /* Check that the Fourier powers are normalised (median/ln 2 = 1) on bins
  * 10000-19999 (the top half of a shorter FFT); warn on stderr (naming fname)
  * and return 0 if the implied noise scale is off by more than 10%. */
+/* 1 = normalised, 0 = off by 10% to 2x (warned), -1 = off by more (error) */
 int cs_check_normalisation(const cs_fft *fft, const char *fname);
 
 /* Everything a search needs that does not depend on the input file: one

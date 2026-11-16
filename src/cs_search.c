@@ -121,56 +121,17 @@ long long *cs_chunk_starts(const cs_hplan *plans, const cs_fft *fft, const cs_pa
 
 /* --- the normalisation check ---------------------------------------------- */
 
-#define CS_NORM_CHECK_LO 10000     /* first bin checked */
-#define CS_NORM_CHECK_N 10000      /* bins checked */
-#define CS_NORM_CHECK_TOL 0.10     /* tolerated error in the noise scale */
-
-static int cmp_float(const void *a, const void *b)
-{
-    float x = *(const float *) a, y = *(const float *) b;
-    return (x > y) - (x < y);
-}
-
 /* The analytic noise scale assumes the input is normalised (Fourier powers of
- * mean 1), and fails silently -- inflating every S/N -- when it is not.  Check
- * that on a block of bins away from the lowest frequencies, where leftover red
- * noise (rednoise's running median rests on few bins there) would raise false
- * alarms.  Normalised powers are exponential with mean 1, so median/ln 2 should
- * be 1; the median shrugs off a pulsar or RFI in the block.  10000 bins give
- * a scatter of about 1.4% in the power, 0.7% in the noise scale. */
+ * mean 1), and fails silently -- inflating every S/N -- when it is not.  The
+ * check itself (check_fft_normalization() in characteristics.c) is shared with
+ * accelsearch -nonorm. */
 int cs_check_normalisation(const cs_fft *fft, const char *fname)
 {
-    long long lo = CS_NORM_CHECK_LO, n = CS_NORM_CHECK_N;
-    if (fft->numamps < lo + n) {    /* short FFT: the top half, at most n bins */
-        lo = fft->numamps / 2;
-        n = fft->numamps - lo < n ? fft->numamps - lo : n;
-    }
-    if (n < 100)
-        return 1;
-    float *pow = malloc(n * sizeof(float));
-    for (long long i = 0; i < n; i++) {
-        const fcomplex a = fft->amps[lo + i];
-        pow[i] = a.r * a.r + a.i * a.i;
-    }
-    qsort(pow, n, sizeof(float), cmp_float);
-    const double med = n % 2 ? pow[n / 2] : 0.5 * (pow[n / 2 - 1] + pow[n / 2]);
-    free(pow);
-    const double ratio = sqrt(med / M_LN2);   /* (actual / assumed) noise scale */
-    if (fabs(ratio - 1.0) <= CS_NORM_CHECK_TOL)
-        return 1;
-    fprintf(stderr, "\nWARNING (%s): the Fourier powers do not look normalised: the noise\n"
-            "  scale is ", fname);
-    /* Quote a ratio, not a percentage, when it is far off: a 1000x error
-     * would otherwise read like a 99.9% one. */
-    if (ratio > 2.0 || ratio < 0.5)
-        fprintf(stderr, "off by a factor of %.3g", ratio > 1.0 ? ratio : 1.0 / ratio);
-    else
-        fprintf(stderr, "%.1f%% too %s", 100.0 * fabs(ratio - 1.0), ratio > 1.0 ? "high" : "low");
-    fprintf(stderr, ", and every reported S/N is off by that factor.\n"
-            "  Normalised powers have mean 1 (median ln 2 = 0.693); bins %lld-%lld have\n"
-            "  median %.4g.  Run PRESTO's rednoise on the FFT, or use -measuredsigma.\n\n",
-            lo, lo + n - 1, med);
-    return 0;
+    long long lo, n;
+    fft_norm_check_range(fft->numamps, &lo, &n);
+    return check_fft_normalization(fft->amps + lo, lo, n, fname,
+                                   ", and every reported S/N is off by that factor.",
+                                   "Run PRESTO's rednoise on the FFT, or use -measuredsigma.");
 }
 
 /* --- the search ------------------------------------------------------------ */

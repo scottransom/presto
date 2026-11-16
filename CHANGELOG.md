@@ -8,6 +8,19 @@
    fresh wisdom, `accelsearch` re-measures each new length on every run, which costs more
    than the new lengths save.  The new `makewisdom -check` asks FFTW whether the existing
    wisdom covers them all (exit status 0 if so).
+ * New `accelsearch -nonorm` option: for `.fft` files already normalized by `rednoise`,
+   or for `.dat` input (which `accelsearch` FFTs and dereddens itself),
+   the search skips its per-block median normalization and uses the powers as they are,
+   which removes the scatter that the ~1000-bin block medians add to the powers and sigmas.
+   Candidate optimization still uses its local-power normalization.  `accelsearch` checks
+   the file as `coherentsearch` does.  The check is now shared, in libpresto
+   (`check_fft_normalization`), and both programs now stop with an error, rather than
+   warn, when the noise scale is off by more than 2x (nearly every trial would pass the
+   threshold, so the search would be useless and could exhaust memory).  Between 10% and 2x
+   they still warn.  With no block median to feed, `-nonorm` also lets searches with small
+   kernels (roughly `-zmax` up to ~150) use 1280-point instead of 2048-point fundamental
+   FFTs: 0-4.5% faster for acceleration searches, 4-17% for `-wmax 200` jerk searches
+   (but ~3% slower for `-zmax 0`, which takes well under a second anyway).
  * `accelsearch` is 15-23% faster with 1 thread, in the conda-forge packages too, with
    byte-identical ACCEL files.  Two changes to the harmonic sums: each stage now adds all
    of its subharmonics and runs the threshold scan row by row while the row is in cache

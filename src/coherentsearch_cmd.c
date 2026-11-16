@@ -628,7 +628,7 @@ void usage(void)
     fputs("          -verbose: Report the trial grid and chunking before searching\n", stderr);
     fputs("            infile: Input '.fft' file(s), each with a matching '.inf' file.  They should be normalised (e.g. by rednoise) so that Fourier powers have mean 1\n", stderr);
     fputs("                    1...16384 values\n", stderr);
-    fputs("  CLI code generated: 14Nov26\n", stderr);
+    fputs("  CLI code generated: 16Nov26\n", stderr);
     fputs("  ", stderr);
     exit(EXIT_FAILURE);
 }

@@ -105,6 +105,34 @@ def test_accelsearch_finds_pulsar(obs: Path) -> None:
     assert cand.numharm >= 4  # measured 8
 
 
+def test_accelsearch_nonorm(obs: Path) -> None:
+    """accelsearch -nonorm finds the pulsar in the rednoised spectrum, and refuses a raw one.
+
+    -nonorm skips the per-block median normalization (and allows shorter FFTs), so it
+    relies on the input already being normalized: on the raw realfft output, whose
+    powers are far from 1, it must exit with an error rather than pass every trial.
+    """
+    d = obs / "nonorm"  # its own directory: the ACCEL files would overwrite obs's
+    d.mkdir(exist_ok=True)
+    for ext in ("_red.fft", "_red.inf", ".fft", ".inf"):
+        link = d / f"fake_DM50.00{ext}"
+        if not link.exists():
+            link.symlink_to(obs / f"fake_DM50.00{ext}")
+    out = run(["accelsearch", "-zmax", "0", "-numharm", "16", "-nonorm",
+               "fake_DM50.00_red.fft"], d)
+    assert "no block normalization" in out
+    cand = cand_near_truth(d / "fake_DM50.00_red_ACCEL_0")
+    assert cand is not None, "pulsar not found with -nonorm"
+    assert abs(cand.r - TRUE_R) < 0.1  # measured 0.008
+    assert cand.sigma > 5.5  # measured 8.06, as without -nonorm
+    assert cand.numharm >= 4  # measured 8
+
+    res = subprocess.run(["accelsearch", "-zmax", "0", "-numharm", "16", "-nonorm",
+                          "fake_DM50.00.fft"], cwd=d, capture_output=True, text=True)
+    assert res.returncode != 0
+    assert "more than 2x off" in res.stdout + res.stderr
+
+
 def test_prepsubband_dm_trials(obs: Path) -> None:
     """Across prepsubband DM trials, the pulsar is strongest at the injected DM."""
     run(["prepsubband", "-nobary", "-nsub", "32", "-lodm", "0", "-dmstep", "25",
