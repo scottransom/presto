@@ -25,7 +25,7 @@ static Cmdline cmd = {
     /* ncpusP = */ 1,
     /* ncpus = */ 1,
     /* ncpusC = */ 1,
-    /***** -perfinfo: Print what decides the speed: CPU, SIMD kernels used, compiler and build target, OpenMP threads, and the FFTW version and wisdom */
+    /***** -perfinfo: Print what decides the speed: CPU, SIMD kernels used, compiler and build target, OpenMP threads, the FFTW version and wisdom, and the libpresto and FFTW libraries loaded.  With no input file, just print this and exit */
     /* perfinfoP = */ 0,
     /***** -lobin: The first Fourier frequency in the data file */
     /* lobinP = */ 1,
@@ -381,7 +381,7 @@ void showOptionValues(void)
         }
     }
 
-    /***** -perfinfo: Print what decides the speed: CPU, SIMD kernels used, compiler and build target, OpenMP threads, and the FFTW version and wisdom */
+    /***** -perfinfo: Print what decides the speed: CPU, SIMD kernels used, compiler and build target, OpenMP threads, the FFTW version and wisdom, and the libpresto and FFTW libraries loaded.  With no input file, just print this and exit */
     if (!cmd.perfinfoP) {
         printf("-perfinfo not found.\n");
     } else {
@@ -590,12 +590,12 @@ void showOptionValues(void)
 
 void usage(void)
 {
-    fputs("   [-ncpus ncpus] [-perfinfo] [-lobin lobin] [-numharm numharm] [-zmax zmax] [-wmax wmax] [-sigma sigma] [-rlo rlo] [-rhi rhi] [-flo flo] [-fhi fhi] [-inmem] [-photon] [-median] [-locpow] [-nonorm] [-zaplist zaplist] [-baryv baryv] [-otheropt] [-noharmpolish] [-noharmremove] [--] infile ...\n", stderr);
+    fputs("   [-ncpus ncpus] [-perfinfo] [-lobin lobin] [-numharm numharm] [-zmax zmax] [-wmax wmax] [-sigma sigma] [-rlo rlo] [-rhi rhi] [-flo flo] [-fhi fhi] [-inmem] [-photon] [-median] [-locpow] [-nonorm] [-zaplist zaplist] [-baryv baryv] [-otheropt] [-noharmpolish] [-noharmremove] [--] [infile ...]\n", stderr);
     fputs("      Search an FFT or short time series for pulsars using a Fourier domain acceleration search with harmonic summing.\n", stderr);
     fputs("           -ncpus: Number of processors to use with OpenMP\n", stderr);
     fputs("                   1 int value between 1 and oo\n", stderr);
     fputs("                   default: `1'\n", stderr);
-    fputs("        -perfinfo: Print what decides the speed: CPU, SIMD kernels used, compiler and build target, OpenMP threads, and the FFTW version and wisdom\n", stderr);
+    fputs("        -perfinfo: Print what decides the speed: CPU, SIMD kernels used, compiler and build target, OpenMP threads, the FFTW version and wisdom, and the libpresto and FFTW libraries loaded.  With no input file, just print this and exit\n", stderr);
     fputs("           -lobin: The first Fourier frequency in the data file\n", stderr);
     fputs("                   1 int value between 0 and oo\n", stderr);
     fputs("                   default: `0'\n", stderr);
@@ -634,7 +634,7 @@ void usage(void)
     fputs("    -noharmpolish: Do not use 'harmpolish' by default\n", stderr);
     fputs("    -noharmremove: Do not remove harmonically related candidates (never removed for numharm = 1)\n", stderr);
     fputs("           infile: Input file name(s) of the floating point .fft or .[s]dat file(s).  '.inf' file(s) of the same name must also exist\n", stderr);
-    fputs("                   1...16384 values\n", stderr);
+    fputs("                   0...16384 values\n", stderr);
     fputs("  CLI code generated: 16Nov26\n", stderr);
     fputs("  ", stderr);
     exit(EXIT_FAILURE);
@@ -824,12 +824,6 @@ Cmdline *parseCmdline(int argc, char **argv)
     cmd.argv = argv + 1;
     cmd.argc -= 1;
 
-    if (1 > cmd.argc) {
-        fprintf(stderr,
-                "%s: there should be at least 1 non-option argument(s)\n",
-                Program);
-        exit(EXIT_FAILURE);
-    }
     if (16384 < cmd.argc) {
         fprintf(stderr,
                 "%s: there should be at most 16384 non-option argument(s)\n",

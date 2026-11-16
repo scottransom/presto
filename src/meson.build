@@ -42,7 +42,7 @@ libpresto = library(
     'rzinterp.c', 'rzwinterp.c', 'select.c', 'sorter.c', 'swapendian.c',
     'transpose.c', 'twopass.c', 'twopass_real_fwd.c',
     'twopass_real_inv.c', 'vectors.c',
-    dependencies: [glib, fftw, gsl, erfa, libm],
+    dependencies: [glib, fftw, gsl, erfa, libm, dl],
     include_directories: inc,
     install: true,
     install_rpath: presto_rpath

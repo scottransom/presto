@@ -12,7 +12,7 @@ Commandline full_cmd_line
 
 Int -ncpus   ncpus      {Number of processors to use with OpenMP} \
 	-r 1 oo  -d 1
-Flag -perfinfo perfinfo {Print what decides the speed: CPU, SIMD kernels used, compiler and build target, OpenMP threads, and the FFTW version and wisdom}
+Flag -perfinfo perfinfo {Print what decides the speed: CPU, SIMD kernels used, compiler and build target, OpenMP threads, the FFTW version and wisdom, and the libpresto and FFTW libraries loaded.  With no input file, just print this and exit}
 Flag -deep deep         {Deep pass for slow, very narrow pulses: -nharms 120 -maxdecim 12 -hifreq 5 unless those are given, writing <input>_deep.cohout}
 Double -threshold threshold {S/N cutoff for candidates} \
 	-r 0.0 oo  -d 8.0
@@ -53,7 +53,7 @@ Flag -verbose verbose   {Report the trial grid and chunking before searching}
 # Rest of command line:
 
 Rest infile {Input '.fft' file(s), each with a matching '.inf' file.  They should be normalised (e.g. by rednoise) so that Fourier powers have mean 1} \
-        -c 1 16384
+        -c 0 16384
 
 Description {coherentsearch searches normalised Fourier power spectra
 .RI ( .fft

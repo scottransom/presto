@@ -41,6 +41,16 @@ static void print_percent_complete(int current, int number, char *what, int rese
     }
 }
 
+/* -perfinfo:  what decides the speed (see print_perfinfo()) */
+static void show_perfinfo(void)
+{
+#ifdef _OPENMP
+    print_perfinfo(accel_simd_name(), omp_get_max_threads());
+#else
+    print_perfinfo(accel_simd_name(), -1);
+#endif
+}
+
 int main(int argc, char *argv[])
 {
     int ii, rstep;
@@ -69,6 +79,20 @@ int main(int argc, char *argv[])
     /* Parse the command line using the excellent program Clig */
 
     cmd = parseCmdline(argc, argv);
+
+    /* With no input file, -perfinfo just reports and exits */
+    if (cmd->argc == 0) {
+        if (!cmd->perfinfoP) {
+            printf("\n");
+            usage();
+            exit(1);
+        }
+#ifdef _OPENMP
+        omp_set_num_threads(cmd->ncpus > 1 ? cmd->ncpus : 1);
+#endif
+        show_perfinfo();
+        exit(0);
+    }
 
 #ifdef DEBUG
     showOptionValues();
@@ -132,13 +156,8 @@ int main(int argc, char *argv[])
 #endif
         printf("Starting the search.\n\n");
     }
-    if (cmd->perfinfoP) {
-#ifdef _OPENMP
-        print_perfinfo(accel_simd_name(), omp_get_max_threads());
-#else
-        print_perfinfo(accel_simd_name(), -1);
-#endif
-    }
+    if (cmd->perfinfoP)
+        show_perfinfo();
     /* Don't use the *.txtcand files on short in-memory searches */
     if (!obs.dat_input) {
         printf("  Working candidates in a test format are in '%s'.\n\n",

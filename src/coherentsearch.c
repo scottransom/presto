@@ -75,6 +75,25 @@ static double seconds_since(const struct timespec *t0)
     return (t1.tv_sec - t0->tv_sec) + 1e-9 * (t1.tv_nsec - t0->tv_nsec);
 }
 
+/* -perfinfo:  what decides the speed (see print_perfinfo()) */
+static void show_perfinfo(const Cmdline *cmd)
+{
+    char simd[160];
+#ifdef CS_DISPATCH
+    const int lev = cs_simd_level();
+    snprintf(simd, sizeof(simd), "%s, chosen at run time (CS_GROUP_V = %d)",
+             lev == 4 ? "x86-64-v4 (AVX-512)" : lev == 3 ? "x86-64-v3 (AVX2+FMA)"
+             : "baseline", CS_GROUP_V);
+#else
+    snprintf(simd, sizeof(simd), "as compiled (CS_GROUP_V = %d)", CS_GROUP_V);
+#endif
+#ifdef _OPENMP
+    print_perfinfo(simd, cmd->ncpus);
+#else
+    print_perfinfo(simd, -1);
+#endif
+}
+
 int main(int argc, char *argv[])
 {
     if (argc == 1) {
@@ -83,6 +102,15 @@ int main(int argc, char *argv[])
         exit(1);
     }
     Cmdline *cmd = parseCmdline(argc, argv);
+    /* With no input file, -perfinfo just reports and exits */
+    if (cmd->argc == 0) {
+        if (!cmd->perfinfoP) {
+            usage();
+            exit(1);
+        }
+        show_perfinfo(cmd);
+        exit(0);
+    }
     if (cmd->deepP) {
         /* The deep pass's defaults; explicit options still win. */
         if (!option_given(argc, argv, "-nharms"))
@@ -123,22 +151,8 @@ int main(int argc, char *argv[])
 
     printf("\n    Coherent Harmonic Summing Pulsar Search Routine\n");
     printf("                by Scott M. Ransom\n");
-    if (cmd->perfinfoP) {
-        char simd[160];
-#ifdef CS_DISPATCH
-        const int lev = cs_simd_level();
-        snprintf(simd, sizeof(simd), "%s, chosen at run time (CS_GROUP_V = %d)",
-                 lev == 4 ? "x86-64-v4 (AVX-512)" : lev == 3 ? "x86-64-v3 (AVX2+FMA)"
-                 : "baseline", CS_GROUP_V);
-#else
-        snprintf(simd, sizeof(simd), "as compiled (CS_GROUP_V = %d)", CS_GROUP_V);
-#endif
-#ifdef _OPENMP
-        print_perfinfo(simd, cmd->ncpus);
-#else
-        print_perfinfo(simd, -1);
-#endif
-    }
+    if (cmd->perfinfoP)
+        show_perfinfo(cmd);
 
     for (int fi = 0; fi < cmd->argc; fi++) {
         const char *infile = cmd->argv[fi];

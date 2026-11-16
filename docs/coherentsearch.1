@@ -45,7 +45,7 @@ coherentsearch \- Search normalised FFTs for pulsars by coherently summing many 
 [-rewrite]
 [-noprogress]
 [-verbose]
-[--] infile ...
+[[--] infile ...]
 .\" cligPart SYNOPSIS end
 
 .\" cligPart OPTIONS
@@ -57,7 +57,7 @@ Number of processors to use with OpenMP,
 .br
 Default: `1'
 .IP -perfinfo
-Print what decides the speed: CPU, SIMD kernels used, compiler and build target, OpenMP threads, and the FFTW version and wisdom.
+Print what decides the speed: CPU, SIMD kernels used, compiler and build target, OpenMP threads, the FFTW version and wisdom, and the libpresto and FFTW libraries loaded.  With no input file, just print this and exit.
 .IP -deep
 Deep pass for slow, very narrow pulses: -nharms 120 -maxdecim 12 -hifreq 5 unless those are given, writing <input>_deep.cohout.
 .IP -threshold

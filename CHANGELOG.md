@@ -1,4 +1,11 @@
 ## Development (unreleased, since v6.3.2):
+ * New `-perfinfo` details: `accelsearch` and `coherentsearch` now also print the paths
+   of the libpresto and FFTW libraries actually loaded, which shows an old install that
+   wins on `LD_LIBRARY_PATH`, and `-perfinfo` no longer needs an input file (with none, it
+   just reports and exits).  New `tests/accelsearch/bench_preflight.sh` checks, before a
+   benchmark, that each binary loads its own libpresto and the expected FFTW, that the
+   FFTW wisdom is current (`makewisdom -check`), and that the machine is quiet;
+   `profile_accel.sh` now runs it first.
  * **Rerun `makewisdom` after updating.**  `accelsearch` now picks its correlation FFT
    lengths from a new, measured list (`next_good_fftlen()`): powers of 2, plus the
    7-smooth lengths that beat the next power of 2 on current Xeons.  With 1 thread it is

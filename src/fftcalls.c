@@ -1,3 +1,5 @@
+#define _GNU_SOURCE             /* for dladdr() on glibc */
+#include <dlfcn.h>
 #include "ransomfft.h"
 #include "misc_utils.h"
 #include "stdint.h"
@@ -81,12 +83,26 @@ static char *cpu_model_name(char *buf, int len)
 }
 
 
+/* The full path of the shared library (or program) holding addr */
+static const char *loaded_from(const void *addr)
+{
+    static char path[4096];
+    Dl_info info;
+
+    if (dladdr(addr, &info) && info.dli_fname && info.dli_fname[0])
+        return realpath(info.dli_fname, path) ? path : info.dli_fname;
+    return "(unknown)";
+}
+
+
 void print_perfinfo(const char *simd, int nthreads)
 /* Print the build and runtime facts that decide a tool's speed (for its   */
 /* -perfinfo flag): version, compiler and target, CPU, the SIMD kernels    */
 /* used (simd, from the tool; NULL if it has no dispatched kernels), its   */
 /* OpenMP threads (nthreads; < 0 if built without OpenMP), the             */
-/* OPENBLAS_NUM_THREADS setting, and the FFTW version and wisdom.          */
+/* OPENBLAS_NUM_THREADS setting, the FFTW version and wisdom, and the     */
+/* libpresto and FFTW libraries actually loaded (an old install that wins */
+/* on LD_LIBRARY_PATH, or the system FFTW, shows up here).                */
 {
     char cpu[256];
     const char *ob = getenv("OPENBLAS_NUM_THREADS");
@@ -134,7 +150,9 @@ void print_perfinfo(const char *simd, int nthreads)
                sysconf(_SC_NPROCESSORS_ONLN));
     printf("  OPENBLAS_NUM_THREADS  %s\n",
            ob ? ob : "unset (set it to 1 to stop idle OpenBLAS threads spinning)");
+    printf("  libpresto             %s\n", loaded_from((const void *) read_wisdom));
     printf("  FFTW                  %s\n", fftwf_version);
+    printf("  FFTW library          %s\n", loaded_from((const void *) fftwf_execute));
     printf("  FFTW wisdom           %s (%s)\n\n", wisdom_path,
            wisdom_state == WISDOM_OK ? "imported" :
            wisdom_state == WISDOM_MISSING ? "MISSING: run makewisdom" :

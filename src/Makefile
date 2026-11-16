@@ -112,7 +112,7 @@ ifeq ($(USEPROFILE),true)
 endif
 
 ifeq ($(LIBSUFFIX),.so)
-	LINKCOMMAND = $(CC) $(LIBCMD) $(OMPFLAGS) $(FFTLINK) -o
+	LINKCOMMAND = $(CC) $(LIBCMD) $(OMPFLAGS) $(FFTLINK) -ldl -o
 else
 	LINKCOMMAND = ar rcs
 endif

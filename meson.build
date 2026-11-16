@@ -38,6 +38,8 @@ mpi = dependency('mpi', language: 'c', required: false,
   not_found_message: 'MPI not found. Skipping mpiprepsubband build.')
 
 libm = cc.find_library('m', required: false)
+# dladdr(), for -perfinfo's library paths (in libc since glibc 2.34; -ldl before)
+dl = dependency('dl', required: false)
 # PGPLOT: prefer pkg-config (e.g. conda-forge's pgplot ships .pc files);
 # fall back to a bare library search for distros without them (e.g.
 # Ubuntu's pgplot5)

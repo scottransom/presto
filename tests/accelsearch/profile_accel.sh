@@ -24,9 +24,13 @@
 #   PERF_FREQ=999                    perf sampling frequency (Hz)
 #   XARGS=""                         extra accelsearch arguments for every run
 #                                    (e.g. "-flo 100 -fhi 110" for a quick smoke test)
+#   PREFLIGHT=1                      run bench_preflight.sh first and stop if it fails
+#                                    (wrong libpresto or FFTW, stale wisdom, busy
+#                                    machine); 0 to skip.  FFTW_EXPECT and MAXBUSY
+#                                    pass through to it.
 set -euo pipefail
 
-[ $# -ge 3 ] || { sed -n '2,26p' "$0"; exit 1; }
+[ $# -ge 3 ] || { sed -n '2,30p' "$0"; exit 1; }
 FFT=$(realpath "$1"); INF=${FFT%.fft}.inf; OUT=$(realpath -m "$2"); shift 2
 [ -f "$INF" ] || { echo "missing $INF"; exit 1; }
 SEARCHES=${SEARCHES:-accel8 accel16 jerk}
@@ -55,6 +59,11 @@ for nb in "$@"; do
     [ -e "$(dirname "$b")/libpresto.so" ] &&
         PRE[$n]="env LD_LIBRARY_PATH=$(dirname "$b")${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 done
+if [ "${PREFLIGHT:-1}" != 0 ]; then
+    mkdir -p "$OUT"
+    bash "$(dirname "$0")/bench_preflight.sh" "$@" | tee "$OUT/preflight.txt" ||
+        { echo "Preflight failed (see above; PREFLIGHT=0 to run anyway)."; exit 1; }
+fi
 command -v hyperfine >/dev/null || { echo "hyperfine not found"; exit 1; }
 command -v perf >/dev/null || { echo "perf not found"; exit 1; }
 mkdir -p "$OUT"
