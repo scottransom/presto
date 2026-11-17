@@ -1,4 +1,26 @@
-## Development (unreleased, since v6.3.2):
+## Development (unreleased, since v6.3.3):
+
+## Version 6.3.3:
+ * **Another speed release for `accelsearch`**: with one thread it is ~1.25x faster than
+   v6.3.2 (1.6x faster than v5.0.0, and ~8x faster than v5.3.1-v6.1.1), and with 8
+   threads 7.7x faster than v5.0.0.  Candidates are unchanged except that rednoised
+   input is now searched without block-median normalization (below).  **Rerun
+   `makewisdom` after updating.**  The plot shows `accelsearch -zmax 200 -numharm 8` on
+   a 100M-bin rednoised spectrum on a 16-core Sapphire Rapids Xeon, best of 3 runs, for
+   each release built from its tag with the default options (no `-march`, as for the
+   conda-forge packages) against the same FFTW 3.3.10; hatched bars are v6.3.3 with
+   `-median` and dotted bars builds with `-march=native` (see `INSTALL.md`).  The
+   v5.3.1-v6.1.1 slowdown was six out-of-line `fmaf()` calls in the inner loop of
+   builds without FMA (fixed in v6.1.2).  Before v6.3.2, `meson setup` did not add
+   `-ftree-vectorize`, so the conda-forge packages of v6.0.1-v6.3.0 (whose compiler
+   flags include it) were somewhat faster than these default builds.  The scripts and
+   raw timings are `tests/accelsearch/bench_releases.sh`, `plot_bench_releases.py` and
+   `bench_releases_eiger.tsv`.
+
+   ![accelsearch speed across PRESTO releases](docs/accel_speed_releases.png)
+
+ * `INSTALL.md` now says when a `-march=native` build is worth it: ~8% faster
+   `accelsearch` on a recent Xeon, and much more for old releases.
  * **`accelsearch` output changes for rednoised input.**  `*_red.fft` files (from
    `rednoise`) and `.dat` input (which `accelsearch` dereddens itself) whose powers pass
    the normalization check (noise scale within 10%) are now searched as with `-nonorm`:

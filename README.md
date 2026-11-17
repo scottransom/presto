@@ -8,6 +8,22 @@ PRESTO is a large suite of pulsar search and analysis software developed primari
 
 **PRESTO has discovered well over 1500 pulsars, including ~500 recycled and/or binary pulsars!**
 
+## Version 6.3.3:
+ * **`accelsearch` is faster again**: with one thread ~1.25x faster than v6.3.2 and 1.6x
+   faster than v5.0.0 (and ~8x faster than v5.3.1-v6.1.1), and with 8 threads 7.7x faster
+   than v5.0.0. The plot shows every release since v5.0.0 built with default options, as
+   in the conda-forge packages (details in the [CHANGELOG](CHANGELOG.md)). If speed
+   matters most, a native build (`-march=native`) is another ~8% faster; see
+   [INSTALL.md](INSTALL.md).
+ * **Rerun `makewisdom` after updating**: `accelsearch` now uses a measured list of FFT
+   lengths, and `makewisdom -check` says whether your wisdom covers them.
+ * Rednoised `_red.fft` files (and `.dat` input) that pass the normalization check are now
+   searched without per-block median normalization (`-nonorm`; `-median` restores the
+   old behavior). This gives slightly fewer false candidates and allows faster FFTs.
+   Badly normalized input now stops the search with an error.
+
+![accelsearch speed across PRESTO releases](docs/accel_speed_releases.png)
+
 ## Version 6.3.2:
  * **`accelsearch` is 1.3-1.4x faster with one thread** (the usual way to run it, one
    search per DM trial), and **multithreaded runs now scale**: 8 threads are ~5.5x

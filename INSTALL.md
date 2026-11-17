@@ -53,7 +53,7 @@ releases usually show up on conda-forge within a day or two of being tagged on G
 ## Building from source
 
 Build PRESTO yourself if you want to hack on the code, need `mpiprepsubband`, or want to
-compile with `-march=native` for a slightly faster `accelsearch` (see **Optimization flags**
+compile with `-march=native` for the fastest `accelsearch` (see **Optimization flags**
 below).
 
 ### Easiest route: build with [pixi](https://pixi.sh)
@@ -158,9 +158,17 @@ Beyond that, you can let the compiler use your CPU's own vector instructions:
 
     meson setup build --prefix=$CONDA_PREFIX -Dc_args=-march=native
 
-On a modern x86-64 machine (i.e. one with AVX2 and FMA) that makes `accelsearch` 0-8%
-faster: `-zmax 200 -numharm 8` went from 28.6 s to 26.5 s on a Sapphire Rapids Xeon, with
-no gain on a Skylake-SP Xeon (and a 5% loss for a jerk search). Three caveats:
+**If search speed is critical, this is worth doing.** The conda-forge packages (and
+default builds) must run on any x86-64 CPU, so the compiler can't assume AVX2 or FMA.
+`coherentsearch` (since v6.3.1) and `accelsearch` (since v6.3.3) pick AVX2/AVX-512
+versions of their hottest kernels at run time, which recovers much of the difference,
+but not all of it. On a Sapphire Rapids Xeon, `accelsearch -zmax 200 -numharm 8` on a
+100M-bin spectrum is ~8% faster in v6.3.3 built with `-march=native` (1, 4 and 8
+threads: 144, 47 and 35 s, against 157, 51 and 37 s). The gain depends on the CPU: in
+an earlier test (v6.3.2) there was none on a Skylake-SP Xeon, and a 5% loss for a jerk
+search. For older releases the difference is much bigger: v6.1.0 was ~3.9x faster with one thread when
+built natively (the releases from v5.3.1 to v6.1.1 all had the same slowdown). See the
+plot in the [README](README.md). Three caveats:
   * **Only use this for builds you will run on the machine that compiled them.** A binary built
     with `-march=native` will die with an illegal-instruction error on an older CPU, so don't do
     this for a shared cluster install, a container, or a package you distribute.

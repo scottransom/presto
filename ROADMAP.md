@@ -43,34 +43,16 @@ TOAs; see "Polyco folding in `prepfold_multi`" below), plus the 64-bit `accelsea
 optimizer fix from PR #233. **v6.3.1** (2026-11-14) added runtime SIMD dispatch of
 coherentsearch's kernels for the conda-forge packages (1.2-1.35x) and `-perfinfo`.
 
-### Next: v6.3.3 (accelsearch speed release)
-
-The `accel-fftlen-tuning` work (measured FFT-length list, `makewisdom -check`, `-nonorm`
-and automatic `-nonorm` for rednoised input, `-perfinfo` library paths) was merged to
-`master` on 2026-11-17, on top of the 15-23% harmonic-sum speedup (a588398). Once it is
-pushed and CI (plus the real-data tests) pass, release **v6.3.3** so conda-forge gets it
-(`RELEASE.md`). Do the release in a new session.
-
-For the release notes, **plot accelsearch speed across releases**: wall time (or speedup
-relative to v5.0.0) for every release since v5.0.0 (v5.0.0 ... v6.3.2, plus v6.3.3), at
-`-ncpus 1` and `-ncpus 4`. Plan:
-- Hosts: eiger (Sapphire Rapids) and fitzroy (Skylake-SP), quiet; run
-  `tests/accelsearch/bench_preflight.sh` first (not in the old trees: use this one).
-- Build every tag the same way: a git worktree per tag, meson in the pixiPSR env with the
-  same FFTW (3.3.10, `PKG_CONFIG_PATH=$ENV/lib/pkgconfig`) and compiler, installed to its
-  own prefix. Old tags may need small build fixes for the current toolchain; keep those
-  as patches outside git. Put each build's `src/` (or prefix `lib/`) first on
-  `LD_LIBRARY_PATH` and check `ldd` for libpresto and libfftw3f.
-- Fresh wisdom for each version with its own `makewisdom` (older ones write to
-  `$PRESTO/lib`, so give each its own `PRESTO`). Note that before v6.3.3 the wisdom
-  missed the out-of-place inverse and some lengths.
-- Inputs: the Ter5 DM 238.50 `_red.fft` (real-data test) and the MC files used for the
-  paper timings. Searches: `-zmax 0 -numharm 16`, `-zmax 200 -numharm 8`, and
-  `-zmax 50 -wmax 200` where the version supports jerk searches. Best of 3 runs.
-- v6.3.3 searches rednoised input with automatic `-nonorm`; also time it with `-median`,
-  so the plot can separate the code speedups from the normalization change.
-- Plot with matplotlib (one panel per search, releases on x, 1 and 4 threads as two
-  lines per host), and keep the script and raw timings with the benchmark results.
+**v6.3.3** (2026-11-17) made `accelsearch` ~1.25x faster again with 1 thread (fused
+harmonic-sum stages and a SIMD gather dispatched at run time, a measured FFT-length list with
+`makewisdom -check`, and automatic `-nonorm` for rednoised input). Its README and CHANGELOG
+entries carry a plot of `accelsearch` speed across every release since v5.0.0
+(`docs/accel_speed_releases.png`): one search (`-zmax 200 -numharm 8`, a 100M-bin
+spectrum), eiger only, 1/4/8 threads, default builds plus `-march=native` builds of v6.1.0
+and v6.3.3. The scripts and raw timings are `tests/accelsearch/bench_releases.sh`,
+`plot_bench_releases.py` and `bench_releases_eiger.tsv` (run dir
+`eiger:/data1/simd_bench/releases/`). Not done from the original plan: fitzroy, the
+`-zmax 0` and jerk searches, and the MC files.
 
 ## The coherent harmonic search in PRESTO (shipped in v6.2.0)
 
