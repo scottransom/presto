@@ -1,4 +1,13 @@
 ## Development (unreleased, since v6.3.2):
+ * **`accelsearch` output changes for rednoised input.**  `*_red.fft` files (from
+   `rednoise`) and `.dat` input (which `accelsearch` dereddens itself) whose powers pass
+   the normalization check (noise scale within 10%) are now searched as with `-nonorm`:
+   no per-block median normalization.  On 1000 pure-noise spectra this gave 6-11% fewer
+   false candidates above sigma 2 (the same number above 3), and on real data (Terzan 5,
+   a Parkes Multibeam spectrum) every pulsar was found with the same sigma, to ~1%.  It
+   also allows the shorter, faster FFTs of `-nonorm` (except for `-zmax 0`, which keeps
+   2048).  Use `-median` for the old behavior.  Other `.fft` files, and rednoised ones
+   that fail the check, still use block medians (the latter with a note saying why).
  * New `-perfinfo` details: `accelsearch` and `coherentsearch` now also print the paths
    of the libpresto and FFTW libraries actually loaded, which shows an old install that
    wins on `LD_LIBRARY_PATH`, and `-perfinfo` no longer needs an input file (with none, it
@@ -27,7 +36,7 @@
    they still warn.  With no block median to feed, `-nonorm` also lets searches with small
    kernels (roughly `-zmax` up to ~150) use 1280-point instead of 2048-point fundamental
    FFTs: 0-4.5% faster for acceleration searches, 4-17% for `-wmax 200` jerk searches
-   (but ~3% slower for `-zmax 0`, which takes well under a second anyway).
+   (`-zmax 0` keeps 2048, which is ~3% faster there).
  * `accelsearch` is 15-23% faster with 1 thread, in the conda-forge packages too, with
    byte-identical ACCEL files.  Two changes to the harmonic sums: each stage now adds all
    of its subharmonics and runs the threshold scan row by row while the row is in cache

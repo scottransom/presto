@@ -133,6 +133,36 @@ def test_accelsearch_nonorm(obs: Path) -> None:
     assert "more than 2x off" in res.stdout + res.stderr
 
 
+def test_accelsearch_auto_nonorm(obs: Path) -> None:
+    """A *_red.fft that passes the normalization check is searched as with -nonorm.
+
+    -median forces the block median back, and a *_red.fft whose powers are not
+    normalized falls back to the block median (with a note) instead of exiting.
+    """
+    d = obs / "autonorm"
+    d.mkdir(exist_ok=True)
+    links = {"fake_DM50.00_red": "fake_DM50.00_red", "raw_red": "fake_DM50.00"}
+    for name, target in links.items():
+        for ext in (".fft", ".inf"):
+            link = d / f"{name}{ext}"
+            if not link.exists():
+                link.symlink_to(obs / f"{target}{ext}")
+    search = ["accelsearch", "-zmax", "0", "-numharm", "16"]
+
+    out = run([*search, "fake_DM50.00_red.fft"], d)
+    assert "as with -nonorm" in out
+    cand = cand_near_truth(d / "fake_DM50.00_red_ACCEL_0")
+    assert cand is not None, "pulsar not found with automatic -nonorm"
+    assert abs(cand.r - TRUE_R) < 0.1  # measured 0.008
+    assert cand.sigma > 5.5  # measured 8.06
+
+    out = run([*search, "-median", "fake_DM50.00_red.fft"], d)
+    assert "using median-blocks" in out and "-nonorm" not in out
+
+    out = run([*search, "raw_red.fft"], d)  # raw realfft powers under a _red name
+    assert "not treated as" in out and "as with -nonorm" not in out
+
+
 def test_prepsubband_dm_trials(obs: Path) -> None:
     """Across prepsubband DM trials, the pulsar is strongest at the injected DM."""
     run(["prepsubband", "-nobary", "-nsub", "32", "-lodm", "0", "-dmstep", "25",

@@ -1678,29 +1678,57 @@ GSList *insert_accelhits(GSList *cands, accelwork *ws, accelobs *obs)
 }
 
 
+static fcomplex *norm_check_bins(accelobs *obs, long long *lo, long long *n)
+/* The bins that the normalization check examines (from              */
+/* fft_norm_check_range()).  vect_free() the result if obs->fftfile   */
+/* is open (it was read from the file); otherwise it points into     */
+/* obs->fft.                                                          */
+{
+    fft_norm_check_range(obs->numbins, lo, n);
+    if (obs->fftfile == NULL)
+        return obs->fft + *lo;
+    fcomplex *amps = gen_cvect(*n > 0 ? *n : 1);
+    chkfileseek(obs->fftfile, *lo, sizeof(fcomplex), SEEK_SET);
+    chkfread(amps, sizeof(fcomplex), *n, obs->fftfile);
+    return amps;
+}
+
+
 static void check_accel_normalization(accelobs *obs, const char *fname)
 /* For -nonorm: warn if the input powers do not look normalized, and */
 /* exit if they are off by more than 2x.                              */
 {
     long long lo, n;
-    fft_norm_check_range(obs->numbins, &lo, &n);
-    if (n < 100)
-        return;
+    fcomplex *amps = norm_check_bins(obs, &lo, &n);
     const char *effect = ", so every search power is off by\n  its square and the candidate sigmas are wrong.";
     const char *remedy = "Run PRESTO's rednoise on the FFT, or drop -nonorm.";
-    int status;
     fflush(stdout);
-    if (obs->mmap_file || obs->dat_input) {
-        status = check_fft_normalization(obs->fft + lo, lo, n, fname, effect, remedy);
-    } else {
-        fcomplex *amps = gen_cvect(n);
-        chkfileseek(obs->fftfile, lo, sizeof(fcomplex), SEEK_SET);
-        chkfread(amps, sizeof(fcomplex), n, obs->fftfile);
-        status = check_fft_normalization(amps, lo, n, fname, effect, remedy);
+    int status = check_fft_normalization(amps, lo, n, fname, effect, remedy);
+    if (obs->fftfile)
         vect_free(amps);
-    }
     if (status < 0)
         exit(1);
+}
+
+
+static int is_rednoised_name(const char *rootfilenm)
+/* Does the file root end in "_red", as rednoise names its output? */
+{
+    const size_t len = strlen(rootfilenm);
+    return len >= 4 && strcmp(rootfilenm + len - 4, "_red") == 0;
+}
+
+
+static double input_noise_scale(accelobs *obs)
+/* The input's noise scale from the normalization check's bins (1 for */
+/* normalized powers), or 0 if there are too few bins to tell.        */
+{
+    long long lo, n;
+    fcomplex *amps = norm_check_bins(obs, &lo, &n);
+    double ratio = (n < 100) ? 0.0 : fft_noise_scale(amps, n);
+    if (obs->fftfile)
+        vect_free(amps);
+    return ratio;
 }
 
 
@@ -1876,6 +1904,25 @@ void create_accelobs(accelobs *obs, infodata *idata, Cmdline *cmd, int usemmap)
         } else if (cmd->medianP) {
             obs->norm_type = 0;
             printf("Normalizing powers using median-blocks.\n\n");
+        } else if (obs->dat_input || is_rednoised_name(obs->rootfilenm)) {
+            // Rednoised input (or .dat input, which was dereddened above)
+            // that passes the normalization check needs no block median,
+            // which only adds scatter: it is searched as with -nonorm.
+            const double ratio = input_noise_scale(obs);
+            if (ratio > 0.0 && fft_noise_scale_ok(ratio)) {
+                obs->norm_type = 2;
+                printf("The input looks normalized (noise scale %.3f), so using no block\n"
+                       "  normalization, as with -nonorm.  Use -median to force it.\n\n",
+                       ratio);
+            } else {
+                obs->norm_type = 0;
+                if (ratio > 0.0)
+                    printf("Normalizing powers using median-blocks (the input's noise scale\n"
+                           "  is %.3f, not within 10%% of 1, so it is not treated as\n"
+                           "  normalized).\n\n", ratio);
+                else
+                    printf("Normalizing powers using median-blocks (default).\n\n");
+            }
         } else {
             obs->norm_type = 0;
             printf("Normalizing powers using median-blocks (default).\n\n");
@@ -2016,8 +2063,9 @@ void create_accelobs(accelobs *obs, infodata *idata, Cmdline *cmd, int usemmap)
     // spans fewer bins (numdata = fftlen / 2), so it is noisier.  With
     // -nonorm there is no block median: 1280 is the length that was
     // fastest, or close to it, for -zmax 50-100 and -wmax 200 searches on
-    // both a Sapphire Rapids and a Skylake-SP Xeon (2026-11-16).
-    const int minfftlen = (obs->norm_type == 2) ? 1280 : 2048;
+    // both a Sapphire Rapids and a Skylake-SP Xeon (2026-11-16).  For
+    // -zmax 0, 2048 stays ~3% faster.
+    const int minfftlen = (obs->norm_type == 2 && cmd->zmax > 0) ? 1280 : 2048;
     if (obs->fftlen < minfftlen)
         obs->fftlen = minfftlen;
     obs->corr_uselen = obs->fftlen - obs->maxkernlen;

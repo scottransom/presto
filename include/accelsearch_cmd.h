@@ -56,11 +56,11 @@ typedef struct s_Cmdline {
   int inmemP;
   /***** -photon: Data is poissonian so use freq 0 as power normalization */
   int photonP;
-  /***** -median: Use block-median power normalization (default) */
+  /***** -median: Use block-median power normalization (the default, except for rednoised input that passes the -nonorm check) */
   int medianP;
   /***** -locpow: Use double-tophat local-power normalization (not usually recommended) */
   int locpowP;
-  /***** -nonorm: Assume the powers are already normalized (by rednoise, or as accelsearch does for .dat input): no block normalization in the search (candidate optimization still uses local powers), which also allows shorter, faster FFTs for small -zmax/-wmax.  Warns if the powers look >10% off, exits if >2x off */
+  /***** -nonorm: Assume the powers are already normalized (by rednoise, or as accelsearch does for .dat input): no block normalization in the search (candidate optimization still uses local powers), which also allows shorter, faster FFTs for small -zmax/-wmax.  Warns if the powers look >10% off, exits if >2x off.  The default for *_red.fft and .dat input whose powers are within 10% */
   int nonormP;
   /***** -zaplist: A file of freqs+widths to zap from the FFT (only if the input file is a *.[s]dat file) */
   int zaplistP;

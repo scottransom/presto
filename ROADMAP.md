@@ -43,6 +43,35 @@ TOAs; see "Polyco folding in `prepfold_multi`" below), plus the 64-bit `accelsea
 optimizer fix from PR #233. **v6.3.1** (2026-11-14) added runtime SIMD dispatch of
 coherentsearch's kernels for the conda-forge packages (1.2-1.35x) and `-perfinfo`.
 
+### Next: v6.3.3 (accelsearch speed release)
+
+The `accel-fftlen-tuning` work (measured FFT-length list, `makewisdom -check`, `-nonorm`
+and automatic `-nonorm` for rednoised input, `-perfinfo` library paths) was merged to
+`master` on 2026-11-17, on top of the 15-23% harmonic-sum speedup (a588398). Once it is
+pushed and CI (plus the real-data tests) pass, release **v6.3.3** so conda-forge gets it
+(`RELEASE.md`). Do the release in a new session.
+
+For the release notes, **plot accelsearch speed across releases**: wall time (or speedup
+relative to v5.0.0) for every release since v5.0.0 (v5.0.0 ... v6.3.2, plus v6.3.3), at
+`-ncpus 1` and `-ncpus 4`. Plan:
+- Hosts: eiger (Sapphire Rapids) and fitzroy (Skylake-SP), quiet; run
+  `tests/accelsearch/bench_preflight.sh` first (not in the old trees: use this one).
+- Build every tag the same way: a git worktree per tag, meson in the pixiPSR env with the
+  same FFTW (3.3.10, `PKG_CONFIG_PATH=$ENV/lib/pkgconfig`) and compiler, installed to its
+  own prefix. Old tags may need small build fixes for the current toolchain; keep those
+  as patches outside git. Put each build's `src/` (or prefix `lib/`) first on
+  `LD_LIBRARY_PATH` and check `ldd` for libpresto and libfftw3f.
+- Fresh wisdom for each version with its own `makewisdom` (older ones write to
+  `$PRESTO/lib`, so give each its own `PRESTO`). Note that before v6.3.3 the wisdom
+  missed the out-of-place inverse and some lengths.
+- Inputs: the Ter5 DM 238.50 `_red.fft` (real-data test) and the MC files used for the
+  paper timings. Searches: `-zmax 0 -numharm 16`, `-zmax 200 -numharm 8`, and
+  `-zmax 50 -wmax 200` where the version supports jerk searches. Best of 3 runs.
+- v6.3.3 searches rednoised input with automatic `-nonorm`; also time it with `-median`,
+  so the plot can separate the code speedups from the normalization change.
+- Plot with matplotlib (one panel per search, releases on x, 1 and 4 threads as two
+  lines per host), and keep the script and raw timings with the benchmark results.
+
 ## The coherent harmonic search in PRESTO (shipped in v6.2.0)
 
 ### What and why
@@ -468,9 +497,24 @@ FFTW 8.5 s, `search_ffdotpows` 6.9 s, `add_ffdotpows` 5.6 s, `subharm_fderivs_vo
      768 on eiger but only 3.6% at 1280 on fitzroy. Too small to justify the change in
      default mode, where the block median would then span 640 bins instead of 1024
      (`numdata = fftlen/2` is the whole block; its scatter is ~1.44/sqrt(N) in power).
-     **With `-nonorm`, which has no block median, the floor is now 1280** (2026-11-16).
-     Changing the fundamental length changes ACCEL files, even with `-nonorm` (see the
-     next item).
+     **With `-nonorm`, which has no block median, the floor is now 1280** (2026-11-16),
+     except for `-zmax 0`. Changing the fundamental length changes ACCEL files, even
+     with `-nonorm` (see the next item).
+   - **`-nonorm` is automatic for rednoised input** (`*_red.fft`, `.dat`) that passes
+     the normalization check (2026-11-17); `-median` forces the block median. The
+     false-alarm test that justified it (eiger, `/data1/simd_bench/falsealarm`):
+     1000 pure-noise spectra (Ter5's N and dt, realfft + rednoise), searched both ways at
+     `-zmax 0/50/200`. `-nonorm` gave 6–11% *fewer* candidates above sigma 2
+     (1.72→1.61, 1.74→1.58, 1.63→1.46 per spectrum, 5–9 standard errors), the same
+     number above 3, and statistically identical candidate sigmas (KS p = 0.5–0.85). On
+     Ter5 DM 234–248 and the Parkes PM0063 spectrum, every known pulsar was found both
+     ways with sigmas within ~1% (Ter5A up to 5% higher at z200 with `-nonorm`); the only
+     extra candidates were Ter5A's own r–z sidelobes, which the block median hides by
+     suppressing everything in a bright pulsar's block.
+   - **The multi-trial sigma is optimistic for noise**, in both modes: the noise
+     spectra above gave 0.10–0.13 candidates above sigma 3 per search, ~20x the
+     (harmonic stages) x Q(3) that an exact `numindep` would give. The effective number
+     of independent trials is probably underestimated. Worth a look some day.
    - **Candidate merging is insertion-order dependent.** `insert_new_accelcand` keeps the
      higher-sigma of two hits within 15 bins, so in a crowded region which hit survives
      depends on arrival order, which depends on the blocking. Example: Ter5 DM 238.50,

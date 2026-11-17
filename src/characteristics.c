@@ -56,6 +56,28 @@ static int cmp_float(const void *a, const void *b)
     return (x > y) - (x < y);
 }
 
+double fft_noise_scale(const fcomplex *amps, long long n)
+/* The noise scale of the powers of amps[0..n) relative to normalized  */
+/* powers: sqrt(median power / ln 2).  1 if n < 100 (too few to tell). */
+{
+    if (n < 100)
+        return 1.0;
+    float *pow = malloc(n * sizeof(float));
+    for (long long i = 0; i < n; i++)
+        pow[i] = amps[i].r * amps[i].r + amps[i].i * amps[i].i;
+    qsort(pow, n, sizeof(float), cmp_float);
+    const double med = n % 2 ? pow[n / 2] : 0.5 * (pow[n / 2 - 1] + pow[n / 2]);
+    free(pow);
+    return sqrt(med / M_LN2);
+}
+
+int fft_noise_scale_ok(double ratio)
+/* Is a noise scale from fft_noise_scale() close enough to 1 to treat */
+/* the powers as normalized?                                          */
+{
+    return fabs(ratio - 1.0) <= NORM_CHECK_TOL;
+}
+
 int check_fft_normalization(const fcomplex *amps, long long lo, long long n,
                             const char *fname, const char *effect,
                             const char *remedy)
@@ -71,14 +93,9 @@ int check_fft_normalization(const fcomplex *amps, long long lo, long long n,
 {
     if (n < 100)
         return 1;
-    float *pow = malloc(n * sizeof(float));
-    for (long long i = 0; i < n; i++)
-        pow[i] = amps[i].r * amps[i].r + amps[i].i * amps[i].i;
-    qsort(pow, n, sizeof(float), cmp_float);
-    const double med = n % 2 ? pow[n / 2] : 0.5 * (pow[n / 2 - 1] + pow[n / 2]);
-    free(pow);
-    const double ratio = sqrt(med / M_LN2);     /* (actual / assumed) noise scale */
-    if (fabs(ratio - 1.0) <= NORM_CHECK_TOL)
+    const double ratio = fft_noise_scale(amps, n);      /* (actual / assumed) */
+    const double med = ratio * ratio * M_LN2;
+    if (fft_noise_scale_ok(ratio))
         return 1;
     const int fatal = ratio > NORM_CHECK_FATAL || ratio < 1.0 / NORM_CHECK_FATAL;
     fprintf(stderr, "\n%s (%s): the Fourier powers do not look normalised: the noise\n"

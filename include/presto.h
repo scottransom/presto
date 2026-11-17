@@ -432,6 +432,13 @@ void fft_norm_check_range(long long numamps, long long *lo, long long *n);
   /* The bins [*lo, *lo + *n) that check_fft_normalization() examines */
   /* in an FFT of numamps complex bins.                               */
 
+double fft_noise_scale(const fcomplex *amps, long long n);
+  /* sqrt(median power / ln 2) of amps[0..n): 1 for normalized powers */
+  /* (1 if n < 100).                                                  */
+
+int fft_noise_scale_ok(double ratio);
+  /* Is that noise scale within 10% of 1?                             */
+
 int check_fft_normalization(const fcomplex *amps, long long lo, long long n,
                             const char *fname, const char *effect,
                             const char *remedy);
