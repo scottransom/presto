@@ -258,6 +258,31 @@ def test_filterbank_long_header_strings(tmp_path: Path) -> None:
     assert name.startswith(inf.object) and len(inf.object) >= 70
 
 
+@pytest.mark.parametrize("nspec", [1000, 2400])
+def test_prepfold_short_dat(tmp_path: Path, nspec: int) -> None:
+    """prepfold refuses a .dat shorter than one 1024-point block, and cuts -npart to fit.
+
+    It once folded zero points in both cases, and then printed NaNs and overflowed a
+    buffer formatting them.
+    """
+    write_filterbank(FakePulsar(nspec=nspec), str(tmp_path / "short.fil"))
+    run(["prepdata", "-nobary", "-dm", "0", "-o", "short", "short.fil"], tmp_path)
+    res = subprocess.run(["prepfold", "-nosearch", "-noxwin", "-p", "0.05", "-n", "16",
+                          "-npart", "4", "-o", "short", "short.dat"],
+                         cwd=tmp_path, capture_output=True, text=True)
+    if nspec < 1024:
+        assert res.returncode == 1
+        assert "prepfold needs at least 1024" in res.stdout
+    else:
+        assert res.returncode == 0, res.stdout[-4000:] + res.stderr[-4000:]
+        assert "Overriding -npart to be 2" in res.stdout
+        assert "Total number of data points  =  2048" in res.stdout
+        assert "Amount Complete = 100%" in res.stdout
+        assert "Amount Complete = 101%" not in res.stdout
+        bestprof = read_bestprof(next(tmp_path.glob("short*.pfd.bestprof")))
+        assert bestprof["P_ms"] == pytest.approx(50.0)
+
+
 # SIGPROC tstart and the DATE-OBS-style string readfile must print for it.  The old
 # formatter's "%.6g" seconds gave 60 seconds, "010" for 9.9999999, and exponents.
 DATES = {

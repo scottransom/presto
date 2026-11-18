@@ -59,6 +59,11 @@ jobs:
           -Dc_args="$CFLAGS -fno-omit-frame-pointer -fno-sanitize-recover=undefined"'
       - name: Build and test
         if: ${{ !matrix.sanitize }}
+        # c_args above reaches only libpresto and the programs.  The Python extensions
+        # are built by meson-python, which takes CFLAGS (pixi's activation appends it
+        # to conda's), so the unsigned-char job passes the flag that way too.
+        env:
+          CFLAGS: ${{ matrix.unsigned_char && '-funsigned-char' || '' }}
         run: pixi run test
       - name: Build and test (sanitized)
         if: matrix.sanitize

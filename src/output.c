@@ -3,6 +3,20 @@
 /*  NOTE:  See presto.h for function definitions. */
 #include "presto.h"
 
+static int nice_output_nonfinite(char *output, double val, double err, int len)
+/* NaN or inf values or errors (e.g. from a failed fit) would turn into */
+/* garbage ints below and overflow the strings.  Print them plainly.   */
+{
+    char temp[50];
+
+    snprintf(temp, sizeof(temp), "%g(%g)", val, err);
+    if (len == 0)
+        sprintf(output, "%s", temp);
+    else
+        sprintf(output, "%*s", len, temp);
+    return strlen(output);
+}
+
 int nice_output_1(char *output, double val, double err, int len)
 /* Generates a string in "output" of length len with "val" rounded  */
 /*   to the appropriate decimal place and the error in parenthesis  */
@@ -18,6 +32,8 @@ int nice_output_1(char *output, double val, double err, int len)
     char temp[50];
 
     sprintf(temp, "There is a problem with 'nice_output()'.\n");
+    if (!isfinite(val) || !isfinite(err))
+        return nice_output_nonfinite(output, val, err, len);
     if (fabs(err) == 0.0) {
         errexp = 0;
     } else {
@@ -125,6 +141,8 @@ int nice_output_2(char *output, double val, double err, int len)
     char temp[50];
 
     sprintf(temp, "There is a problem with 'nice_output2()'.\n");
+    if (!isfinite(val) || !isfinite(err))
+        return nice_output_nonfinite(output, val, err, len);
     if (fabs(err) == 0.0) {
         errexp = 0;
     } else {

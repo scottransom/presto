@@ -540,6 +540,21 @@ void compute_obs_timing(Cmdline *cmd, struct spectra_info *s, infodata *idata,
 
             reads_per_part = numrec / fc->npart;
 
+            /* Too short to fold, or fewer records than parts (as for the */
+            /* raw data above).  Otherwise nothing is folded at all.      */
+            if (numrec < 1) {
+                printf("\nError:  only %lld points to fold, but prepfold needs at "
+                       "least %d.\n\n", hirec - lorec, SUBSBLOCKLEN);
+                exit(1);
+            }
+            if (numrec < fc->npart) {
+                reads_per_part = 1;
+                fc->npart = numrec;
+                printf
+                    ("Overriding -npart to be %lld, the number of %d-point blocks.\n",
+                     numrec, SUBSBLOCKLEN);
+            }
+
             /* Correct numrec so that each part will contain */
             /* the same number of records.                   */
 
@@ -1990,10 +2005,12 @@ void optimize_candidate(Cmdline *cmd, infodata *idata, foldcand *fc,
                 lodmnum = good_idm;
                 numdmtrials = lodmnum + 1;
             }
-            /* The total number of search trials */
+            /* The total number of search trials.  A single-subband fold */
+            /* (e.g. a .dat) always loops over every p and p-dot, to fill */
+            /* the p-pdot plane, so count those too.                      */
             totnumtrials = (cmd->nodmsearchP ? 1l : numdmtrials) *
-                (cmd->nopsearchP ? 1l : numtrials) *
-                (cmd->nopdsearchP ? 1l : numtrials) *
+                (cmd->nopsearchP && fc->nsub > 1 ? 1l : numtrials) *
+                (cmd->nopdsearchP && fc->nsub > 1 ? 1l : numtrials) *
                 (cmd->searchpddP ? numpdds : 1);
             if (totnumtrials < 100000000l) {
                 printf("     (%lld total trials)\n", totnumtrials);

@@ -1,4 +1,10 @@
 ## Development (unreleased, since v6.3.3):
+ * **Fix `prepfold` on short time series**: a `.dat` with fewer 1024-point blocks than
+   `-npart` folded nothing, printed NaNs, and could crash with a buffer overflow.  It now
+   reduces `-npart` to fit (as it already did for raw data), and exits with an error if
+   there is less than one block.  `nice_output_1/2()` now print NaN/inf values plainly
+   instead of overflowing, and the "Amount Complete" counter no longer runs past 100% for
+   single-subband folds with `-nosearch`.
  * **RA/Dec and date strings no longer show 60 seconds**: `ra_dec_to_string()` (C) and
    `psr_utils.coord_to_string()` printed e.g. -0.999999999 deg as `-00:59:60.0000`.  They
    now round first and carry into the minutes and degrees (`-01:00:00.0000`).  Likewise
@@ -10,7 +16,10 @@
  * **Fix `ppgplot` exceptions under Python 3**: a failed `pgopen()` (or any other
    `ppgplot` error) raised `SystemError: ... is not a BaseException subclass` because the
    module's exceptions were plain strings.  `ioerror`, `typeerror` and `memerror` are now
-   real exception classes, subclassing `OSError`, `TypeError` and `MemoryError`.
+   real exception classes, subclassing `OSError`, `TypeError` and `MemoryError`.  On
+   aarch64 a failed `pgopen()` didn't raise at all: it stored the error code in a `char`,
+   which is unsigned there.  CI's `-funsigned-char` job now builds the Python extensions
+   with that flag too.
  * **Fix memory corruption reading SIGPROC files with no position** (e.g. from sigproc's
    `fake`).  The header reader left `src_raj`/`src_dej` uninitialized, and a large junk
    value overflowed the RA/Dec strings, causing intermittent `rfifind` crashes ("stack

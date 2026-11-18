@@ -461,7 +461,9 @@ PYF(pgbeg)
 
 PYF(pgopen)
 {
-    char *dev = NULL, did = 0;
+    char *dev = NULL;
+    int did = 0;    /* cpgopen()'s int, not a char:  plain char is unsigned */
+                    /* on aarch64, which turned errors into valid ids.     */
 
     if (!PyArg_ParseTuple(args,"|z:pgopen",&dev))
 		return(NULL);
