@@ -282,6 +282,11 @@ int read_filterbank_header(sigprocfb * fb, FILE * inputfile)
     int itmp, nbytes = 0, totalbytes;
     int expecting_rawdatafile = 0, expecting_source_name = 0;
     int barycentric, pulsarcentric;
+    /* Zero everything first: a header need not contain every keyword (sigproc */
+    /* 'fake' writes no src_raj, src_dej, az_start or za_start), and the      */
+    /* caller's struct is on its stack.  Left uninitialised, a garbage RA/Dec */
+    /* overflows ra_str/dec_str in read_filterbank_files().                   */
+    memset(fb, 0, sizeof(sigprocfb));
     /* try to read in the first line of the header */
     get_string(inputfile, &nbytes, string, sizeof(string));
     if (!strings_equal(string, "HEADER_START")) {
