@@ -2314,15 +2314,11 @@ MOD_INIT(_ppgplot)
 #endif
     d = PyModule_GetDict(m);
     import_array();
-#if PY_MAJOR_VERSION >= 3
-    PpgIOErr = PyUnicode_FromString("_ppgplot.ioerror");
-    PpgTYPEErr = PyUnicode_FromString("_ppgplot.typeerror");
-    PpgMEMErr = PyUnicode_FromString("_ppgplot.memerror");
-#else
-    PpgIOErr = PyString_FromString("_ppgplot.ioerror");
-    PpgTYPEErr = PyString_FromString("_ppgplot.typeerror");
-    PpgMEMErr = PyString_FromString("_ppgplot.memerror");
-#endif
+    /* Real exception classes (Python 3 rejects the old string exceptions), */
+    /* subclassing the matching built-ins so callers can catch either.     */
+    PpgIOErr = PyErr_NewException("_ppgplot.ioerror", PyExc_OSError, NULL);
+    PpgTYPEErr = PyErr_NewException("_ppgplot.typeerror", PyExc_TypeError, NULL);
+    PpgMEMErr = PyErr_NewException("_ppgplot.memerror", PyExc_MemoryError, NULL);
     PyDict_SetItemString(d, "ioerror", PpgIOErr);
     PyDict_SetItemString(d, "typeerror", PpgTYPEErr);
     PyDict_SetItemString(d, "memerror", PpgMEMErr);

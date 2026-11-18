@@ -55,7 +55,9 @@ double cal_to_mjd(int year, int month, int day, int *status);
 // -3 = bad day (MJD still computed).
 
 void mjd_to_datestr(double mjd, char *datestr);
-// Convert an MJD to a PSRFITS-style DATEOBS
+// Convert an MJD to a PSRFITS-style DATEOBS, 'YYYY-MM-DDThh:mm:ss.ssss'.
+// The time is rounded to 0.1 ms first, so 60 s carries into the next
+// minute (and day, if need be).  datestr must hold at least 25 chars.
 
 int gcd(int a, int b);
 /* Return the greatest common divisor of a and b */
@@ -168,10 +170,16 @@ static inline void update_stats(long N, double x, double *min, double *max,
     *var += dev * (x - *avg);
 }
 
+/* Bytes ra_dec_to_string() may write, including the terminating NUL. */
+/* '-dd:mm:ss.ssss' needs 15; prepfold's .pfd rastr/decstr hold 16.    */
+#define RADEC_STRLEN 16
+
 void ra_dec_to_string(char *radec, int h_or_d, int m, double s);
 /* Return a properly formatted string containing RA or DEC values   */
 /*   radec is a string with J2000 RA  in the format 'hh:mm:ss.ssss' */
 /*   or a string with J2000 DEC in the format 'dd:mm:ss.ssss'       */
+/*   radec must hold at least RADEC_STRLEN chars.  Out-of-range     */
+/*   values are truncated to fit rather than overflowing it.        */
 
 void ra_dec_from_string(char *radec, int *h_or_d, int *m, double *s);
 /* Return a values for hours or degrees, minutes and seconds        */

@@ -258,6 +258,48 @@ assert round(hh1 - hh2, 12) == 0
 hh1 = -0.5
 hh2 = presto.hms2rad(*presto.hours2hms(hh1)) * presto.RADTODEG / 15.0
 assert round(hh1 - hh2, 12) == 0
+# Between 0 and -1 deg the degrees field is 0, so the sign must go on the minutes, or on
+# the seconds if the minutes are 0 too.  A classic place to lose the sign.
+for dd1, (d, m) in [
+    (-0.5, (0, -30)),
+    (-0.01, (0, 0)),
+    (-1.0 / 3600, (0, 0)),
+    (-1e-6, (0, 0)),
+    (-0.999, (0, -59)),
+    (0.5, (0, 30)),
+    (-1.5, (-1, 30)),
+]:
+    dms = presto.deg2dms(dd1)
+    assert tuple(dms[:2]) == (d, m), (dd1, dms)
+    if dd1 < 0 and d == 0:  # minutes and seconds are both negated (or -0.0)
+        assert dms[2] <= 0 and (m < 0 or dms[2] < 0), (dd1, dms)
+    else:
+        assert dms[2] >= 0, (dd1, dms)
+    assert abs(presto.dms2rad(*dms) * presto.RADTODEG - dd1) < 1e-12
+assert presto.dms2rad(0, 0, -30.0) == -presto.dms2rad(0, 0, 30.0)
+assert presto.dms2rad(0, -12, 30.0) == -presto.dms2rad(0, 12, 30.0)
+assert presto.hms2rad(0, 0, -30.0) == -presto.hms2rad(0, 0, 30.0)
+# The same for the python string routines, which also must round 59.99996" up to the
+# next minute and not print 60.0000
+from presto import psr_utils as pu
+
+for dd1, dstr in [
+    (-0.5, "-00:30:00.0000"),
+    (-0.01, "-00:00:36.0000"),
+    (-0.25 / 3600, "-00:00:00.2500"),
+    (0.01, "00:00:36.0000"),
+    (-0.999999999, "-01:00:00.0000"),
+    (-(12 + 59.99996 / 60) / 60, "-00:13:00.0000"),
+    (-12.5, "-12:30:00.0000"),
+]:
+    assert pu.coord_to_string(*pu.rad_to_dms(dd1 * presto.DEGTORAD)) == dstr, dd1
+    assert abs(pu.dec_to_rad(dstr) * presto.RADTODEG - dd1) < 1e-4 / 3600
+assert pu.dec_to_rad("-00:00:30.0") == -pu.dec_to_rad("00:00:30.0")
+assert pu.dec_to_rad("-00:12:30.0") == -pu.dec_to_rad("00:12:30.0")
+assert (
+    pu.coord_to_string(*pu.rad_to_hms(pu.hms_to_rad(11, 59, 59.99999)))
+    == "12:00:00.0000"
+)
 ang = presto.sphere_ang_diff(
     10.0 * presto.DEGTORAD,
     10.0 * presto.DEGTORAD,
@@ -302,4 +344,16 @@ assert np.all(prof > 0)
 prof, phs = presto.fold(np.ones(10000), 0.001, 100, 1, startphs=0.99, standard=False)
 assert np.allclose(prof, prof.mean())
 assert np.all(prof > 0)
+print("success")
+
+print("Testing ppgplot error handling...", end=" ")
+# The module's exceptions were once plain strings, which Python 3 turns into a SystemError
+from presto import ppgplot
+
+try:
+    ppgplot.pgopen("/no_such_pgplot_device")
+except OSError as err:
+    assert isinstance(err, ppgplot.ioerror)
+else:
+    raise AssertionError("pgopen() on a bad device did not raise")
 print("success")

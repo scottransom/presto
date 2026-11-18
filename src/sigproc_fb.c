@@ -448,6 +448,18 @@ void read_filterbank_files(struct spectra_info *s)
     {
         int d, h, m;
         double sec;
+        /* src_raj is hhmmss.s and src_dej is ddmmss.s.  Reject anything */
+        /* out of range (or NaN) rather than formatting junk.            */
+        if (!(fb.src_raj >= 0.0 && fb.src_raj < 240000.0)) {
+            fprintf(stderr, "Warning:  bad src_raj (%g) in SIGPROC header of '%s'.  "
+                    "Using 0.\n", fb.src_raj, s->filenames[0]);
+            fb.src_raj = 0.0;
+        }
+        if (!(fabs(fb.src_dej) <= 900000.0)) {
+            fprintf(stderr, "Warning:  bad src_dej (%g) in SIGPROC header of '%s'.  "
+                    "Using 0.\n", fb.src_dej, s->filenames[0]);
+            fb.src_dej = 0.0;
+        }
         h = (int) floor(fb.src_raj / 10000.0);
         m = (int) floor((fb.src_raj - h * 10000) / 100.0);
         sec = fb.src_raj - h * 10000 - m * 100;

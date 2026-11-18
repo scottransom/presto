@@ -185,27 +185,32 @@ double cal_to_mjd(int year, int month, int day, int *status)
 
 void mjd_to_datestr(double mjd, char *datestr)
 // Convert an MJD to a PSRFITS-style DATEOBS
+// The seconds have 4 decimals (0.1 ms).  The time of day is rounded to that
+// before it is split up, so it can never print as 60 seconds: a carry rolls
+// over into the next minute, hour or day instead.  datestr needs 25 chars.
 {
+    const long long ticks_per_sec = 10000, ticks_per_day = 86400 * ticks_per_sec;
     int year, month, day, hour, min, err;
-    double fracday, dh, dm, sec;
+    long long ticks;
+    double mjd_day, fracday;
 
-    err = eraJd2cal(ERFA_DJM0, mjd, &year, &month, &day, &fracday);
+    mjd_day = floor(mjd);
+    ticks = llround((mjd - mjd_day) * ticks_per_day);
+    if (ticks >= ticks_per_day) {
+        ticks -= ticks_per_day;
+        mjd_day += 1.0;
+    }
+    err = eraJd2cal(ERFA_DJM0, mjd_day, &year, &month, &day, &fracday);
     if (err) {
         printf("Error in mjd_to_datestr:  Bad MJD '%.12f'.\n", mjd);
         exit(1);
     }
-    dh = fracday * 24.0;
-    hour = (int) dh;
-    dm = (dh - hour) * 60.0;
-    min = (int) dm;
-    sec = (dm - min) * 60.0;
-    if (sec < 10.0) {
-        sprintf(datestr, "%4d-%02d-%02dT%02d:%02d:0%.6g",
-                year, month, day, hour, min, sec);
-    } else {
-        sprintf(datestr, "%4d-%02d-%02dT%02d:%02d:%.6g",
-                year, month, day, hour, min, sec);
-    }
+    hour = (int) (ticks / (3600 * ticks_per_sec));
+    ticks -= hour * 3600 * ticks_per_sec;
+    min = (int) (ticks / (60 * ticks_per_sec));
+    ticks -= min * 60 * ticks_per_sec;
+    sprintf(datestr, "%4d-%02d-%02dT%02d:%02d:%02d.%04d", year, month, day, hour,
+            min, (int) (ticks / ticks_per_sec), (int) (ticks % ticks_per_sec));
 }
 
 
@@ -743,14 +748,30 @@ void ra_dec_to_string(char *radec, int h_or_d, int m, double s)
 /* Return a properly formatted string containing RA or DEC values   */
 /*   radec is a string with J2000 RA  in the format 'hh:mm:ss.ssss' */
 /*   or a string with J2000 DEC in the format 'dd:mm:ss.ssss'       */
+/*   At most RADEC_STRLEN chars (with the NUL) are written.         */
+/*   The sign goes on the most-significant nonzero field, so values */
+/*   between 0 and -1 deg are (0, -m, -s) or (0, 0, -s).            */
 {
-    int offset = 0;
+    int neg, hd, mm;
+    double ss;
 
-    if (h_or_d == 0 && (m < 0 || s < 0.0)) {
-        radec[0] = '-';
-        offset = 1;
+    neg = (h_or_d < 0 || (h_or_d == 0 && (m < 0 || s < 0.0)));
+    hd = abs(h_or_d);
+    mm = abs(m);
+    /* Round to the printed precision first and carry, so that e.g. */
+    /* 59.99996 s prints as the next minute and not as 60.0000.      */
+    ss = round(fabs(s) * 1e4) / 1e4;
+    if (ss >= 60.0) {
+        ss -= 60.0;
+        mm++;
     }
-    sprintf(radec + offset, "%.2d:%.2d:%07.4f", h_or_d, abs(m), fabs(s));
+    if (mm >= 60) {
+        mm -= 60;
+        hd++;
+    }
+    if (snprintf(radec, RADEC_STRLEN, "%s%.2d:%.2d:%07.4f", neg ? "-" : "",
+                 hd, mm, ss) >= RADEC_STRLEN)
+        fprintf(stderr, "Warning:  RA/Dec out of range, truncated to '%s'\n", radec);
 }
 
 

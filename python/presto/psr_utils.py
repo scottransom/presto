@@ -583,17 +583,18 @@ def coord_to_string(h_or_d: float, m: float, s: float) -> str:
         The coordinate as ``'hh:mm:ss.ssss'`` (RA) or ``'dd:mm:ss.ssss'``
         (DEC).
     """
-    retstr = ""
-    if h_or_d < 0:
-        retstr = "-"
-    elif abs(h_or_d) == 0:
-        if (m < 0.0) or (s < 0.0):
-            retstr = "-"
-    h_or_d, m, s = abs(h_or_d), abs(m), abs(s)
-    if s >= 9.9995:
-        return retstr + "%.2d:%.2d:%.4f" % (h_or_d, m, s)
-    else:
-        return retstr + "%.2d:%.2d:0%.4f" % (h_or_d, m, s)
+    # The sign goes on the most-significant nonzero field, so values between 0 and
+    # -1 deg arrive as (0, -m, -s) or (0, 0, -s).
+    neg = h_or_d < 0 or (h_or_d == 0 and (m < 0.0 or s < 0.0))
+    h_or_d, m, s = int(abs(h_or_d)), int(abs(m)), round(abs(s), 4)
+    # Carry after rounding, so that e.g. 59.99996 s is the next minute, not 60.0000
+    if s >= 60.0:
+        s -= 60.0
+        m += 1
+    if m >= 60:
+        m -= 60
+        h_or_d += 1
+    return "%s%.2d:%.2d:%07.4f" % ("-" if neg else "", h_or_d, m, s)
 
 
 def ra_to_rad(ra_string: str) -> float:

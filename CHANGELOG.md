@@ -1,4 +1,23 @@
 ## Development (unreleased, since v6.3.3):
+ * **RA/Dec and date strings no longer show 60 seconds**: `ra_dec_to_string()` (C) and
+   `psr_utils.coord_to_string()` printed e.g. -0.999999999 deg as `-00:59:60.0000`.  They
+   now round first and carry into the minutes and degrees (`-01:00:00.0000`).  Likewise
+   `mjd_to_datestr()` (the SIGPROC "Obs Date String" in `readfile` and `.inf` notes), whose
+   `%.6g` seconds also gave `010` for 9.9999999 s and `02e-05` for tiny ones: it now always
+   prints `hh:mm:ss.ssss`, carrying into the next minute, hour or day.  New tests
+   check the signs and strings of declinations between 0 and -1 deg through the SWIG
+   routines, `psr_utils`, and the SIGPROC reader to `.inf` to C `.inf` parser to `.pfd`.
+ * **Fix `ppgplot` exceptions under Python 3**: a failed `pgopen()` (or any other
+   `ppgplot` error) raised `SystemError: ... is not a BaseException subclass` because the
+   module's exceptions were plain strings.  `ioerror`, `typeerror` and `memerror` are now
+   real exception classes, subclassing `OSError`, `TypeError` and `MemoryError`.
+ * **Fix memory corruption reading SIGPROC files with no position** (e.g. from sigproc's
+   `fake`).  The header reader left `src_raj`/`src_dej` uninitialized, and a large junk
+   value overflowed the RA/Dec strings, causing intermittent `rfifind` crashes ("stack
+   smashing detected", "Cannot allocate memory"), mostly on aarch64.  Thanks to Joseph Kania
+   for finding and fixing it (#234).  As further hardening, `ra_dec_to_string()` now never
+   writes more than 16 bytes, and out-of-range SIGPROC positions draw a warning and
+   become 0.  A new test covers missing, normal and bad positions.
 
 ## Version 6.3.3:
  * **Another speed release for `accelsearch`**: with one thread it is ~1.25x faster than

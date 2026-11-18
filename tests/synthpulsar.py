@@ -108,6 +108,7 @@ def write_filterbank(
     scale: float | None = None,
     rawdatafile: str | None = None,
     source_name: str = "FAKEPSR",
+    position: tuple[float, float] | None = (0.0, 0.0),
 ) -> None:
     """Write noise plus the pulsar to a SIGPROC filterbank file.
 
@@ -131,6 +132,9 @@ def write_filterbank(
         The header's ``rawdatafile`` string. Defaults to `path`.
     source_name : str, optional
         The header's ``source_name`` string. Default "FAKEPSR".
+    position : tuple of float or None, optional
+        The header's ``(src_raj, src_dej)``, in SIGPROC's hhmmss.s and ddmmss.s forms.
+        None leaves both keys out, as sigproc's ``fake`` does. Default (0.0, 0.0).
     """
     rng = np.random.default_rng(psr.seed)
     data = rng.standard_normal((psr.nspec, psr.nchan), dtype=np.float32)
@@ -158,8 +162,6 @@ def write_filterbank(
         "data_type": 1,
         "rawdatafile": path if rawdatafile is None else rawdatafile,
         "source_name": source_name,
-        "src_raj": 0.0,
-        "src_dej": 0.0,
         "tstart": psr.tstart,
         "tsamp": psr.tsamp,
         "fch1": psr.fch1,
@@ -167,6 +169,8 @@ def write_filterbank(
         "nchans": psr.nchan,
         "nifs": 1,
     }
+    if position is not None:
+        header["src_raj"], header["src_dej"] = position
     if signed:
         header["signed"] = 1
     # For signed data the writer's cast to an unsigned dtype keeps the same bytes, and the

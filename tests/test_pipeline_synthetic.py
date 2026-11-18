@@ -18,7 +18,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from presto import filterbank, infodata, sifting, sigproc
+from presto import filterbank, infodata, prepfold, psr_utils, sifting, sigproc
 from synthpulsar import FakePulsar, write_filterbank
 
 PSR = FakePulsar()
@@ -256,6 +256,77 @@ def test_filterbank_long_header_strings(tmp_path: Path) -> None:
     assert inf.N == psr.nspec
     assert inf.dt == pytest.approx(psr.tsamp)
     assert name.startswith(inf.object) and len(inf.object) >= 70
+
+
+# SIGPROC tstart and the DATE-OBS-style string readfile must print for it.  The old
+# formatter's "%.6g" seconds gave 60 seconds, "010" for 9.9999999, and exponents.
+DATES = {
+    "midnight": (60000.0, "2023-02-25T00:00:00.0000"),
+    "normal": (60000.0 + (12 * 3600 + 34 * 60 + 56.789) / 86400, "2023-02-25T12:34:56.7890"),
+    "tiny-sec": (60000.0 + 2e-5 / 86400, "2023-02-25T00:00:00.0000"),
+    "carry-to-10s": (60000.0 + 9.9999999 / 86400, "2023-02-25T00:00:10.0000"),
+    "carry-to-min": (60000.0 + (11 * 60 + 59.99996) / 86400, "2023-02-25T00:12:00.0000"),
+    "carry-to-year": (60310.0 - 4e-5 / 86400, "2024-01-01T00:00:00.0000"),
+}
+
+
+@pytest.mark.parametrize("tstart,datestr", DATES.values(), ids=DATES.keys())
+def test_filterbank_date_string(tmp_path: Path, tstart: float, datestr: str) -> None:
+    """readfile prints a SIGPROC tstart as a properly rounded date and time."""
+    write_filterbank(FakePulsar(nspec=2400, tstart=tstart), str(tmp_path / "date.fil"))
+    out = run(["readfile", "date.fil"], tmp_path)
+    assert f"Obs Date String = {datestr}\n" in out
+
+
+# SIGPROC (src_raj, src_dej) and the RA/Dec strings they must give.  The cases between 0
+# and -1 deg are the classic lost-sign trap: the degrees field is zero, so the sign has to
+# live on the minutes or seconds (fixed for SIGPROC in v6.3.1).  The last two check that
+# rounding to 4 decimals carries into the minutes, rather than printing 60.0000 seconds.
+POSITIONS = {
+    "missing": (None, "00:00:00.0000", "00:00:00.0000", False),
+    "normal": ((123456.789, -54321.5), "12:34:56.7890", "-05:43:21.5000", False),
+    "north": ((10203.04, 101214.966), "01:02:03.0400", "10:12:14.9660", False),
+    "dec-0to-1-arcmin": ((10203.04, -1214.966), "01:02:03.0400", "-00:12:14.9660", False),
+    "dec-0to-1-arcsec": ((10203.04, -30.5), "01:02:03.0400", "-00:00:30.5000", False),
+    "dec-0to-1-sub-arcsec": ((10203.04, -0.25), "01:02:03.0400", "-00:00:00.2500", False),
+    "dec+0to1-arcsec": ((10203.04, 30.5), "01:02:03.0400", "00:00:30.5000", False),
+    "carry-to-deg": ((10203.04, -5959.99999), "01:02:03.0400", "-01:00:00.0000", False),
+    "carry-to-min": ((105959.99996, -1259.99996), "11:00:00.0000", "-00:13:00.0000", False),
+    "bad-ra": ((-4321.0, -4321.0), "00:00:00.0000", "-00:43:21.0000", True),
+    "huge": ((1e300, 1e300), "00:00:00.0000", "00:00:00.0000", True),
+}
+
+
+@pytest.mark.parametrize("position,ra,dec,warns", POSITIONS.values(), ids=POSITIONS.keys())
+def test_filterbank_position(tmp_path: Path, position, ra: str, dec: str,
+                             warns: bool) -> None:
+    """The SIGPROC position reaches the .inf and the .pfd, with the right signs.
+
+    A missing or bad position gives 00:00:00.  sigproc's ``fake`` writes no
+    src_raj/src_dej. The reader once left them as stack garbage, and a large value
+    overflowed the 40-byte RA/Dec strings (PR #234).  prepfold on the .dat then reads
+    the .inf back with the C parser and writes the position into the .pfd again.
+    """
+    psr = FakePulsar(nspec=2400)
+    write_filterbank(psr, str(tmp_path / "pos.fil"), position=position)
+    res = subprocess.run(["prepdata", "-nobary", "-dm", "0", "-o", "pos", "pos.fil"],
+                         cwd=tmp_path, capture_output=True, text=True)
+    assert res.returncode == 0, res.stdout[-4000:] + res.stderr[-4000:]
+    assert ("Warning:  bad src_" in res.stderr) == warns
+    inf = infodata.infodata(str(tmp_path / "pos.inf"))
+    assert inf.RA == ra
+    assert inf.DEC == dec
+    if position is not None and not warns:
+        # The strings agree with the python SIGPROC decoder (and so carry the sign), to
+        # their printed precision of 1e-4 s (RA, 7.3e-9 rad) or 1e-4" (Dec, 4.8e-10 rad)
+        assert psr_utils.ra_to_rad(ra) == pytest.approx(sigproc.ra2radians(position[0]),
+                                                        abs=4e-9)
+        assert psr_utils.dec_to_rad(dec) == pytest.approx(sigproc.dec2radians(position[1]),
+                                                          abs=3e-10)
+    run(["prepfold", "-nosearch", "-noxwin", "-p", "0.05", "-n", "16", "-npart", "4",
+         "-o", "pos", "pos.dat"], tmp_path)
+    pfd = prepfold.pfd(str(next(tmp_path.glob("pos*.pfd"))))
+    assert (pfd.rastr.decode(), pfd.decstr.decode()) == (ra, dec)
 
 
 
