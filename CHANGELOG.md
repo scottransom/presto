@@ -1,4 +1,15 @@
 ## Development (unreleased, since v6.3.3):
+ * **Fix polycos for MeerKAT**: tempo2 prints the polyco site name with `%5s`, so
+   `meerkat` ran straight into the spin frequency (`11.188185028329meerkat`), and
+   `presto.polycos` failed to parse it.  `prepfold` and `create_polycos()` now ask tempo2
+   for its alias `m` instead, and the Python reader splits a fused name off F0, so it reads
+   such files from elsewhere too (any name of 5+ characters, e.g. `lofar` or `chime`, is
+   fused the same way).  `create_polycos()` now also accepts the other sites in TEMPO's
+   `obsys.dat` that tempo2 knows: MeerKAT (`m`), Hobart (`4`), Princeton (`5`), GB 300ft
+   (`9`), GB 85-3 (`b`), the VLA site (`c`), MOST (`e`), Jodrell MkII (`h`), SHAO (`s`),
+   LOFAR (`t`), MWA (`u`), Pico Veleta (`v`) and SRT (`z`).  The ids stay TEMPO's: they
+   are never passed to tempo2, whose one-character aliases often mean other sites.
+   Reported by Colin Clark.
  * **Fix `prepfold` on short time series**: a `.dat` with fewer 1024-point blocks than
    `-npart` folded nothing, printed NaNs, and could crash with a buffer overflow.  It now
    reduces `-npart` to fit (as it already did for raw data), and exits with an error if

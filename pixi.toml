@@ -81,6 +81,7 @@ test = { cmd = """
 pytest tests/test_barycenter.py tests/test_binary_calcs.py \
   tests/test_maximize_rz.py tests/test_pipeline_synthetic.py tests/test_sifting.py \
   tests/test_coherentsearch.py tests/test_coherent_sift.py tests/test_accel_gather.py \
+  tests/test_polycos.py \
   python/fftfit_src \
   && python tests/test_presto_python.py
 """, depends-on = [
@@ -106,4 +107,10 @@ meson compile -C build-pixi reader_equiv_check \
     "build",
     "get-test-data",
 ] }
-test-realdata = { depends-on = ["test-realdata-search", "test-realdata-prepfold"] }
+# Polycos from tempo2 for every site (~1 min of tempo2 start-ups).  No data needed.
+test-polycos-sites = { cmd = "pytest tests/test_polycos_sites.py", depends-on = ["build"] }
+test-realdata = { depends-on = [
+    "test-realdata-search",
+    "test-realdata-prepfold",
+    "test-polycos-sites",
+] }

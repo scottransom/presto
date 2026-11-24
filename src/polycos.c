@@ -76,7 +76,10 @@ static polyco_scope pscopes[] = {
     {"MWA", "mwa", 'u', 12},
     {"LWA", "lwa1", 'x', 12},
     {"SRT", "srt", 'z', 12},
-    {"MeerKAT", "meerkat", 'm', 12},
+    /* tempo2 prints the site name with "%5s", so names of 5+ chars */
+    /* run into F0 in the polycos.  getpoly_set() copes, but use     */
+    /* tempo2's alias "m" for "meerkat" so other readers do too.     */
+    {"MeerKAT", "m", 'm', 12},
     {"KAT-7", "k7", 'k', 12},
     {"Geocenter", "coe", '0', 12},
     {"Barycenter", "@", '@', 12},   /* Also the default */

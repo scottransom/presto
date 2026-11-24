@@ -71,7 +71,8 @@ inside `pixi run bash`; reconfigure with `-Db_sanitize=none` afterwards. The tes
 `tests/coherentsearch/README.md`), `tests/test_coherent_sift.py` (the `.cohout`
 sifter in `bin/coherent_sift.py`), `tests/test_accel_gather.py` (every SIMD version of
 accelsearch's harmonic-sum gather, via the uninstalled `accel_gather_test`, against the
-scalar loop), the fftfit suite in
+scalar loop), `tests/test_polycos.py` (the polyco reader, plus one tempo2 polyco run for
+MeerKAT), the fftfit suite in
 `python/fftfit_src/` (needs `hypothesis`), and `tests/test_presto_python.py`. Add a new test
 to that list when you add it.
 
@@ -88,8 +89,9 @@ readers (via `prepsubband -sub`). Use `synthpulsar.py`
 for any new test that needs raw data.
 
 **Real-data tests** run separately: `pixi run test-realdata` (~7 min; it is just
-`test-realdata-search` plus `test-realdata-prepfold`, which CI runs as separate steps so one
-failing does not hide the other), which GitHub Actions
+`test-realdata-search`, `test-realdata-prepfold` and `test-polycos-sites`, which CI runs as
+separate steps so one failing does not hide another; the last needs no data, just tempo2,
+and runs `tests/test_polycos_sites.py`, tempo2 polycos for every observatory, ~1.5 min), which GitHub Actions
 (`.github/workflows/realdata.yml`) runs weekly (Mondays) and on demand (`workflow_dispatch`),
 not on every push. They use the 173 MB Terzan 5 GBT PSRFITS file
 `Ter5_080912_short2bits.fits` (2-bit, 64 channels, 859 s), plus a 34 MB rednoised Parkes

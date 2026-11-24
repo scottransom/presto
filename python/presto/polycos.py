@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 import sys
 import subprocess
 from typing import TextIO
@@ -14,10 +15,14 @@ NUMCOEFFS_DEFAULT = 12
 SPAN_DEFAULT = 60  # span of each polyco in minutes
 
 # Telescope name to TEMPO observatory code conversion (kept for backwards
-# compatibility -- polyco generation now uses tempo2 observatory names)
+# compatibility -- polyco generation now uses tempo2 observatory names).
+# The codes are TEMPO's, from its obsys.dat.  Never hand them to tempo2: many
+# of its one-character aliases mean other sites (e.g. "y" is Jodrell Bank, not
+# CHIME, "6" is DSS-43, not the VLA, and "k" is Tabley, not FAST), so
+# create_polycos() goes from code to telescope name to tempo2 site name.
 telescope_to_id = {
     "GBT": "1",
-    "Arecibo": " 3",
+    "Arecibo": "3",
     "VLA": "6",
     "Parkes": "7",
     "Jodrell": "8",
@@ -29,6 +34,18 @@ telescope_to_id = {
     "FAST": "k",
     "GMRT": "r",
     "CHIME": "y",
+    "MeerKAT": "m",
+    "Hobart": "4",
+    "Princeton": "5",
+    "GB 300FT": "9",
+    "GB 85-3": "b",
+    "MOST": "e",
+    "Jodrell MkII": "h",
+    "SHAO": "s",
+    "LOFAR": "t",
+    "MWA": "u",
+    "Pico Veleta": "v",
+    "SRT": "z",
     "Geocenter": "0",
     "Barycenter": "@",
 }
@@ -47,6 +64,19 @@ id_to_telescope = {
     "k": "FAST",
     "r": "GMRT",
     "y": "CHIME",
+    "m": "MeerKAT",
+    "c": "VLA",  # TEMPO's "VLA SITE"
+    "4": "Hobart",
+    "5": "Princeton",
+    "9": "GB 300FT",
+    "b": "GB 85-3",
+    "e": "MOST",
+    "h": "Jodrell MkII",
+    "s": "SHAO",
+    "t": "LOFAR",
+    "u": "MWA",
+    "v": "Pico Veleta",
+    "z": "SRT",
     "0": "Geocenter",
     "@": "Barycenter",
 }
@@ -71,8 +101,19 @@ telescope_to_tempo2_name = {
     "MWA": "mwa",
     "LWA": "lwa1",
     "SRT": "srt",
-    "MeerKAT": "meerkat",
+    # tempo2 writes the site name with "%5s", so one of 5 or more characters
+    # (e.g. "meerkat") runs into F0 on the polyco's second line.  polyco()
+    # copes, but other readers may not.  "m" is tempo2's alias for MeerKAT.
+    "MeerKAT": "m",
     "KAT-7": "k7",
+    "Hobart": "hob",
+    "Princeton": "princeton",
+    "GB 300FT": "gb300",
+    "GB 85-3": "gb853",
+    "MOST": "mo",
+    "Jodrell MkII": "jbmk2",
+    "SHAO": "shao",
+    "Pico Veleta": "pv",
     "Geocenter": "coe",
     "Barycenter": "@",
 }
@@ -99,6 +140,14 @@ telescope_to_maxha = {
     "SRT": 12,
     "MeerKAT": 12,
     "KAT-7": 12,
+    "Hobart": 12,
+    "Princeton": 12,
+    "GB 300FT": 12,
+    "GB 85-3": 12,
+    "MOST": 12,
+    "Jodrell MkII": 12,
+    "SHAO": 12,
+    "Pico Veleta": 12,
     "Geocenter": 12,
     "Barycenter": 12,
 }
@@ -178,6 +227,11 @@ class polyco(object):
                 self.doppler = float(sl[-1][: sl[-1].find(self.log10rms)]) * 1e-4
                 self.log10rms = float(self.log10rms)
             sl = fileptr.readline().split()
+            # tempo2 prints the site name with "%5s", so one of 5 or more
+            # characters runs straight into F0: "11.188185028329meerkat".
+            fused = re.fullmatch(r"([-+]?\d*\.\d*)([^\d.]\S*)", sl[1])
+            if fused:
+                sl[1:2] = fused.groups()
             self.RPHASE = float(sl[0])
             self.F0 = float(sl[1])
             self.obs = sl[2]
