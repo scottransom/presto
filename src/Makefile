@@ -143,7 +143,7 @@ PRESTOOBJS = atwood.o barycenter.o birdzap.o\
 	twopass_real_inv.o vectors.o mask.o\
 	fitsfile.o hget.o hput.o imio.o range_parse.o
 
-INSTRUMENTOBJS = backend_common.o zerodm.o sigproc_fb.o psrfits.o
+INSTRUMENTOBJS = backend_common.o zerodm.o flatten.o sigproc_fb.o psrfits.o
 
 # Use old header reading stuff for readfile
 READFILEOBJS = $(INSTRUMENTOBJS) multibeam.o bpp.o spigot.o \

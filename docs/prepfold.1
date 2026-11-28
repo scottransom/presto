@@ -8,7 +8,7 @@
 .\" Remove a pair to hand-edit that section instead.
 .\"
 .\" cligPart TITLE
-.TH "prepfold" 1 "14Nov26" "pyCLIG-manuals" "Programmer's Manual"
+.TH "prepfold" 1 "28Nov26" "pyCLIG-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -37,6 +37,7 @@ prepfold \- Prepares (if required) and folds raw radio data, standard time serie
 [-debug]
 [-samples]
 [-normalize]
+[-flatten]
 [-numwapps numwapps]
 [-if ifs]
 [-clip clip]
@@ -144,7 +145,9 @@ Show debugging output when calling tempo2 for polycos.
 .IP -samples
 Treat the data as samples and not as finite-duration integrated data.
 .IP -normalize
-Bandpass flatten the data by normalizing the subbands.
+After folding, normalize each subband profile in each part to zero mean and unit variance.
+.IP -flatten
+For raw data, flatten the bandpass before folding: subtract channel means, divide by channel standard deviations, and zero-weight bad channels (see the man page).
 .IP -numwapps
 Number of WAPPs used with contiguous frequencies,
 .br
@@ -476,6 +479,24 @@ mask or explicit channel list.  If interference inflates the
 off-pulse chi^2 after the fact, see
 .BR show_pfd (1)
 .BR -fixchi .
+.PP
+For raw data,
+.B -flatten
+flattens the bandpass before folding.  Each channel has its mean
+subtracted and is divided by its standard deviation, and bad channels
+(dead, far from the radiometer sigma/mean, variable in time, or far from
+their neighbours) get zero weight, as in
+.BR prepsubband (1).
+The statistics come from the
+.BR rfifind (1)
+.I .stats
+file that goes with
+.BR -mask ,
+or else from a short pre-pass through the data, and go to
+.IR <outfile>.flatten .
+.B -normalize
+is different: it works after folding, scaling each subband profile in
+each part to zero mean and unit variance.
 .PP
 Example: a quick look at an
 .BR accelsearch (1)

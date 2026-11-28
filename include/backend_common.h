@@ -10,6 +10,25 @@ typedef enum {
 } psrdatatype;
 
 
+// Bandpass flattening (-flatten): see flatten.c
+enum {
+    FLATTEN_GOOD, FLATTEN_DEAD, FLATTEN_MASKED, FLATTEN_IGNORED,
+    FLATTEN_RATIO, FLATTEN_VARIABLE, FLATTEN_HIGH, FLATTEN_LOW, FLATTEN_NUMFLAGS
+};
+
+struct flatten_info {
+    int numchan;            // Number of channels
+    int numtimes;           // Number of channel-mean estimates in time
+    int zerodm;             // Remove zero-DM after flattening?
+    double *specnums;       // Centre spectrum number of each mean estimate
+    float *avgs;            // numtimes x numchan channel means
+    float *slopes;          // numtimes x numchan mean slopes (per spectrum)
+    float *stds;            // numchan robust channel standard deviations
+    float *wts;             // numchan weights (1/std, or 0 for bad channels)
+    unsigned char *flags;   // numchan FLATTEN_* codes (why a weight is 0)
+    float *curmean;         // numchan scratch
+};
+
 struct spectra_info {
     char telescope[40];     // Telescope used
     char observer[100];     // Observer's name
@@ -87,6 +106,8 @@ struct spectra_info {
     long long *num_pad;    // Number of padding samples after each file
     int (*get_rawblock)(float *, struct spectra_info *, int *);  // Raw data block function pointer
     long long (*offset_to_spectra)(long long, struct spectra_info *);  // Shift into file(s) function pointer
+    // Keep this last: mpiprepsubband broadcasts the fields above with a fixed MPI layout
+    struct flatten_info *flatten; // Bandpass flattening info (NULL if not flattening)
 };
 
 
@@ -138,3 +159,10 @@ int *get_ignorechans(char *ignorechans_str, int minchan, int maxchan, int *num_i
 
 /* zerodm.c */
 void remove_zerodm(float *fdata, struct spectra_info *s);
+
+/* flatten.c */
+int flatten_init(struct spectra_info *s, char *maskfilenm, mask *obsmask, char *outroot);
+void flatten_alloc(struct spectra_info *s, int numtimes);
+void flatten_finish(struct spectra_info *s);
+void flatten_free(struct spectra_info *s);
+void flatten_apply(float *data, int numspect, long long startspec, struct spectra_info *s);

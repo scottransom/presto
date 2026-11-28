@@ -181,6 +181,14 @@ void identify_and_open_input(Cmdline *cmd, struct spectra_info *s, infodata *ida
         }
     }
 
+    /* Set up bandpass flattening if requested (before any offset) */
+    if (cmd->flattenP) {
+        if (RAWDATA)
+            flatten_init(s, cmd->maskfileP ? cmd->maskfile : NULL, obsmask, rootnm);
+        else
+            printf("Warning:  -flatten only works on raw data.  Ignoring it.\n\n");
+    }
+
     if (!RAWDATA) {
         char *root, *suffix;
         if (split_root_suffix(s->filenames[0], &root, &suffix) == 0) {

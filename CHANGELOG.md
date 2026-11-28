@@ -1,4 +1,19 @@
 ## Development (unreleased, since v6.3.3):
+ * **New `-flatten` option for `prepdata`, `prepsubband`, `mpiprepsubband`, `prepfold`
+   and `prepfold_multi`**: flattens the bandpass of raw data before dedispersion or
+   folding. Each raw channel has its mean subtracted and is divided by its standard
+   deviation, and bad channels get zero weight: dead channels
+   (band edges, gaps), channels whose sigma/mean is off the radiometer value (checked only
+   when the data look like total power), channels whose sigma wanders in time, channels
+   far above or below their neighbours, and channels the mask zaps most of the time. The
+   statistics come from the rfifind `.stats` file next to `-mask`, or else from a short
+   pre-pass through the data. Weights are fixed per observation; the means follow slow
+   drifts. With `-zerodm`, zero-DM removal runs on the flattened data. Each run writes
+   `<outfile>.flatten` (per-channel means, sigmas, weights, flags, and an `-ignorechan`
+   string). New `src/flatten.c`; `tests/synthpulsar.py` can now write per-channel gains
+   and extra noise, and `tests/test_pipeline_synthetic.py` tests `-flatten`. prepfold's
+   `-normalize` (per-part subband normalization after folding) is unchanged; its help text
+   now says so.
  * **Fix polycos for MeerKAT**: tempo2 prints the polyco site name with `%5s`, so
    `meerkat` ran straight into the spin frequency (`11.188185028329meerkat`), and
    `presto.polycos` failed to parse it.  `prepfold` and `create_polycos()` now ask tempo2

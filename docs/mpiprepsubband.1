@@ -8,7 +8,7 @@
 .\" Remove a pair to hand-edit that section instead.
 .\"
 .\" cligPart TITLE
-.TH "mpiprepsubband" 1 "03Jul26" "pyCLIG-manuals" "Programmer's Manual"
+.TH "mpiprepsubband" 1 "28Nov26" "pyCLIG-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -33,6 +33,7 @@ mpiprepsubband \- Converts a raw radio data file into many de-dispersed time-ser
 [-noclip]
 [-invert]
 [-zerodm]
+[-flatten]
 [-runavg]
 [-numout numout]
 [-nobary]
@@ -90,6 +91,8 @@ Do not clip the data.  (The default is to _always_ clip!).
 For rawdata, flip (or invert) the band.
 .IP -zerodm
 Subtract the mean of all channels from each sample (i.e. remove zero DM).
+.IP -flatten
+Flatten the bandpass: subtract channel means, divide by channel standard deviations, and zero-weight bad channels (see the man page).
 .IP -runavg
 Running mean subtraction from the input data.
 .IP -numout
@@ -177,6 +180,30 @@ given
 There is little benefit to running mpiprepsubband with multiple ranks
 on a single machine -- its advantage comes specifically from
 distributing output I/O across separate machines/nodes.
+.PP
+.B -flatten
+flattens the bandpass before dedispersion.  Each channel has its mean
+subtracted and is divided by its standard deviation, so every channel
+adds the same noise.  Bad channels get zero weight: dead channels (band
+edges and gaps), channels whose standard deviation over mean is far from
+the radiometer value (checked only for total-power data), channels whose
+standard deviation changes a lot in time, channels far above (or below)
+their neighbours, and channels the mask zaps most of the time.  The
+statistics come from the
+.BR rfifind (1)
+.I .stats
+file that goes with
+.BR -mask ,
+or, without one, from a short pre-pass through the data.  The weights
+are fixed for the whole observation, while the channel means follow slow
+drifts.  Weighting by 1/sigma is S/N-optimal only if the system
+temperature is flat across the band once the gain is removed (the data
+cannot tell gain from system temperature).  The channel statistics,
+weights and zero-weighted channels (as an
+.B -ignorechan
+string) go to
+.IR <outfile>.flatten .
+The flattened output has a mean near zero.
 .PP
 Run under
 .B mpirun

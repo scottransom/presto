@@ -238,6 +238,19 @@ int main(int argc, char *argv[])
         obsmask.numchan = obsmask.numint = 0;
     }
 
+    /* Set up bandpass flattening if requested */
+    if (cmd->flattenP) {
+        if (RAWDATA) {
+            flatten_init(&s, cmd->maskfileP ? cmd->maskfile : NULL, &obsmask,
+                         cmd->outfile);
+            // The pre-pass may have moved us around in the data
+            if (cmd->offset > 0)
+                offset_to_spectra(cmd->offset, &s);
+        } else {
+            printf("Warning:  -flatten only works on raw data.  Ignoring it.\n\n");
+        }
+    }
+
     /* Determine our initialization data if we do _not_ have Parkes, */
     /* Green Bank BCPM, or Arecibo WAPP data sets.                   */
     if (!RAWDATA) {

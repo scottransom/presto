@@ -220,6 +220,15 @@ int main(int argc, char *argv[])
         }
     }
 
+    /* Set up bandpass flattening if requested (before any offset) */
+    if (cmd->flattenP) {
+        if (RAWDATA)
+            flatten_init(&s, cmd->maskfileP ? cmd->maskfile : NULL, &obsmask,
+                         cmd->outfile);
+        else
+            printf("Warning:  -flatten only works on raw data.  Ignoring it.\n\n");
+    }
+
     if (insubs) {
         char *root, *suffix;
         if (split_root_suffix(s.filenames[0], &root, &suffix) == 0) {

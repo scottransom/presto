@@ -28,6 +28,7 @@ Float  -clip    clip    {Time-domain sigma to use for clipping (0.0 = no clippin
 Flag   -noclip  noclip  {Do not clip the data.  (The default is to _always_ clip!)}
 Flag   -invert  invert  {For rawdata, flip (or invert) the band}
 Flag   -zerodm  zerodm  {Subtract the mean of all channels from each sample (i.e. remove zero DM)}
+Flag   -flatten flatten {Flatten the bandpass: subtract channel means, divide by channel standard deviations, and zero-weight bad channels (see the man page)}
 Flag   -runavg  runavg  {Running mean subtraction from the input data}
 Long    -numout  numout  {Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value} \
 	-r 1 oo
@@ -77,6 +78,30 @@ given
 There is little benefit to running mpiprepsubband with multiple ranks
 on a single machine -- its advantage comes specifically from
 distributing output I/O across separate machines/nodes.
+.PP
+.B -flatten
+flattens the bandpass before dedispersion.  Each channel has its mean
+subtracted and is divided by its standard deviation, so every channel
+adds the same noise.  Bad channels get zero weight: dead channels (band
+edges and gaps), channels whose standard deviation over mean is far from
+the radiometer value (checked only for total-power data), channels whose
+standard deviation changes a lot in time, channels far above (or below)
+their neighbours, and channels the mask zaps most of the time.  The
+statistics come from the
+.BR rfifind (1)
+.I .stats
+file that goes with
+.BR -mask ,
+or, without one, from a short pre-pass through the data.  The weights
+are fixed for the whole observation, while the channel means follow slow
+drifts.  Weighting by 1/sigma is S/N-optimal only if the system
+temperature is flat across the band once the gain is removed (the data
+cannot tell gain from system temperature).  The channel statistics,
+weights and zero-weighted channels (as an
+.B -ignorechan
+string) go to
+.IR <outfile>.flatten .
+The flattened output has a mean near zero.
 .PP
 Run under
 .B mpirun

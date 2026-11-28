@@ -74,8 +74,10 @@ static Cmdline cmd = {
     /* debugP = */ 0,
     /***** -samples: Treat the data as samples and not as finite-duration integrated data */
     /* samplesP = */ 0,
-    /***** -normalize: Bandpass flatten the data by normalizing the subbands */
+    /***** -normalize: After folding, normalize each subband profile in each part to zero mean and unit variance */
     /* normalizeP = */ 0,
+    /***** -flatten: For raw data, flatten the bandpass before folding: subtract channel means, divide by channel standard deviations, and zero-weight bad channels (see the man page) */
+    /* flattenP = */ 0,
     /***** -numwapps: Number of WAPPs used with contiguous frequencies */
     /* numwappsP = */ 1,
     /* numwapps = */ 1,
@@ -693,11 +695,18 @@ void showOptionValues(void)
         printf("-samples found:\n");
     }
 
-    /***** -normalize: Bandpass flatten the data by normalizing the subbands */
+    /***** -normalize: After folding, normalize each subband profile in each part to zero mean and unit variance */
     if (!cmd.normalizeP) {
         printf("-normalize not found.\n");
     } else {
         printf("-normalize found:\n");
+    }
+
+    /***** -flatten: For raw data, flatten the bandpass before folding: subtract channel means, divide by channel standard deviations, and zero-weight bad channels (see the man page) */
+    if (!cmd.flattenP) {
+        printf("-flatten not found.\n");
+    } else {
+        printf("-flatten found:\n");
     }
 
     /***** -numwapps: Number of WAPPs used with contiguous frequencies */
@@ -1348,7 +1357,7 @@ void showOptionValues(void)
 
 void usage(void)
 {
-    fputs("   [-ncpus ncpus] [-o outfile] [-filterbank] [-psrfits] [-noweights] [-noscales] [-nooffsets] [-topo] [-invert] [-zerodm] [-timing] [-usepoly] [-absphase] [-debug] [-samples] [-normalize] [-if ifs] [-clip clip] [-noclip] [-noxwin] [-runavg] [-fine] [-coarse] [-slow] [-searchpdd] [-searchfdd] [-nosearch] [-nopsearch] [-nopdsearch] [-nodmsearch] [-scaleparts] [-allgrey] [-fixchi] [-justprofs] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-phs phs] [-start startT] [-end endT] [-mask maskfile] [-ignorechan ignorechanstr] [-candfile candfile] [--] infile ...\n", stderr);
+    fputs("   [-ncpus ncpus] [-o outfile] [-filterbank] [-psrfits] [-noweights] [-noscales] [-nooffsets] [-topo] [-invert] [-zerodm] [-timing] [-usepoly] [-absphase] [-debug] [-samples] [-normalize] [-flatten] [-if ifs] [-clip clip] [-noclip] [-noxwin] [-runavg] [-fine] [-coarse] [-slow] [-searchpdd] [-searchfdd] [-nosearch] [-nopsearch] [-nopdsearch] [-nodmsearch] [-scaleparts] [-allgrey] [-fixchi] [-justprofs] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-phs phs] [-start startT] [-end endT] [-mask maskfile] [-ignorechan ignorechanstr] [-candfile candfile] [--] infile ...\n", stderr);
     fputs("      Folds many pulsar candidates (each with its own period/frequency, derivatives, and DM) in a single pass over the raw data.\n", stderr);
     fputs("         -ncpus: Number of OpenMP threads (CPUs) used to fold candidates (default: min(host CPU count, number of candidates))\n", stderr);
     fputs("                 1 int value between 1 and oo\n", stderr);
@@ -1368,7 +1377,8 @@ void usage(void)
     fputs("      -absphase: Use the absolute phase associated with polycos\n", stderr);
     fputs("         -debug: Show debugging output when calling tempo2 for polycos\n", stderr);
     fputs("       -samples: Treat the data as samples and not as finite-duration integrated data\n", stderr);
-    fputs("     -normalize: Bandpass flatten the data by normalizing the subbands\n", stderr);
+    fputs("     -normalize: After folding, normalize each subband profile in each part to zero mean and unit variance\n", stderr);
+    fputs("       -flatten: For raw data, flatten the bandpass before folding: subtract channel means, divide by channel standard deviations, and zero-weight bad channels (see the man page)\n", stderr);
     fputs("            -if: A specific IF to use if available (summed IFs is the default)\n", stderr);
     fputs("                 1 int value between 0 and 1\n", stderr);
     fputs("          -clip: Time-domain sigma to use for clipping (0.0 = no clipping, 6.0 = default\n", stderr);
@@ -1544,6 +1554,11 @@ Cmdline *parseCmdline(int argc, char **argv)
 
         if (0 == strcmp("-normalize", argv[i])) {
             cmd.normalizeP = 1;
+            continue;
+        }
+
+        if (0 == strcmp("-flatten", argv[i])) {
+            cmd.flattenP = 1;
             continue;
         }
 

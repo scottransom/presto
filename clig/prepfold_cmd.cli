@@ -28,7 +28,8 @@ Flag   -barypolycos barypolycos  {Force the use of polycos for barycentered even
 Flag   -usepoly usepoly  {Fold raw data with tempo2 polycos from the candidate's barycentric params, not bary2topo() (automatic if > 2 hr)}
 Flag   -debug  debug {Show debugging output when calling tempo2 for polycos}
 Flag   -samples samples {Treat the data as samples and not as finite-duration integrated data}
-Flag   -normalize normalize {Bandpass flatten the data by normalizing the subbands}
+Flag   -normalize normalize {After folding, normalize each subband profile in each part to zero mean and unit variance}
+Flag   -flatten flatten {For raw data, flatten the bandpass before folding: subtract channel means, divide by channel standard deviations, and zero-weight bad channels (see the man page)}
 Int    -numwapps numwapps  {Number of WAPPs used with contiguous frequencies} \
 	-r 1 8    -d 1
 Int    -if      ifs     {A specific IF to use if available (summed IFs is the default)} \
@@ -216,6 +217,24 @@ mask or explicit channel list.  If interference inflates the
 off-pulse chi^2 after the fact, see
 .BR show_pfd (1)
 .BR -fixchi .
+.PP
+For raw data,
+.B -flatten
+flattens the bandpass before folding.  Each channel has its mean
+subtracted and is divided by its standard deviation, and bad channels
+(dead, far from the radiometer sigma/mean, variable in time, or far from
+their neighbours) get zero weight, as in
+.BR prepsubband (1).
+The statistics come from the
+.BR rfifind (1)
+.I .stats
+file that goes with
+.BR -mask ,
+or else from a short pre-pass through the data, and go to
+.IR <outfile>.flatten .
+.B -normalize
+is different: it works after folding, scaling each subband profile in
+each part to zero mean and unit variance.
 .PP
 Example: a quick look at an
 .BR accelsearch (1)

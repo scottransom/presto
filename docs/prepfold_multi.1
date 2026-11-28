@@ -8,7 +8,7 @@
 .\" Remove a pair to hand-edit that section instead.
 .\"
 .\" cligPart TITLE
-.TH "prepfold_multi" 1 "14Nov26" "pyCLIG-manuals" "Programmer's Manual"
+.TH "prepfold_multi" 1 "28Nov26" "pyCLIG-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -35,6 +35,7 @@ prepfold_multi \- Folds many pulsar candidates (each with its own period/frequen
 [-debug]
 [-samples]
 [-normalize]
+[-flatten]
 [-if ifs]
 [-clip clip]
 [-noclip]
@@ -109,7 +110,9 @@ Show debugging output when calling tempo2 for polycos.
 .IP -samples
 Treat the data as samples and not as finite-duration integrated data.
 .IP -normalize
-Bandpass flatten the data by normalizing the subbands.
+After folding, normalize each subband profile in each part to zero mean and unit variance.
+.IP -flatten
+For raw data, flatten the bandpass before folding: subtract channel means, divide by channel standard deviations, and zero-weight bad channels (see the man page).
 .IP -if
 A specific IF to use if available (summed IFs is the default),
 .br
@@ -429,6 +432,24 @@ Example (two known pulsars, one with a fixed DM, and a new candidate):
 cand1     -          238.30  8.66430621957513e-3
 .fi
 .RE
+.PP
+For raw data,
+.B -flatten
+flattens the bandpass before folding.  Each channel has its mean
+subtracted and is divided by its standard deviation, and bad channels
+(dead, far from the radiometer sigma/mean, variable in time, or far from
+their neighbours) get zero weight, as in
+.BR prepsubband (1).
+The statistics come from the
+.BR rfifind (1)
+.I .stats
+file that goes with
+.BR -mask ,
+or else from a short pre-pass through the data, and go to
+.IR <outfile>.flatten .
+.B -normalize
+is different: it works after folding, scaling each subband profile in
+each part to zero mean and unit variance.
 
 .\" cligPart DESCRIPTION end
 

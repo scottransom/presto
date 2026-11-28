@@ -63,8 +63,10 @@ typedef struct s_Cmdline {
   int debugP;
   /***** -samples: Treat the data as samples and not as finite-duration integrated data */
   int samplesP;
-  /***** -normalize: Bandpass flatten the data by normalizing the subbands */
+  /***** -normalize: After folding, normalize each subband profile in each part to zero mean and unit variance */
   int normalizeP;
+  /***** -flatten: For raw data, flatten the bandpass before folding: subtract channel means, divide by channel standard deviations, and zero-weight bad channels (see the man page) */
+  int flattenP;
   /***** -numwapps: Number of WAPPs used with contiguous frequencies */
   int numwappsP;
   int numwapps;

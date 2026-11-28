@@ -400,3 +400,109 @@ def test_lowbit_pipeline(tmp_path: Path, nbits: int) -> None:
     # 4 / 2 / 1 bits (8-bit: 8.06), the expected quantization losses
     assert abs(cand.r - TRUE_R) < 0.25
     assert cand.sigma > 5.5
+
+
+# -flatten: a band with a 10x gain slope, four dead channels and three noisy ones.
+FLAT_DEAD = [0, 1, 2, 3]  # file channels (the highest frequencies, as foff < 0)
+FLAT_NOISY = {10: 10.0, 11: 10.0, 40: 4.0}  # file channel: extra noise (no pulsar in it)
+
+
+@pytest.fixture(scope="module")
+def flatobs(tmp_path_factory) -> Path:
+    """Directory holding bandpass.fil (see FLAT_DEAD/FLAT_NOISY) and its rfifind mask.
+
+    The channel means are set so that sigma/mean equals the radiometer value
+    1/sqrt(|foff| * tsamp), as for real total-power data, so -flatten uses its
+    sigma/mean test as well.
+    """
+    d = tmp_path_factory.mktemp("flatten")
+    gain = np.geomspace(3.0, 0.3, PSR.nchan)
+    gain[FLAT_DEAD] = 0.0
+    extra = np.zeros(PSR.nchan)
+    for ch, val in FLAT_NOISY.items():
+        extra[ch] = val
+    offset = gain * np.sqrt(abs(PSR.foff) * 1e6 * PSR.tsamp)
+    write_filterbank(PSR, str(d / "bandpass.fil"), nbits=32, scale=1.0, offset=offset,
+                     chan_gain=gain, chan_extra_noise=extra)
+    run(["rfifind", "-time", "2.0", "-o", "bandpass", "bandpass.fil"], d)
+    return d
+
+
+def read_flatten(path: Path) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Return the (freq, weight, flag) columns of a .flatten file."""
+    rows = [ln.split() for ln in path.read_text().splitlines() if not ln.startswith("#")]
+    freq = np.array([float(r[1]) for r in rows])
+    wt = np.array([float(r[4]) for r in rows])
+    flag = np.array([r[5] for r in rows])
+    return freq, wt, flag
+
+
+@pytest.mark.parametrize("use_mask", [False, True], ids=["prepass", "rfifind-stats"])
+def test_flatten(flatobs: Path, use_mask: bool) -> None:
+    """-flatten zero-weights the dead and noisy channels, keeps the rest, and helps S/N."""
+    base = f"flat{'mask' if use_mask else 'nomask'}_DM50.00"
+    maskopt = ["-mask", "bandpass_rfifind.mask"] if use_mask else []
+    out = run(["prepdata", "-nobary", "-dm", f"{PSR.dm}", "-numout", f"{NUMOUT}",
+               "-flatten", *maskopt, "-o", base, "bandpass.fil"], flatobs)
+    assert ("rfifind .stats" in (flatobs / f"{base}.flatten").read_text()) == use_mask
+    assert "using the sigma/mean test" in out
+    freq, wt, flag = read_flatten(flatobs / f"{base}.flatten")
+    filefreqs = PSR.freqs
+    zeroed = {int(np.argmin(np.abs(filefreqs - f))) for f in freq[wt == 0.0]}
+    assert set(FLAT_DEAD) | set(FLAT_NOISY) == zeroed, flag
+    for ch in FLAT_DEAD:
+        assert flag[np.argmin(np.abs(freq - filefreqs[ch]))] == "dead"
+    # Each good channel has unit variance after flattening, so the dedispersed series
+    # has a mean near 0 and a standard deviation near sqrt(number of good channels).
+    dat = np.fromfile(flatobs / f"{base}.dat", dtype=np.float32)
+    ngood = int(np.sum(wt > 0.0))
+    assert abs(dat.mean()) < 0.1 * np.sqrt(ngood)
+    assert dat.std() == pytest.approx(np.sqrt(ngood), rel=0.05)
+    cand = cand_near_truth(search_dat(base, flatobs))
+    assert cand is not None
+    # measured: |dr| 0.13 / 0.13, single-trial sigma 6.73 / 6.72 (prepass / stats)
+    assert abs(cand.r - TRUE_R) < 0.25
+    assert cand.sigma > 5.5
+
+
+def test_flatten_beats_plain(flatobs: Path) -> None:
+    """Without -flatten the noisy channels swamp the pulsar.
+
+    With equal S/N in every channel, 1/sigma weights should also beat equal weights by
+    ~17% on the clean channels alone, but one noise realization can't show that reliably.
+    """
+    run(["prepdata", "-nobary", "-dm", f"{PSR.dm}", "-numout", f"{NUMOUT}",
+         "-o", "plain_DM50.00", "bandpass.fil"], flatobs)
+    plain = cand_near_truth(search_dat("plain_DM50.00", flatobs))
+    run(["prepdata", "-nobary", "-dm", f"{PSR.dm}", "-numout", f"{NUMOUT}",
+         "-flatten", "-o", "flat_DM50.00", "bandpass.fil"], flatobs)
+    flat = cand_near_truth(search_dat("flat_DM50.00", flatobs))
+    assert flat is not None
+    # measured: flat sigma 6.73; plain: not detected
+    assert plain is None or flat.sigma > plain.sigma + 1.0
+
+
+def test_flatten_prepsubband(flatobs: Path) -> None:
+    """prepsubband -flatten finds the pulsar at the right DM trial."""
+    run(["prepsubband", "-nobary", "-flatten", "-lodm", f"{PSR.dm - 2}", "-dmstep", "1",
+         "-numdms", "5", "-nsub", "16", "-numout", f"{NUMOUT}", "-o", "flatsub",
+         "bandpass.fil"], flatobs)
+    assert (flatobs / "flatsub.flatten").exists()
+    cand = cand_near_truth(search_dat(f"flatsub_DM{PSR.dm:.2f}", flatobs))
+    assert cand is not None
+    # measured: |dr| 0.008, single-trial sigma 7.53
+    assert cand.sigma > 5.5
+
+
+def test_flatten_prepfold(flatobs: Path) -> None:
+    """prepfold -flatten on the raw file beats a plain fold, which the noisy channels swamp."""
+    sig = {}
+    for name, opt in (("pfplain", []), ("pfflat", ["-flatten"])):
+        run(["prepfold", "-topo", "-noxwin", "-nosearch", "-p", f"{TRUE_P_MS / 1e3:.12f}",
+             "-dm", f"{PSR.dm}", "-nsub", "16", *opt, "-o", name, "bandpass.fil"], flatobs)
+        bp = read_bestprof(next(flatobs.glob(f"{name}_*.pfd.bestprof")))
+        sig[name] = bp["sigma"]
+    assert (flatobs / "pfflat.flatten").exists()
+    # measured: sigma 7.1 with -flatten, 0.8 without
+    assert sig["pfflat"] > 5.5
+    assert sig["pfflat"] > sig["pfplain"] + 1.0

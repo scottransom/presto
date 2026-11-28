@@ -44,6 +44,8 @@ typedef struct s_Cmdline {
   int invertP;
   /***** -zerodm: Subtract the mean of all channels from each sample (i.e. remove zero DM) */
   int zerodmP;
+  /***** -flatten: Flatten the bandpass: subtract channel means, divide by channel standard deviations, and zero-weight bad channels (see the man page) */
+  int flattenP;
   /***** -nobary: Do not barycenter the data */
   int nobaryP;
   /***** -shorts: Use short ints for the output data instead of floats */

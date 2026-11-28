@@ -59,8 +59,10 @@ static Cmdline cmd = {
     /* debugP = */ 0,
     /***** -samples: Treat the data as samples and not as finite-duration integrated data */
     /* samplesP = */ 0,
-    /***** -normalize: Bandpass flatten the data by normalizing the subbands */
+    /***** -normalize: After folding, normalize each subband profile in each part to zero mean and unit variance */
     /* normalizeP = */ 0,
+    /***** -flatten: For raw data, flatten the bandpass before folding: subtract channel means, divide by channel standard deviations, and zero-weight bad channels (see the man page) */
+    /* flattenP = */ 0,
     /***** -numwapps: Number of WAPPs used with contiguous frequencies */
     /* numwappsP = */ 1,
     /* numwapps = */ 1,
@@ -674,11 +676,18 @@ void showOptionValues(void)
         printf("-samples found:\n");
     }
 
-    /***** -normalize: Bandpass flatten the data by normalizing the subbands */
+    /***** -normalize: After folding, normalize each subband profile in each part to zero mean and unit variance */
     if (!cmd.normalizeP) {
         printf("-normalize not found.\n");
     } else {
         printf("-normalize found:\n");
+    }
+
+    /***** -flatten: For raw data, flatten the bandpass before folding: subtract channel means, divide by channel standard deviations, and zero-weight bad channels (see the man page) */
+    if (!cmd.flattenP) {
+        printf("-flatten not found.\n");
+    } else {
+        printf("-flatten found:\n");
     }
 
     /***** -numwapps: Number of WAPPs used with contiguous frequencies */
@@ -1322,7 +1331,7 @@ void showOptionValues(void)
 
 void usage(void)
 {
-    fputs("   [-ncpus ncpus] [-o outfile] [-filterbank] [-psrfits] [-noweights] [-noscales] [-nooffsets] [-wapp] [-window] [-topo] [-invert] [-zerodm] [-absphase] [-barypolycos] [-usepoly] [-debug] [-samples] [-normalize] [-numwapps numwapps] [-if ifs] [-clip clip] [-noclip] [-noxwin] [-runavg] [-fine] [-coarse] [-slow] [-searchpdd] [-searchfdd] [-nosearch] [-nopsearch] [-nopdsearch] [-nodmsearch] [-scaleparts] [-allgrey] [-fixchi] [-justprofs] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-pfact pfact] [-ffact ffact] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-par parname] [-polycos polycofile] [-timing timing] [-rzwcand rzwcand] [-rzwfile rzwfile] [-accelcand accelcand] [-accelfile accelfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [-ignorechan ignorechanstr] [-events] [-days] [-mjds] [-double] [-offset offset] [--] infile ...\n", stderr);
+    fputs("   [-ncpus ncpus] [-o outfile] [-filterbank] [-psrfits] [-noweights] [-noscales] [-nooffsets] [-wapp] [-window] [-topo] [-invert] [-zerodm] [-absphase] [-barypolycos] [-usepoly] [-debug] [-samples] [-normalize] [-flatten] [-numwapps numwapps] [-if ifs] [-clip clip] [-noclip] [-noxwin] [-runavg] [-fine] [-coarse] [-slow] [-searchpdd] [-searchfdd] [-nosearch] [-nopsearch] [-nopdsearch] [-nodmsearch] [-scaleparts] [-allgrey] [-fixchi] [-justprofs] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-pfact pfact] [-ffact ffact] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-par parname] [-polycos polycofile] [-timing timing] [-rzwcand rzwcand] [-rzwfile rzwfile] [-accelcand accelcand] [-accelfile accelfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [-ignorechan ignorechanstr] [-events] [-days] [-mjds] [-double] [-offset offset] [--] infile ...\n", stderr);
     fputs("      Prepares (if required) and folds raw radio data, standard time series, or events.\n", stderr);
     fputs("          -ncpus: Number of processors to use with OpenMP\n", stderr);
     fputs("                  1 int value between 1 and oo\n", stderr);
@@ -1344,7 +1353,8 @@ void usage(void)
     fputs("        -usepoly: Fold raw data with tempo2 polycos from the candidate's barycentric params, not bary2topo() (automatic if > 2 hr)\n", stderr);
     fputs("          -debug: Show debugging output when calling tempo2 for polycos\n", stderr);
     fputs("        -samples: Treat the data as samples and not as finite-duration integrated data\n", stderr);
-    fputs("      -normalize: Bandpass flatten the data by normalizing the subbands\n", stderr);
+    fputs("      -normalize: After folding, normalize each subband profile in each part to zero mean and unit variance\n", stderr);
+    fputs("        -flatten: For raw data, flatten the bandpass before folding: subtract channel means, divide by channel standard deviations, and zero-weight bad channels (see the man page)\n", stderr);
     fputs("       -numwapps: Number of WAPPs used with contiguous frequencies\n", stderr);
     fputs("                  1 int value between 1 and 8\n", stderr);
     fputs("                  default: `1'\n", stderr);
@@ -1469,7 +1479,7 @@ void usage(void)
     fputs("                  default: `0'\n", stderr);
     fputs("          infile: Input data file name.  If the data is not in a regognized raw data format, it should be a file containing a time series of single-precision floats or short ints.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n", stderr);
     fputs("                  1...16384 values\n", stderr);
-    fputs("  CLI code generated: 14Nov26\n", stderr);
+    fputs("  CLI code generated: 28Nov26\n", stderr);
     fputs("  ", stderr);
     exit(EXIT_FAILURE);
 }
@@ -1584,6 +1594,11 @@ Cmdline *parseCmdline(int argc, char **argv)
 
         if (0 == strcmp("-normalize", argv[i])) {
             cmd.normalizeP = 1;
+            continue;
+        }
+
+        if (0 == strcmp("-flatten", argv[i])) {
+            cmd.flattenP = 1;
             continue;
         }
 

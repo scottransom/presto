@@ -48,7 +48,7 @@ libpresto = library(
     install_rpath: presto_rpath
 )
 
-INSTRUMENTOBJS= ['backend_common.c', 'psrfits.c', 'sigproc_fb.c', 'zerodm.c']
+INSTRUMENTOBJS= ['backend_common.c', 'psrfits.c', 'sigproc_fb.c', 'zerodm.c', 'flatten.c']
 PLOT2DOBJS = ['powerplot.c', 'xyline.c']
 
 executable('accelsearch', 'accelsearch.c', 'accelsearch_cmd.c', 'accel_utils.c', 'accel_gather.c', 'zapping.c',

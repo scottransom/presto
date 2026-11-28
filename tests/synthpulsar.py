@@ -104,11 +104,13 @@ def write_filterbank(
     path: str,
     nbits: int = 8,
     signed: bool = False,
-    offset: float | None = None,
+    offset: float | np.ndarray | None = None,
     scale: float | None = None,
     rawdatafile: str | None = None,
     source_name: str = "FAKEPSR",
     position: tuple[float, float] | None = (0.0, 0.0),
+    chan_gain: np.ndarray | None = None,
+    chan_extra_noise: np.ndarray | None = None,
 ) -> None:
     """Write noise plus the pulsar to a SIGPROC filterbank file.
 
@@ -135,10 +137,27 @@ def write_filterbank(
     position : tuple of float or None, optional
         The header's ``(src_raj, src_dej)``, in SIGPROC's hhmmss.s and ddmmss.s forms.
         None leaves both keys out, as sigproc's ``fake`` does. Default (0.0, 0.0).
+    chan_gain : numpy.ndarray, optional
+        Per-channel gain (file order) applied to noise and pulsar alike, as a receiver
+        bandpass would. A gain of 0 makes a dead channel. Default: all 1.
+    chan_extra_noise : numpy.ndarray, optional
+        Per-channel standard deviation (file order, in units of the unit noise) of
+        extra noise with no pulsar in it, like RFI. It is drawn from a separate random
+        stream, so the base noise is unchanged. Default: none.
+
+    Notes
+    -----
+    `offset` may also be an array of per-channel levels (file order).
     """
     rng = np.random.default_rng(psr.seed)
     data = rng.standard_normal((psr.nspec, psr.nchan), dtype=np.float32)
     data += pulse_signal(psr)
+    if chan_extra_noise is not None:
+        rng2 = np.random.default_rng(psr.seed + 1)
+        extra = np.asarray(chan_extra_noise, dtype=np.float32)
+        data += rng2.standard_normal((psr.nspec, psr.nchan), dtype=np.float32) * extra
+    if chan_gain is not None:
+        data *= np.asarray(chan_gain, dtype=np.float32)
     if scale is None:
         scale = {1: 1.0, 2: 1.0, 4: 3.0}.get(nbits, 12.0)
     if offset is None:

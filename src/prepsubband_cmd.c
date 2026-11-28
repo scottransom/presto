@@ -61,6 +61,8 @@ static Cmdline cmd = {
     /* invertP = */ 0,
     /***** -zerodm: Subtract the mean of all channels from each sample (i.e. remove zero DM) */
     /* zerodmP = */ 0,
+    /***** -flatten: Flatten the bandpass: subtract channel means, divide by channel standard deviations, and zero-weight bad channels (see the man page) */
+    /* flattenP = */ 0,
     /***** -runavg: Running mean subtraction from the input data */
     /* runavgP = */ 0,
     /***** -sub: Write subbands instead of de-dispersed data */
@@ -601,6 +603,13 @@ void showOptionValues(void)
         printf("-zerodm found:\n");
     }
 
+    /***** -flatten: Flatten the bandpass: subtract channel means, divide by channel standard deviations, and zero-weight bad channels (see the man page) */
+    if (!cmd.flattenP) {
+        printf("-flatten not found.\n");
+    } else {
+        printf("-flatten found:\n");
+    }
+
     /***** -runavg: Running mean subtraction from the input data */
     if (!cmd.runavgP) {
         printf("-runavg not found.\n");
@@ -780,7 +789,7 @@ void showOptionValues(void)
 
 void usage(void)
 {
-    fputs("   [-ncpus ncpus] -o outfile [-filterbank] [-psrfits] [-noweights] [-noscales] [-nooffsets] [-wapp] [-window] [-numwapps numwapps] [-if ifs] [-clip clip] [-noclip] [-invert] [-zerodm] [-runavg] [-sub] [-subdm subdm] [-numout numout] [-nobary] [-offset offset] [-start start] [-lodm lodm] [-dmstep dmstep] [-numdms numdms] [-nsub nsub] [-downsamp downsamp] [-dmprec dmprec] [-mask maskfile] [-ignorechan ignorechanstr] [--] infile ...\n", stderr);
+    fputs("   [-ncpus ncpus] -o outfile [-filterbank] [-psrfits] [-noweights] [-noscales] [-nooffsets] [-wapp] [-window] [-numwapps numwapps] [-if ifs] [-clip clip] [-noclip] [-invert] [-zerodm] [-flatten] [-runavg] [-sub] [-subdm subdm] [-numout numout] [-nobary] [-offset offset] [-start start] [-lodm lodm] [-dmstep dmstep] [-numdms numdms] [-nsub nsub] [-downsamp downsamp] [-dmprec dmprec] [-mask maskfile] [-ignorechan ignorechanstr] [--] infile ...\n", stderr);
     fputs("      Converts a raw radio data file into many de-dispersed time-series (including barycentering).\n", stderr);
     fputs("         -ncpus: Number of processors to use with OpenMP\n", stderr);
     fputs("                 1 int value between 1 and oo\n", stderr);
@@ -805,6 +814,7 @@ void usage(void)
     fputs("        -noclip: Do not clip the data.  (The default is to _always_ clip!)\n", stderr);
     fputs("        -invert: For rawdata, flip (or invert) the band\n", stderr);
     fputs("        -zerodm: Subtract the mean of all channels from each sample (i.e. remove zero DM)\n", stderr);
+    fputs("       -flatten: Flatten the bandpass: subtract channel means, divide by channel standard deviations, and zero-weight bad channels (see the man page)\n", stderr);
     fputs("        -runavg: Running mean subtraction from the input data\n", stderr);
     fputs("           -sub: Write subbands instead of de-dispersed data\n", stderr);
     fputs("         -subdm: The DM to use when de-dispersing subbands for -sub\n", stderr);
@@ -843,7 +853,7 @@ void usage(void)
     fputs("                 1 char* value\n", stderr);
     fputs("         infile: Input data file name.  If the data is not in a known raw format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n", stderr);
     fputs("                 1...16384 values\n", stderr);
-    fputs("  CLI code generated: 03Jul26\n", stderr);
+    fputs("  CLI code generated: 28Nov26\n", stderr);
     fputs("  ", stderr);
     exit(EXIT_FAILURE);
 }
@@ -959,6 +969,11 @@ Cmdline *parseCmdline(int argc, char **argv)
 
         if (0 == strcmp("-zerodm", argv[i])) {
             cmd.zerodmP = 1;
+            continue;
+        }
+
+        if (0 == strcmp("-flatten", argv[i])) {
+            cmd.flattenP = 1;
             continue;
         }
 

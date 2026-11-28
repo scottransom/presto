@@ -369,6 +369,34 @@ int main(int argc, char *argv[])
         MPI_Bcast(&good_padvals, 1, MPI_INT, 0, MPI_COMM_WORLD);
     }
 
+    /* Set up bandpass flattening if requested (before any offset).  The */
+    /* master measures the channels and sends the results to the nodes.  */
+    if (cmd->flattenP) {
+        if (RAWDATA) {
+            int numtimes = 0, numpad = s.num_channels;
+            if (myid == 0) {
+                flatten_init(&s, cmd->maskfileP ? cmd->maskfile : NULL, &obsmask,
+                             cmd->outfile);
+                numtimes = s.flatten->numtimes;
+            }
+            MPI_Bcast(&numtimes, 1, MPI_INT, 0, MPI_COMM_WORLD);
+            if (myid > 0)
+                flatten_alloc(&s, numtimes);
+            MPI_Bcast(&s.flatten->zerodm, 1, MPI_INT, 0, MPI_COMM_WORLD);
+            MPI_Bcast(s.flatten->specnums, numtimes, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+            MPI_Bcast(s.flatten->avgs, numtimes * numpad, MPI_FLOAT, 0, MPI_COMM_WORLD);
+            MPI_Bcast(s.flatten->stds, numpad, MPI_FLOAT, 0, MPI_COMM_WORLD);
+            MPI_Bcast(s.flatten->wts, numpad, MPI_FLOAT, 0, MPI_COMM_WORLD);
+            MPI_Bcast(s.flatten->flags, numpad, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
+            // flatten_init() may have set the padding values
+            MPI_Bcast(s.padvals, numpad, MPI_FLOAT, 0, MPI_COMM_WORLD);
+            if (myid > 0)
+                flatten_finish(&s);
+        } else if (myid == 0) {
+            printf("Warning:  -flatten only works on raw data.  Ignoring it.\n\n");
+        }
+    }
+
     // The number of topo to bary time points to generate
     numbarypts = (int) (s.T * 1.1 / TDT + 5.5) + 1;
 

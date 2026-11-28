@@ -792,6 +792,59 @@ dependency (Highway), and C++ in the build for the first time.
 
 ## Other open items
 
+### `-flatten` follow-ups (bandpass flattening, added 2026-11-28)
+
+`-flatten` (`src/flatten.c`) for prepdata/prepsubband/mpiprepsubband. On the GBT UWBR scan
+`~/data/UWBR/vegas_61355_83367_J2215+51_0007_0001.fits` (DM 69.2, folded at the
+`..._2.61ms_Cand.pfd` ephemeris with no search), J2215+5135 came out at:
+
+| | plain | `-flatten` |
+|---|---|---|
+| with the rfifind mask | 13.8σ | **15.1σ** |
+| no mask | 8.6σ | 7.1σ |
+
+To do, before or soon after committing:
+- [DONE 2026-11-28] mpiprepsubband `-flatten` under MPI (`mpirun -np 4`, Ter5 file): its
+  `.flatten` file is identical to prepsubband's, and Ter5A/N's accelsearch sigmas change
+  the same way (Ter5A at DM 242: 89.59 -> 89.73σ; prepsubband 89.20 -> 89.33σ).
+- **Find out why `-flatten` loses without a mask.** The suspected cause: flattening runs
+  after `clip_times()` (read → clip → mask → ignorechan → flatten), so clipping sees the raw
+  zero-DM sum, which the high-σ channels dominate. Impulsive RFI in low-gain channels gets
+  past the clipping, and 1/σ then amplifies it. Check that first (e.g. look at which
+  channels the clipped spectra come from). The likely fix is to flatten before clipping.
+  That needs the reader padding, the mask fill values and `clip_times()`'s running channel
+  levels (`s->padvals`) all in flattened units, which is why it wasn't done first.
+  But note: prepfold on the same raw file (folded at the `.pfd` ephemeris with `-topo
+  -nosearch`, 128 subbands, 64 parts) does *not* lose without a mask:
+
+  | | plain | `-flatten` | `-normalize` | both |
+  |---|---|---|---|---|
+  | mask | 14.8σ | **15.4σ** | 13.9σ | 15.0σ |
+  | no mask | 10.2σ | 13.3σ | 13.7σ | 14.7σ |
+
+  So the loss is specific to the 1-D dedispersed series (prepdata) and its fold. prepfold's
+  per-subband, per-part statistics probably soak up the RFI that hurts prepdata's series.
+  Worth understanding before changing the clipping order.
+- **Test clipping as the backup source of the statistics.** Without a `.stats` file, a
+  pre-pass reads 32 stretches spread through the file and keeps only the spectra that pass
+  `clip_times()`'s zero-DM cut. Compare that with taking the channel sigmas and means from
+  `clip_times()`'s own running estimates (clipping is on by default). The weights must
+  still be fixed for the whole observation, so this needs a warm-up or freeze step. Compare
+  both against the rfifind-stats path on the same data.
+- **A real-data test for `-flatten`.** The Ter5 test file (2-bit, 64 channels, a fairly flat
+  band) barely changes with `-flatten` (Ter5A/C/N within ~1%), so it isn't worth adding
+  there. Scott may make a downsampled (in time and/or frequency) raw file of GBT UWBR data,
+  which has dramatic channel-to-channel differences (σ ranging over 100×, dead stretches,
+  wide RFI bands), as a new `test-data-vN` release asset. Then test that `-flatten` zeroes
+  the expected channels and beats a plain fold or search of a known pulsar.
+- 2-bit data: in the Ter5 file, channel 57 (2318 MHz, SiriusXM band) has σ 3× below its
+  neighbours, so it gets the largest weight (5.7). It is probably mostly zeros, not low
+  gain. The σ/μ test that would catch it is off for 2-bit data. Consider a test suited to
+  low-bit data (e.g. the fraction of samples at the mean level).
+- [DONE 2026-11-28] `-flatten` for prepfold and prepfold_multi (hook in
+  `identify_and_open_input()`; prepfold_multi's cmd files hand-edited to match).
+  prepfold's `-normalize` is a different, post-fold operation and stays as it is.
+
 ### libpresto headers and soversion
 
 `libpresto` installs as an unversioned `.so` with **no headers** (only `presto.pc`), so nothing
@@ -799,6 +852,18 @@ can link against it from the conda package, and the recipe declares no `run_expo
 that up: install the headers under `include/presto/` (names like `mask.h`, `median.h`,
 `vectors.h` are too generic for a shared `include/`), give the library a `soversion:`, and only
 then add `run_exports` in the feedstock. Relevant to the C++/Highway question above.
+
+### mpiprepsubband output does not match prepsubband
+
+Found 2026-11-28 while testing `-flatten`, and present at HEAD (7f66332) without it: on the
+Ter5 test file (`-noscales -nooffsets -nsub 32 -downsamp 2 -mask`, barycentered),
+mpiprepsubband's `.dat` files lag prepsubband's by exactly 1024 output samples (one
+2048-spectrum raw block before downsampling). Even after shifting by that lag, they
+correlate only at 0.90 (rms difference ~0.45 of the series' σ). Ter5A's sigma is about the
+same (89.6 vs 89.2), but Ter5N's drops (10.4 vs 11.1). Likely the block bookkeeping on the
+nodes (`prep_subbands()` advances `currentspectra` itself under MPI; the first block primes
+the dedispersion) or the barycentric bin removal. Find out which is right; a test that
+mpiprepsubband reproduces prepsubband sample by sample would catch it.
 
 ### Make the pulsar-database code more robust
 

@@ -210,6 +210,7 @@ void spectra_info_set_defaults(struct spectra_info *s)
     s->files = NULL;
     s->fitsfiles = NULL;
     s->padvals = NULL;
+    s->flatten = NULL;
     s->header_offset = NULL;
     s->start_subint = NULL;
     s->num_subint = NULL;
@@ -525,7 +526,7 @@ int read_psrdata(float *fdata, int numspect, struct spectra_info *s,
 {
     int numread = 0;
     double starttime = 0.0;
-    long long ii, jj, templen, loffset;
+    long long ii, jj, templen, loffset, startspec = 0;
     static float *tmpswap, *rawdata1, *rawdata2;
     static float *currentdata, *lastdata;
     static int firsttime = 1, numsubints = 1, allocd = 0, mask = 0;
@@ -561,6 +562,7 @@ int read_psrdata(float *fdata, int numspect, struct spectra_info *s,
     /* Read, convert and de-disperse */
     if (allocd) {
         while (1) {
+            startspec = currentspectra;
             starttime = currentspectra * s->dt;
             numread = read_rawblocks(currentdata, numsubints, s, padding);
             if (mask)
@@ -601,6 +603,9 @@ int read_psrdata(float *fdata, int numspect, struct spectra_info *s,
                     }
                 }
             }
+
+            if (s->flatten)     // Bandpass flattening (and zero-DM) if requested
+                flatten_apply(currentdata, numspect, startspec, s);
 
             if (!firsttime)
                 float_dedisp(currentdata, lastdata, numspect, s->num_channels,
@@ -732,6 +737,9 @@ int prep_subbands(float *fdata, float *rawdata, int *delays, int numsubbands,
             }
         }
     }
+
+    if (s->flatten)     // Bandpass flattening (and zero-DM) if requested
+        flatten_apply(currentdata, s->spectra_per_subint, currentspectra, s);
 
     // In mpiprepsubband, the nodes do not call read_subbands() where
     // currentspectra gets incremented.
@@ -871,6 +879,9 @@ static void clean_rawblock(float *currentdata, float *rawdata,
             }
         }
     }
+
+    if (s->flatten)     // Bandpass flattening (and zero-DM) if requested
+        flatten_apply(currentdata, s->spectra_per_subint, currentspec, s);
 
     // Now transpose the raw block of data so that the times in each
     // channel are the most rapidly varying index
