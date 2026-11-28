@@ -806,6 +806,9 @@ int read_subbands(float *fdata, int *delays, int numsubbands,
             perror("Error: problem initializing prep_subbands() in read_subbands()");
             exit(-1);
         }
+        // The priming block counts too, so that the next block's mask
+        // (and -flatten) times are right.
+        currentspectra += s->spectra_per_subint;
         firsttime = 0;
     }
     if (!s->get_rawblock(frawdata, s, padding)) {
@@ -960,6 +963,8 @@ int read_clean_rawblock(rawblock_reader * reader, struct spectra_info *s,
                        reader->currentspectra, reader->tplan1, reader->mask,
                        maskchans, nummasked, obsmask);
         rawblock_reader_advance(reader);
+        // The priming block counts too, as in read_subbands()
+        reader->currentspectra += s->spectra_per_subint;
         reader->firsttime = 0;
         return 0;
     }
@@ -968,8 +973,7 @@ int read_clean_rawblock(rawblock_reader * reader, struct spectra_info *s,
     clean_rawblock(reader->current_clean, reader->frawdata, s,
                    reader->currentspectra, reader->tplan1, reader->mask,
                    maskchans, nummasked, obsmask);
-    // Increment AFTER cleaning, matching read_subbands(): the first real
-    // block is cleaned with currentspectra still at its primed value.
+    // Increment AFTER cleaning, matching read_subbands()
     reader->currentspectra += s->spectra_per_subint;
     return s->spectra_per_subint;
 }

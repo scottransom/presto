@@ -1,4 +1,17 @@
 ## Development (unreleased, since v6.3.3):
+ * **Fix `mpiprepsubband` dropping the start of the data**: for raw data, its nodes primed
+   the dedispersion with a whole extra pass of reads, so the output skipped the first
+   `blocksperread - 1` raw blocks while the `.inf` still gave the epoch of the first
+   spectrum (0.17 s too early for the Ter5 test file at DM 242). Folds or TOAs from those
+   `.dat` files were offset by that much. It now primes with one block, as `prepsubband`
+   does, and the two write identical `.dat` files when their subband DMs agree.
+   (`mpiprepsubband` makes subbands at each node's own average DM, so with a range of DMs
+   the outputs still differ slightly by design.)
+ * **Fix the mask timing in `prepsubband`, `prepfold` and `prepfold_multi`**: the raw-data
+   reader didn't count its first (priming) block, so each block was masked with the mask
+   entries of the block before it (`prepdata` was right). The data themselves were timed
+   correctly. The masked Ter5A reference fold in `tests/prepfold/goodfolds/` changes
+   slightly (reduced chi^2 1278.4 to 1279.3).
  * **New `-flatten` option for `prepdata`, `prepsubband`, `mpiprepsubband`, `prepfold`
    and `prepfold_multi`**: flattens the bandpass of raw data before dedispersion or
    folding. Each raw channel has its mean subtracted and is divided by its standard

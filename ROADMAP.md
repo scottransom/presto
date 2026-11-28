@@ -853,17 +853,17 @@ that up: install the headers under `include/presto/` (names like `mask.h`, `medi
 `vectors.h` are too generic for a shared `include/`), give the library a `soversion:`, and only
 then add `run_exports` in the feedstock. Relevant to the C++/Highway question above.
 
-### mpiprepsubband output does not match prepsubband
+### [DONE] mpiprepsubband output does not match prepsubband
 
-Found 2026-11-28 while testing `-flatten`, and present at HEAD (7f66332) without it: on the
-Ter5 test file (`-noscales -nooffsets -nsub 32 -downsamp 2 -mask`, barycentered),
-mpiprepsubband's `.dat` files lag prepsubband's by exactly 1024 output samples (one
-2048-spectrum raw block before downsampling). Even after shifting by that lag, they
-correlate only at 0.90 (rms difference ~0.45 of the series' σ). Ter5A's sigma is about the
-same (89.6 vs 89.2), but Ter5N's drops (10.4 vs 11.1). Likely the block bookkeeping on the
-nodes (`prep_subbands()` advances `currentspectra` itself under MPI; the first block primes
-the dedispersion) or the barycentric bin removal. Find out which is right; a test that
-mpiprepsubband reproduces prepsubband sample by sample would catch it.
+Fixed 2026-11-28. Two bugs: mpiprepsubband's nodes primed `prep_subbands()` with a whole
+extra pass of `blocksperread` blocks, dropping the first `blocksperread - 1` raw blocks (the
+1024-sample lag on Ter5); and `read_subbands()` (prepsubband, prepfold) and prepfold_multi's
+reader didn't count the priming block, so the mask was looked up one block early. Now the
+two programs write byte-identical `.dat` files on Ter5 (mask, clipping, barycentering,
+downsampling) when every DM trial is the same (`-dmstep 0`). With a DM range they still
+differ slightly by design: mpiprepsubband makes subbands at each node's average DM, and
+prepsubband at the global one. Still open: a test of that, which needs MPI in CI (or a
+skip-if-no-`mpirun` test using `-dmstep 0`).
 
 ### Make the pulsar-database code more robust
 

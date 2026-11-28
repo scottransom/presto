@@ -988,8 +988,6 @@ static int get_data(float **outdata, int blocksperread,
         blockdt = s->spectra_per_subint * s->dt;
         if (RAWDATA) {
             frawdata = gen_fvect(2 * s->num_channels * s->spectra_per_subint);
-            // To initialize the data reading and prep_subbands routines
-            firsttime = 2;
         }
         data1 = gen_fvect(cmd->nsub * worklen);
         data2 = gen_fvect(cmd->nsub * worklen);
@@ -1023,6 +1021,25 @@ static int get_data(float **outdata, int blocksperread,
             }
         }
 
+        if (RAWDATA) {
+            // Prime prep_subbands() on the nodes with the first raw block,
+            // as read_subbands() does in prepsubband.  That call only fills
+            // its previous-block buffer and returns 0.  (This used to be a
+            // whole extra pass of blocksperread blocks, which skipped the
+            // first blocksperread-1 blocks of data.)
+            int primed = 0;
+            if (myid == 0)
+                primed = s->get_rawblock(frawdata, s, &tmppad);
+            MPI_Bcast(&primed, 1, MPI_INT, 0, MPI_COMM_WORLD);
+            MPI_Bcast(&tmppad, 1, MPI_INT, 0, MPI_COMM_WORLD);
+            MPI_Bcast(frawdata, s->num_channels * s->spectra_per_subint,
+                      MPI_FLOAT, 0, MPI_COMM_WORLD);
+            if (myid > 0 && primed)
+                prep_subbands(currentdata, frawdata, idispdts, cmd->nsub, s,
+                              0, maskchans, &nummasked, obsmask);
+            if (tmppad)
+                *padding = 1;
+        }
     }
     while (1) {
         if (RAWDATA) {
