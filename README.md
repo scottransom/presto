@@ -8,6 +8,19 @@ PRESTO is a large suite of pulsar search and analysis software developed primari
 
 **PRESTO has discovered well over 1500 pulsars, including ~500 recycled and/or binary pulsars!**
 
+## Version 6.4.0:
+ * **New `-flatten` option** for `prepdata`, `prepsubband`, `mpiprepsubband`, `prepfold`
+   and `prepfold_multi`: it divides each raw channel by its standard deviation (after
+   removing its mean) and zero-weights bad channels (dead, RFI-filled, or far from their
+   neighbours). This helps a lot with very uneven bandpasses, such as the GBT UWBR's.
+   It uses the rfifind `.stats` file from `-mask` if there is one. See the man pages.
+ * **`mpiprepsubband` no longer drops the start of the data**: its `.dat` files began
+   one or more raw blocks later than their `.inf` epoch, which offset any folds or TOAs
+   made from them. It now matches `prepsubband`.
+ * The rfifind mask was applied one raw block late in `prepsubband` and `prepfold`.
+ * Fixes for MeerKAT polycos, `prepfold` on short `.dat` files, SIGPROC files with no
+   position, RA/Dec strings with 60 seconds, and `ppgplot` exceptions.
+
 ## Version 6.3.3:
  * **`accelsearch` is faster again**: with one thread ~1.25x faster than v6.3.2 and 1.6x
    faster than v5.0.0 (and ~8x faster than v5.3.1-v6.1.1), and with 8 threads 7.7x faster

@@ -1,4 +1,12 @@
-## Development (unreleased, since v6.3.3):
+## Development (unreleased, since v6.4.0):
+
+## Version 6.4.0:
+ * **Bandpass flattening with `-flatten`** in `prepdata`, `prepsubband`, `mpiprepsubband`,
+   `prepfold` and `prepfold_multi`, for receivers with very uneven bandpasses such as the
+   GBT's ultra-wideband receiver (UWBR). On a UWBR scan, `prepfold -flatten` detects
+   J2215+5135 at 15.4 sigma vs 14.8 without it (13.3 vs 10.2 without a mask).  Also two
+   timing fixes (`mpiprepsubband` dropped the start of the data; the mask was applied one
+   block late in `prepsubband`/`prepfold`) and several smaller fixes.
  * **Fix `mpiprepsubband` dropping the start of the data**: for raw data, its nodes primed
    the dedispersion with a whole extra pass of reads, so the output skipped the first
    `blocksperread - 1` raw blocks while the `.inf` still gave the epoch of the first
